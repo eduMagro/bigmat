@@ -1,0 +1,2 @@
+<img src="<?php echo e(asset('imagenes/logoBigmat.png')); ?>" wire:navigate alt="Bigmat" style="width: 100px">
+<?php /**PATH C:\xampp\htdocs\bigmat\resources\views/components/application-logo.blade.php ENDPATH**/ ?>

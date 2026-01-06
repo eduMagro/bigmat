@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer require:*)",
+      "Bash(php artisan:*)",
+      "Bash(php -r \"chdir\\(''C:/xampp/htdocs/manager''\\); passthru\\(''php artisan festivos:sincronizar 2026''\\);\")",
+      "Bash(dir:*)",
+      "Bash(php -r:*)",
+      "Bash(/c/xampp/mysql/bin/mysql:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
