@@ -56,7 +56,29 @@
 
         <!-- Sección de Aprobaciones -->
         <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Aprobaciones</h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Aprobaciones</h2>
+                @if (!$incorporacion->requiere_aprobacion)
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Sin aprobacion requerida
+                    </span>
+                @endif
+            </div>
+            @if (!$incorporacion->requiere_aprobacion && $incorporacion->user_id)
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-sm text-green-700">
+                            Esta incorporacion no requeria aprobacion. El usuario fue creado automaticamente al completar el formulario.
+                        </p>
+                    </div>
+                </div>
+            @endif
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Aprobación RRHH -->
                 <div

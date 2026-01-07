@@ -145,6 +145,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/empresas/obras/store', [EmpresaController::class, 'storeObra'])->name('empresas.obras.store');
     Route::post('/empresas/obras/update-field', [EmpresaController::class, 'updateObraField'])->name('empresas.obras.updateField');
     Route::post('/empresas/obras/destroy', [EmpresaController::class, 'destroyObra'])->name('empresas.obras.destroy');
+    Route::post('/empresas/categorias/store', [EmpresaController::class, 'storeCategoria'])->name('empresas.categorias.store');
+    Route::post('/empresas/categorias/update-field', [EmpresaController::class, 'updateCategoriaField'])->name('empresas.categorias.updateField');
+    Route::post('/empresas/categorias/destroy', [EmpresaController::class, 'destroyCategoria'])->name('empresas.categorias.destroy');
     Route::resource('convenios', ConvenioController::class);
     Route::resource('irpf-tramos', IrpfTramoController::class);
     Route::resource('seguridad-social', SeguridadSocialController::class);

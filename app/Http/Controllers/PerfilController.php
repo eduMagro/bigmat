@@ -32,6 +32,7 @@ class PerfilController extends Controller
             'alertasLeidas',
             'asignacionesTurnos.turno',
             'permisosAcceso',
+            'incorporacion',
         ])->findOrFail($user->id);
 
         // Turnos disponibles para mostrarlos si hace falta
@@ -113,39 +114,57 @@ class PerfilController extends Controller
         $horasTrabajadas = 0;
         $diasConErrores = 0;
         $diasHastaHoy = 0;
-        $totalAsignacionesMes = $asignacionesMes->count(); // todas las asignaciones activas del mes
+        $totalAsignacionesMes = $asignacionesMes->count();
 
         foreach ($asignacionesMes as $asignacion) {
-            // Solo para horas hasta hoy
             if ($asignacion->fecha <= $hoy) {
                 $diasHastaHoy++;
             }
 
+            $horasDia = 0;
+            $tieneError = false;
+
+            // Primera jornada
             $horaEntrada = $asignacion->entrada ? Carbon::parse($asignacion->entrada) : null;
             $horaSalida = $asignacion->salida ? Carbon::parse($asignacion->salida) : null;
 
             if ($horaEntrada && $horaSalida) {
-                $horasDia = $horaSalida->diffInMinutes($horaEntrada) / 60;
-                if ($horasDia < 8) {
-                    $horasDia = 8;
-                }
-                $horasTrabajadas += $horasDia;
-            } else {
-                // 👉 Sólo contar error si la fecha ya pasó o es hoy
-                if ($asignacion->fecha < $hoy) {
-                    $diasConErrores++;
-                }
+                $horasDia += $horaSalida->diffInMinutes($horaEntrada) / 60;
+            } elseif ($asignacion->fecha < $hoy) {
+                $tieneError = true;
+            }
+
+            // Segunda jornada (turno partido)
+            $horaEntrada2 = $asignacion->entrada2 ? Carbon::parse($asignacion->entrada2) : null;
+            $horaSalida2 = $asignacion->salida2 ? Carbon::parse($asignacion->salida2) : null;
+
+            if ($horaEntrada2 && $horaSalida2) {
+                $horasDia += $horaSalida2->diffInMinutes($horaEntrada2) / 60;
+            } elseif ($horaEntrada2 && !$horaSalida2 && $asignacion->fecha < $hoy) {
+                // Tiene entrada2 pero no salida2 y ya pasó el día
+                $tieneError = true;
+            }
+
+            // Si no tiene horas registradas, usar 8 horas por defecto
+            if ($horasDia == 0 && $horaEntrada && $horaSalida) {
+                $horasDia = 8;
+            }
+
+            $horasTrabajadas += $horasDia;
+
+            if ($tieneError) {
+                $diasConErrores++;
             }
         }
 
         // Horas que debería llevar hasta hoy
         $horasDeberiaLlevar = ($diasHastaHoy) * 8;
 
-        // Horas planificadas en el mes completo (todas las asignaciones activas × 8)
+        // Horas planificadas en el mes completo
         $horasPlanificadasMes = $totalAsignacionesMes * 8;
 
         return [
-            'horas_trabajadas' => $horasTrabajadas,
+            'horas_trabajadas' => round($horasTrabajadas, 2),
             'horas_deberia_llevar' => $horasDeberiaLlevar,
             'dias_con_errores' => $diasConErrores,
             'horas_planificadas_mes' => $horasPlanificadasMes,

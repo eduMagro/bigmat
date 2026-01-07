@@ -580,70 +580,38 @@ class ProfileController extends Controller
     {
         return $user->asignacionesTurnos->flatMap(function ($asignacion) {
             $eventos = [];
-
-            // Extraer solo la fecha (YYYY-MM-DD) para evitar "double time specification"
             $soloFecha = Carbon::parse($asignacion->fecha)->format('Y-m-d');
 
-            if ($asignacion->entrada && strlen($asignacion->entrada) >= 5) {
-                try {
-                    // Usar solo los primeros 8 caracteres (HH:MM:SS) o 5 (HH:MM)
-                    $horaEntrada = substr(trim($asignacion->entrada), 0, 8);
-                    $startEntrada = Carbon::createFromFormat('Y-m-d H:i:s', "{$soloFecha} {$horaEntrada}", 'Europe/Madrid')
-                        ?? Carbon::createFromFormat('Y-m-d H:i', "{$soloFecha} " . substr($horaEntrada, 0, 5), 'Europe/Madrid');
+            // Helper para formatear hora
+            $formatHora = fn($hora) => $hora ? substr(trim($hora), 0, 5) : null;
 
-                    if ($startEntrada) {
-                        $eventos[] = [
-                            'id' => 'entrada-' . $asignacion->id,
-                            'title' => '🟢 ' . substr($horaEntrada, 0, 5),
-                            'start' => $startEntrada->toIso8601String(),
-                            'end' => $startEntrada->copy()->addMinutes(1)->toIso8601String(),
-                            'color' => '#28a745',
-                            'textColor' => '#ffffff',
-                            'allDay' => false,
-                            'display' => 'auto',
-                            'extendedProps' => [
-                                'tipo' => 'entrada',
-                                'asignacion_id' => $asignacion->id,
-                                'fecha' => $soloFecha,
-                                'entrada' => $asignacion->entrada,
-                                'salida' => $asignacion->salida,
-                            ],
-                        ];
-                    }
-                } catch (\Exception $e) {
-                    // Ignorar registros con formato inválido
-                }
-            }
+            $entrada1 = $formatHora($asignacion->entrada);
+            $salida1 = $formatHora($asignacion->salida);
+            $entrada2 = $formatHora($asignacion->entrada2);
+            $salida2 = $formatHora($asignacion->salida2);
 
-            if ($asignacion->salida && strlen($asignacion->salida) >= 5) {
-                try {
-                    // Usar solo los primeros 8 caracteres (HH:MM:SS) o 5 (HH:MM)
-                    $horaSalida = substr(trim($asignacion->salida), 0, 8);
-                    $startSalida = Carbon::createFromFormat('Y-m-d H:i:s', "{$soloFecha} {$horaSalida}", 'Europe/Madrid')
-                        ?? Carbon::createFromFormat('Y-m-d H:i', "{$soloFecha} " . substr($horaSalida, 0, 5), 'Europe/Madrid');
-
-                    if ($startSalida) {
-                        $eventos[] = [
-                            'id' => 'salida-' . $asignacion->id,
-                            'title' => '🔴 ' . substr($horaSalida, 0, 5),
-                            'start' => $startSalida->toIso8601String(),
-                            'end' => $startSalida->copy()->addMinutes(1)->toIso8601String(),
-                            'color' => '#dc3545',
-                            'textColor' => '#ffffff',
-                            'allDay' => false,
-                            'display' => 'auto',
-                            'extendedProps' => [
-                                'tipo' => 'salida',
-                                'asignacion_id' => $asignacion->id,
-                                'fecha' => $soloFecha,
-                                'entrada' => $asignacion->entrada,
-                                'salida' => $asignacion->salida,
-                            ],
-                        ];
-                    }
-                } catch (\Exception $e) {
-                    // Ignorar registros con formato inválido
-                }
+            // Evento único de fichajes con todas las jornadas
+            if ($entrada1 || $salida1 || $entrada2 || $salida2) {
+                $eventos[] = [
+                    'id' => "fichajes-{$asignacion->id}",
+                    'start' => $soloFecha,
+                    'allDay' => true,
+                    'display' => 'block',
+                    'order' => 10,
+                    'classNames' => ['fichaje-evento'],
+                    'backgroundColor' => 'transparent',
+                    'borderColor' => 'transparent',
+                    'extendedProps' => [
+                        'tipo' => 'fichajes',
+                        'asignacion_id' => $asignacion->id,
+                        'fecha' => $soloFecha,
+                        'entrada1' => $entrada1,
+                        'salida1' => $salida1,
+                        'entrada2' => $entrada2,
+                        'salida2' => $salida2,
+                        'tieneSegundaJornada' => ($entrada2 || $salida2) ? true : false,
+                    ],
+                ];
             }
 
             return $eventos;
@@ -1438,6 +1406,9 @@ class ProfileController extends Controller
         if (auth()->user()->rol !== 'oficina' && auth()->id() !== $user->id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
+
+        // Cargar relación incorporacion para obtener fecha_incorporacion_efectiva
+        $user->load('incorporacion');
 
         // Usar la fecha clickeada si se proporciona, sino la fecha actual
         $fechaReferencia = $request->input('fecha') ? Carbon::parse($request->input('fecha')) : Carbon::now();

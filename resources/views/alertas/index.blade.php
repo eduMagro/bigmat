@@ -768,143 +768,65 @@
     @endif
 
 
-    <!-- Modal de mensaje -->
-    <div id="modalVerMensaje"
-        class="fixed inset-0 bg-black bg-opacity-60 hidden items-end md:items-center justify-center z-50 transition-opacity duration-300 p-0 md:p-4"
-        onclick="cerrarModalMensaje()">
-        <div class="bg-white rounded-t-2xl md:rounded-xl shadow-2xl w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] overflow-y-auto transform transition-all duration-300"
-            onclick="event.stopPropagation()">
+    <!-- Modal Chat Moderno -->
+    <div id="modalVerMensaje" class="fixed inset-0 z-50 hidden" onclick="cerrarModalMensaje()">
+        <!-- Overlay con blur -->
+        <div class="modal-overlay absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
 
-            <!-- Indicador visual de modal móvil -->
-            <div class="md:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-2"></div>
+        <!-- Contenedor del modal -->
+        <div class="absolute inset-0 flex items-end md:items-center justify-center p-0 md:p-6">
+            <div class="modal-content bg-white w-full md:max-w-[440px] md:rounded-2xl shadow-2xl flex flex-col max-h-[100dvh] md:max-h-[80vh] overflow-hidden"
+                onclick="event.stopPropagation()">
 
-            <!-- Header del modal -->
-            <div
-                class="bg-gradient-to-r from-blue-600 to-blue-500 px-4 md:px-6 py-4 md:rounded-t-xl flex items-center justify-between sticky top-0 z-10">
-                <div class="flex items-center space-x-2 md:space-x-3">
-                    <svg class="w-5 h-5 md:w-6 md:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                <!-- Header -->
+                <div class="bg-emerald-600 px-4 py-3 flex items-center gap-3 shrink-0">
+                    <button onclick="cerrarModalMensaje()" class="text-white p-1.5 hover:bg-emerald-700 rounded-lg transition-all -ml-1">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <svg class="w-6 h-6 shrink-0" fill="white" viewBox="0 0 24 24">
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
                     </svg>
-                    <h2 class="text-lg md:text-xl font-bold text-white">Mensaje</h2>
-                </div>
-                <button onclick="cerrarModalMensaje()"
-                    class="text-white hover:text-gray-200 transition-colors duration-150 p-2 hover:bg-blue-700 rounded-lg active:scale-95">
-                    <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Contenido del modal -->
-            <div class="p-4 md:p-6">
-                <!-- Mensaje en modo edición (inicialmente oculto) -->
-                <textarea id="textareaMensaje"
-                    class="w-full mt-2 p-3 md:p-4 border-2 border-blue-300 rounded-lg hidden text-sm md:text-base text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    rows="6" placeholder="Escribe tu mensaje aquí..."></textarea>
-
-                <!-- Hilo de conversación (siempre visible ahora) -->
-                <div id="hiloConversacion" class="">
-                    <div
-                        class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-lg px-4 py-2 flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Conversación
-                        </h3>
-                        <span id="contadorRespuestas"
-                            class="text-xs text-white bg-white bg-opacity-20 px-2 py-0.5 rounded-full font-medium"></span>
-                    </div>
-                    <div id="hiloContenido"
-                        class="min-h-[200px] max-h-96 overflow-y-auto bg-gray-100 rounded-b-lg p-4 border-x border-b border-gray-200"
-                        style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdi0yMGgtNjB6IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2EpIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+'); background-color: #f3f4f6;">
-                        <!-- Se llenará dinámicamente con el mensaje padre + respuestas -->
+                    <div class="flex-1 min-w-0">
+                        <h2 id="headerNombreContacto" class="text-white text-lg font-semibold truncate">Conversacion</h2>
+                        <p id="contadorRespuestas" class="text-emerald-200 text-sm"></p>
                     </div>
                 </div>
 
-                <!-- Formulario de respuesta (inicialmente oculto) -->
-                <div id="seccionRespuesta" class="mt-4 hidden">
-                    <div class="border-t border-gray-200 pt-4">
-                        <label for="textoRespuesta" class="block text-sm font-semibold text-gray-700 mb-2">
-                            Tu respuesta:
-                        </label>
+                <!-- Area de chat -->
+                <div id="hiloContenido" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-slate-50 to-slate-100 min-h-[280px]">
+                    <!-- Mensajes -->
+                </div>
+
+                <!-- Input -->
+                <div class="bg-white border-t border-slate-200 px-3 py-2 flex items-center gap-3 shrink-0">
+                    <div class="flex-1 bg-slate-100 rounded-2xl overflow-hidden transition-all duration-200 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500/30">
                         <textarea id="textoRespuesta"
-                            class="w-full p-3 border-2 border-green-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
-                            rows="4" placeholder="Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)"
-                            onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); enviarRespuesta(); }"></textarea>
+                            class="w-full resize-none border-0 bg-transparent focus:ring-0 focus:outline-none text-[15px] text-slate-800 leading-6 placeholder-slate-400 py-2.5 px-4 block"
+                            rows="1" placeholder="Escribe un mensaje..."
+                            oninput="ajustarAlturaTextarea(this)"
+                            onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); enviarRespuesta(); }"
+                            style="height: 44px; max-height: 120px; overflow-y: auto;"></textarea>
                     </div>
-                </div>
-
-                <!-- Botones de acción -->
-                <div class="flex-col sm:flex-row justify-end gap-2 md:gap-3 mt-4 md:mt-6 hidden" id="botonesEdicion">
-                    <button onclick="iniciarEdicionAlerta()"
-                        class="inline-flex items-center justify-center px-4 md:px-5 py-2.5 md:py-2.5 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-medium rounded-lg transition-colors duration-150 shadow-md active:scale-95"
-                        id="botonEditar">
-                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    <button onclick="enviarRespuesta()" id="btnEnviarMensaje"
+                        class="w-11 h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-150">
+                        <svg class="w-5 h-5 ml-0.5" fill="white" viewBox="0 0 24 24">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
-                        Editar
                     </button>
-
-                    <div id="botonesGuardarCancelar" class="hidden flex-col sm:flex-row gap-2 md:gap-3">
-                        <button onclick="guardarEdicionAlerta()"
-                            class="inline-flex items-center justify-center px-4 md:px-5 py-2.5 md:py-2.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium rounded-lg transition-colors duration-150 shadow-md active:scale-95">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                            </svg>
-                            Guardar
-                        </button>
-                        <button onclick="cancelarEdicionAlerta()"
-                            class="inline-flex items-center justify-center px-4 md:px-5 py-2.5 md:py-2.5 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-150 shadow-md active:scale-95">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Cancelar
-                        </button>
-                    </div>
                 </div>
 
-                <!-- Botones de respuesta (para mensajes entrantes) -->
-                <div id="botonesRespuesta"
-                    class="flex-col sm:flex-row justify-end gap-2 md:gap-3 mt-4 md:mt-6 hidden">
-                    <button onclick="activarRespuesta()"
-                        class="inline-flex items-center justify-center px-4 md:px-5 py-2.5 md:py-2.5 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-medium rounded-lg transition-colors duration-150 shadow-md active:scale-95"
-                        id="botonContestar">
-                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                        </svg>
-                        Contestar
-                    </button>
-
-                    <div id="botonesEnviarCancelarRespuesta" class="flex-col sm:flex-row gap-2 md:gap-3 hidden">
-                        <button onclick="cancelarRespuesta()"
-                            class="inline-flex items-center justify-center px-4 md:px-5 py-2.5 md:py-2.5 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-150 shadow-md active:scale-95">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Cancelar
-                        </button>
-                        <button onclick="enviarRespuesta()"
-                            class="inline-flex items-center justify-center px-4 md:px-5 py-2.5 md:py-2.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium rounded-lg transition-colors duration-150 shadow-md active:scale-95">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                            </svg>
-                            Enviar Respuesta
-                        </button>
-                    </div>
-                </div>
+                <!-- Elementos ocultos -->
+                <div id="hiloConversacion" class="hidden"></div>
+                <textarea id="textareaMensaje" class="hidden"></textarea>
+                <div id="botonesEdicion" class="hidden"></div>
+                <div id="botonesRespuesta" class="hidden"></div>
+                <div id="botonesGuardarCancelar" class="hidden"></div>
+                <div id="botonesEnviarCancelarRespuesta" class="hidden"></div>
+                <button id="botonEditar" class="hidden"></button>
+                <button id="botonContestar" class="hidden"></button>
+                <div id="seccionRespuesta" class="hidden"></div>
             </div>
         </div>
     </div>
@@ -1018,16 +940,47 @@
 
             // --- Definición de funciones globales para onclick ---
 
+            window.ajustarAlturaTextarea = function(el) {
+                el.style.height = '44px';
+                el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+            }
+
+            window.abrirModalMensaje = function() {
+                const modal = document.getElementById('modalVerMensaje');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    // Trigger reflow
+                    modal.offsetHeight;
+                    modal.classList.add('show');
+                    modal.classList.remove('closing');
+                }
+            }
+
             window.cerrarModalMensaje = function() {
                 const modal = document.getElementById('modalVerMensaje');
                 if (modal) {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
+                    modal.classList.add('closing');
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('closing');
+
+                        // Limpiar contenido
+                        const texto = document.getElementById('textoRespuesta');
+                        if (texto) {
+                            texto.value = '';
+                            texto.style.height = '44px';
+                        }
+                        const hiloContenido = document.getElementById('hiloContenido');
+                        if (hiloContenido) hiloContenido.innerHTML = '';
+
+                        // Reset header
+                        const headerNombre = document.getElementById('headerNombreContacto');
+                        if (headerNombre) headerNombre.textContent = 'Conversacion';
+                        const contador = document.getElementById('contadorRespuestas');
+                        if (contador) contador.textContent = '';
+                    }, 350);
                 }
-                const seccion = document.getElementById('seccionRespuesta');
-                if (seccion) seccion.classList.add('hidden');
-                const texto = document.getElementById('textoRespuesta');
-                if (texto) texto.value = '';
             }
 
             window.eliminarAlerta = function(alertaId = null) {
@@ -1255,9 +1208,7 @@
                 btnEnvResp.classList.add('hidden');
                 btnEnvResp.classList.remove('flex');
 
-                const modal = document.getElementById('modalVerMensaje');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
+                abrirModalMensaje();
             }
 
             window.actualizarContadorAlertas = function() {
@@ -1284,9 +1235,15 @@
                         if (data.success && data.hilo) {
                             const hiloContenido = document.getElementById('hiloContenido');
                             hiloContenido.innerHTML = '';
+
+                            // Actualizar header con nombre del contacto
+                            const headerNombre = document.getElementById('headerNombreContacto');
+                            if (headerNombre && data.contacto) {
+                                headerNombre.textContent = data.contacto;
+                            }
+
                             mostrarMensajePadre(data.hilo);
-                            const totalRespuestas = data.hilo.respuestas ? contarRespuestas(data.hilo
-                                .respuestas) : 0;
+                            const totalRespuestas = data.hilo.respuestas ? contarRespuestas(data.hilo.respuestas) : 0;
                             const totalMensajes = totalRespuestas + 1;
                             document.getElementById('contadorRespuestas').textContent =
                                 `${totalMensajes} ${totalMensajes === 1 ? 'mensaje' : 'mensajes'}`;
@@ -1305,28 +1262,19 @@
             window.mostrarMensajePadre = function(mensaje) {
                 const hiloContenido = document.getElementById('hiloContenido');
                 const esPropio = mensaje.es_propio;
-                const alineacion = esPropio ? 'justify-end' : 'justify-start';
-                const bgColor = esPropio ? 'bg-blue-500' : 'bg-green-500';
-                const textColor = 'text-white';
-                const borderRadius = esPropio ? 'rounded-l-2xl rounded-tr-2xl rounded-br-md' :
-                    'rounded-r-2xl rounded-tl-2xl rounded-bl-md';
+                const bubbleClass = esPropio ? 'chat-bubble-out' : 'chat-bubble-in';
 
                 const mensajeDiv = document.createElement('div');
-                mensajeDiv.className = `flex ${alineacion} mb-4 animate-fade-in`;
+                mensajeDiv.className = `flex ${esPropio ? 'justify-end' : 'justify-start'}`;
                 mensajeDiv.innerHTML = `
-                <div class="flex flex-col max-w-[75%]">
-                    <div class="${bgColor} ${textColor} ${borderRadius} px-4 py-3 shadow-md">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-sm">${mensaje.emisor}</span>
-                            <span class="px-2 py-0.5 bg-white bg-opacity-20 text-xs rounded-full font-medium">
-                                📌
-                            </span>
-                        </div>
-                        <p class="text-sm leading-relaxed whitespace-pre-wrap">${mensaje.mensaje}</p>
+                <div class="chat-bubble ${bubbleClass} max-w-[85%] px-4 py-2.5">
+                    ${!esPropio ? `<p class="text-xs font-semibold text-emerald-600 mb-1">${mensaje.emisor}</p>` : ''}
+                    <p class="text-[15px] text-slate-800 leading-relaxed whitespace-pre-wrap">${mensaje.mensaje}</p>
+                    <div class="flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5">
+                        <span class="text-[11px] text-slate-500">${mensaje.created_at}</span>
+                        ${esPropio ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
                     </div>
-                    <span class="text-xs text-gray-500 mt-1 ${esPropio ? 'text-right' : 'text-left'} px-2">${mensaje.created_at}</span>
-                </div>
-            `;
+                </div>`;
                 hiloContenido.appendChild(mensajeDiv);
             }
 
@@ -1340,56 +1288,26 @@
                 return total;
             }
 
-            window.mostrarMensajeEnHilo = function(mensaje, nivel, esRaiz = false) {
-                const hiloContenido = document.getElementById('hiloContenido');
-                const margenIzquierdo = nivel * 20;
-                const esPropio = mensaje.es_propio;
-                const colorBorde = esPropio ? 'border-blue-500' : 'border-green-500';
-                const colorFondo = esPropio ? 'bg-blue-50' : 'bg-green-50';
-                const etiquetaRaiz = esRaiz ?
-                    '<span class="ml-2 px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">Mensaje original</span>' :
-                    '';
-
-                const mensajeDiv = document.createElement('div');
-                mensajeDiv.className = `border-l-4 ${colorBorde} ${colorFondo} rounded-r-lg p-3 mb-2 shadow-sm`;
-                mensajeDiv.style.marginLeft = `${margenIzquierdo}px`;
-                mensajeDiv.innerHTML = `
-                <div class="flex items-start justify-between mb-1">
-                    <p class="text-xs font-bold ${esPropio ? 'text-blue-700' : 'text-green-700'}">
-                        ${mensaje.emisor}${etiquetaRaiz}
-                    </p>
-                    <span class="text-xs text-gray-500">${mensaje.created_at}</span>
-                </div>
-                <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">${mensaje.mensaje}</p>
-            `;
-                hiloContenido.appendChild(mensajeDiv);
-            }
-
             window.mostrarHilo = function(respuestas, nivel = 0) {
                 const hiloContenido = document.getElementById('hiloContenido');
-                respuestas.forEach(respuesta => {
+                respuestas.forEach((respuesta, index) => {
                     const esPropio = respuesta.es_propio;
-                    const alineacion = esPropio ? 'justify-end' : 'justify-start';
-                    const bgColor = esPropio ? 'bg-blue-500' : 'bg-green-500';
-                    const textColor = 'text-white';
-                    const borderRadius = esPropio ? 'rounded-l-2xl rounded-tr-2xl rounded-br-md' :
-                        'rounded-r-2xl rounded-tl-2xl rounded-bl-md';
 
                     const respuestaDiv = document.createElement('div');
-                    respuestaDiv.className = `flex ${alineacion} mb-3 animate-fade-in`;
-                    respuestaDiv.style.marginLeft = `${nivel * 12}px`;
+                    respuestaDiv.className = `flex ${esPropio ? 'justify-end' : 'justify-start'}`;
+                    respuestaDiv.style.animationDelay = `${index * 50}ms`;
+
+                    const bubbleClass = esPropio ? 'chat-bubble-out' : 'chat-bubble-in';
 
                     respuestaDiv.innerHTML = `
-                    <div class="flex flex-col max-w-[75%]">
-                        <div class="${bgColor} ${textColor} ${borderRadius} px-4 py-2.5 shadow-md hover:shadow-lg transition-shadow">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="font-semibold text-sm">${respuesta.emisor}</span>
-                            </div>
-                            <p class="text-sm leading-relaxed whitespace-pre-wrap">${respuesta.mensaje}</p>
+                    <div class="chat-bubble ${bubbleClass} max-w-[85%] px-4 py-2.5">
+                        ${!esPropio ? `<p class="text-xs font-semibold text-emerald-600 mb-1">${respuesta.emisor}</p>` : ''}
+                        <p class="text-[15px] text-slate-800 leading-relaxed whitespace-pre-wrap">${respuesta.mensaje}</p>
+                        <div class="flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5">
+                            <span class="text-[11px] text-slate-500">${respuesta.created_at}</span>
+                            ${esPropio ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
                         </div>
-                        <span class="text-xs text-gray-500 mt-1 ${esPropio ? 'text-right' : 'text-left'} px-2">${respuesta.created_at}</span>
-                    </div>
-                `;
+                    </div>`;
                     hiloContenido.appendChild(respuestaDiv);
 
                     if (respuesta.respuestas && respuesta.respuestas.length > 0) {
@@ -1399,24 +1317,10 @@
             }
 
             window.activarRespuesta = function() {
-                document.getElementById('seccionRespuesta').classList.remove('hidden');
-                document.getElementById('botonContestar').classList.add('hidden');
-
-                const btnEnvResp = document.getElementById('botonesEnviarCancelarRespuesta');
-                btnEnvResp.classList.remove('hidden');
-                btnEnvResp.classList.add('flex');
-
                 document.getElementById('textoRespuesta').focus();
             }
 
             window.cancelarRespuesta = function() {
-                document.getElementById('seccionRespuesta').classList.add('hidden');
-                document.getElementById('botonContestar').classList.remove('hidden');
-
-                const btnEnvResp = document.getElementById('botonesEnviarCancelarRespuesta');
-                btnEnvResp.classList.add('hidden');
-                btnEnvResp.classList.remove('flex');
-
                 document.getElementById('textoRespuesta').value = '';
             }
 
@@ -1522,45 +1426,86 @@
         document.addEventListener('livewire:navigated', window.initAlertasIndexPage);
     </script>
     <style>
-        /* Animación para mensajes estilo chat */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
+        /* ===== ANIMACIONES DEL MODAL ===== */
+        #modalVerMensaje .modal-overlay {
+            opacity: 0;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #modalVerMensaje .modal-content {
+            opacity: 0;
+            transform: translateY(100%) scale(0.95);
+            transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        @media (min-width: 768px) {
+            #modalVerMensaje .modal-content {
+                transform: translateY(30px) scale(0.95);
             }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
+        }
+        #modalVerMensaje.show .modal-overlay {
+            opacity: 1;
+        }
+        #modalVerMensaje.show .modal-content {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        #modalVerMensaje.closing .modal-overlay {
+            opacity: 0;
+        }
+        #modalVerMensaje.closing .modal-content {
+            opacity: 0;
+            transform: translateY(100%) scale(0.95);
+        }
+        @media (min-width: 768px) {
+            #modalVerMensaje.closing .modal-content {
+                transform: translateY(30px) scale(0.95);
             }
         }
 
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out;
+        /* ===== MENSAJES ===== */
+        #hiloContenido > div {
+            animation: msgAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes msgAppear {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Mejora del scroll en el contenedor de mensajes */
+        /* ===== SCROLL ===== */
         #hiloContenido {
             scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.12) transparent;
         }
-
-        /* Estilo del scroll */
-        #hiloContenido::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #hiloContenido::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-        }
-
+        #hiloContenido::-webkit-scrollbar { width: 6px; }
+        #hiloContenido::-webkit-scrollbar-track { background: transparent; }
         #hiloContenido::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(0,0,0,0.12);
             border-radius: 10px;
         }
-
         #hiloContenido::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0,0,0,0.2);
+        }
+
+        /* ===== INPUT ===== */
+        #textoRespuesta:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* ===== BURBUJAS MODERNAS ===== */
+        .chat-bubble {
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .chat-bubble-out {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-radius: 18px 18px 4px 18px;
+        }
+        .chat-bubble-in {
+            background: white;
+            border-radius: 18px 18px 18px 4px;
+            border: 1px solid rgba(0,0,0,0.04);
         }
     </style>
 </x-app-layout>

@@ -79,7 +79,6 @@ class User extends Authenticatable
         'password' => 'hashed',
         'puede_usar_asistente' => 'boolean',
         'puede_modificar_bd' => 'boolean',
-        'fecha_incorporacion' => 'date',
     ];
     public function getRutaImagenAttribute()
     {
@@ -108,7 +107,7 @@ class User extends Authenticatable
 
     public function getFechaIncorporacionEfectivaAttribute()
     {
-        return $this->incorporacion?->fecha_incorporacion ?? $this->fecha_incorporacion;
+        return $this->incorporacion?->fecha_incorporacion;
     }
 
     /**

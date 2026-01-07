@@ -931,6 +931,59 @@
                 );
             },
 
+            // Renderizado personalizado para fichajes
+            eventContent: function (arg) {
+                const event = arg.event;
+                const props = event.extendedProps || {};
+                const classNames = event.classNames || [];
+
+                // Solo para eventos de fichajes
+                if (classNames.includes('fichaje-evento')) {
+                    const entrada1 = props.entrada1 || null;
+                    const salida1 = props.salida1 || null;
+                    const entrada2 = props.entrada2 || null;
+                    const salida2 = props.salida2 || null;
+                    const tieneSegundaJornada = props.tieneSegundaJornada || false;
+
+                    let html = `<div class="fichajes-container${tieneSegundaJornada ? ' dos-jornadas' : ''}">`;
+
+                    // Primera jornada
+                    if (entrada1 || salida1) {
+                        html += `<div class="jornada jornada-1">`;
+                        if (tieneSegundaJornada) {
+                            html += `<span class="jornada-label">1ª</span>`;
+                        }
+                        if (entrada1) {
+                            html += `<span class="hora-entrada">${entrada1}</span>`;
+                        }
+                        if (salida1) {
+                            html += `<span class="hora-salida">${salida1}</span>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    // Segunda jornada
+                    if (entrada2 || salida2) {
+                        html += `<div class="jornada jornada-2">`;
+                        html += `<span class="jornada-label">2ª</span>`;
+                        if (entrada2) {
+                            html += `<span class="hora-entrada">${entrada2}</span>`;
+                        }
+                        if (salida2) {
+                            html += `<span class="hora-salida">${salida2}</span>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+
+                    return { html: html };
+                }
+
+                // Para otros eventos, usar el renderizado por defecto
+                return null;
+            },
+
             // Click en evento para mostrar tooltip con detalles
             eventClick: function (info) {
                 const event = info.event;

@@ -12,6 +12,7 @@ class Incorporacion extends Model
     protected $fillable = [
         'token',
         'estado',
+        'requiere_aprobacion',
         'empresa_destino',
         'puesto',
         'name',
@@ -49,6 +50,7 @@ class Incorporacion extends Model
         'recordatorio_enviado_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'requiere_aprobacion' => 'boolean',
         'aprobado_rrhh' => 'boolean',
         'aprobado_rrhh_at' => 'datetime',
         'aprobado_ceo' => 'boolean',

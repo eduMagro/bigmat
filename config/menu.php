@@ -110,11 +110,11 @@ return [
                     ]
                 ],
                 [
-                    'label' => 'Empresas',
+                    'label' => 'Empresa',
                     'route' => 'empresas.index',
                     'icon' => '🏢',
                     'actions' => [
-                        ['label' => 'Ver todas', 'route' => 'empresas.index', 'permission' => 'ver'],
+                        ['label' => 'Ver configuración', 'route' => 'empresas.index', 'permission' => 'ver'],
                     ]
                 ],
             ]
@@ -209,12 +209,12 @@ return [
 
         'empresas' => [
             'items' => [
-                ['label' => 'Todas', 'route' => 'empresas.index', 'icon' => '🏢'],
+                ['label' => 'Configuración', 'route' => 'empresas.index', 'icon' => '🏢'],
             ],
             'config' => [
                 'colorBase' => 'gray',
                 'style' => 'tabs',
-                'mobileLabel' => 'Empresas',
+                'mobileLabel' => 'Empresa',
             ]
         ],
 

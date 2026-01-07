@@ -1,8 +1,8 @@
 <x-app-layout>
-    <x-slot name="title">Empresas y Lugares de Trabajo</x-slot>
+    <x-slot name="title">Empresa</x-slot>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Empresas y Lugares de Trabajo') }}
+            {{ __('Configuración de Empresa') }}
         </h2>
     </x-slot>
 
@@ -111,6 +111,81 @@
             if (!confirm('¿Eliminar este lugar de trabajo?')) return;
             try {
                 const response = await fetch('{{ route('empresas.obras.destroy') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error al eliminar');
+                }
+            } catch (error) {
+                alert('Error al eliminar');
+            }
+        },
+        // Categorías
+        openCategoriaModal: false,
+        editingCategoriaId: null,
+        categoriaForm: {
+            nombre: ''
+        },
+        isCategoriaSubmitting: false,
+        resetCategoriaForm() {
+            this.categoriaForm = {
+                nombre: ''
+            };
+        },
+        async submitCategoria() {
+            this.isCategoriaSubmitting = true;
+            try {
+                if (this.editingCategoriaId) {
+                    await fetch('{{ route('empresas.categorias.updateField') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            id: this.editingCategoriaId,
+                            field: 'nombre',
+                            value: this.categoriaForm.nombre
+                        })
+                    });
+                    window.location.reload();
+                    return;
+                }
+
+                const response = await fetch('{{ route('empresas.categorias.store') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(this.categoriaForm)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error al guardar');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error al guardar la categoría');
+            } finally {
+                this.isCategoriaSubmitting = false;
+            }
+        },
+        async deleteCategoria(id) {
+            if (!confirm('¿Eliminar esta categoría?')) return;
+            try {
+                const response = await fetch('{{ route('empresas.categorias.destroy') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -471,6 +546,118 @@
                             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
                             <span x-show="!isObraSubmitting" x-text="editingObraId ? 'Actualizar' : 'Guardar'"></span>
                             <span x-show="isObraSubmitting">Guardando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== SECCIÓN CATEGORÍAS ===== -->
+        <div class="mt-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-700">Categorías Profesionales</h3>
+                <button @click="openCategoriaModal = true; editingCategoriaId = null; resetCategoriaForm();"
+                    class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Nueva Categoría
+                </button>
+            </div>
+
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+                <div class="overflow-x-auto">
+                    <table class="w-full table-auto border-collapse">
+                        <thead class="bg-purple-500 text-white">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase">ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Nombre</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Empleados</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @forelse ($categorias as $categoria)
+                                <tr class="hover:bg-purple-50 transition-colors duration-150">
+                                    <td class="px-4 py-3 text-gray-500 text-sm">{{ $categoria->id }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="font-medium text-gray-900">{{ $categoria->nombre }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $categoria->users_count > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                            {{ $categoria->users_count }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <button
+                                                @click="openCategoriaModal = true; editingCategoriaId = {{ $categoria->id }}; categoriaForm = {
+                                                    nombre: '{{ addslashes($categoria->nombre) }}'
+                                                };"
+                                                class="inline-flex items-center px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                Editar
+                                            </button>
+                                            <button @click="deleteCategoria({{ $categoria->id }})"
+                                                class="inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors {{ $categoria->users_count > 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                                {{ $categoria->users_count > 0 ? 'disabled' : '' }}
+                                                title="{{ $categoria->users_count > 0 ? 'Tiene empleados asignados' : 'Eliminar categoría' }}">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                        No hay categorías registradas
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Crear/Editar Categoría -->
+        <div x-show="openCategoriaModal" x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div @click.away="openCategoriaModal = false"
+                class="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+
+                <h3 class="text-xl font-semibold text-gray-800 mb-4" x-text="editingCategoriaId ? 'Editar Categoría' : 'Nueva Categoría'"></h3>
+
+                <form @submit.prevent="submitCategoria()">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de la categoría *</label>
+                            <input type="text" x-model="categoriaForm.nombre" required
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                placeholder="Ej: Oficial 1ª, Peón, Encargado...">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" @click="openCategoriaModal = false"
+                            class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" :disabled="isCategoriaSubmitting"
+                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                            <span x-show="!isCategoriaSubmitting" x-text="editingCategoriaId ? 'Actualizar' : 'Guardar'"></span>
+                            <span x-show="isCategoriaSubmitting">Guardando...</span>
                         </button>
                     </div>
                 </form>

@@ -89,6 +89,27 @@
                     @enderror
                 </div>
 
+                <!-- Requiere aprobación -->
+                <div class="bg-gray-50 rounded-lg p-4 border">
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input type="hidden" name="requiere_aprobacion" value="0">
+                            <input type="checkbox" id="requiere_aprobacion" name="requiere_aprobacion" value="1"
+                                {{ old('requiere_aprobacion', true) ? 'checked' : '' }}
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label for="requiere_aprobacion" class="font-medium text-gray-700">
+                                Requiere aprobación de RRHH y CEO
+                            </label>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Si está marcado, la incorporación deberá ser aprobada por RRHH y CEO antes de crear el usuario.
+                                Si no está marcado, el usuario se creará automáticamente cuando el candidato complete el formulario.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Botones -->
                 <div class="flex justify-end gap-4 pt-4 border-t">
                     <a href="{{ route('incorporaciones.index') }}"

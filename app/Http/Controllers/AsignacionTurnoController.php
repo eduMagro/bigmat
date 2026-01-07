@@ -355,7 +355,6 @@ class AsignacionTurnoController extends Controller
 
     public function fichar(Request $request)
     {
-
         try {
             /* 1) Validación y permisos ------------------------------------------------ */
             $request->validate([
@@ -363,32 +362,34 @@ class AsignacionTurnoController extends Controller
                 'tipo'     => 'required|in:entrada,salida',
                 'latitud'  => 'required|numeric',
                 'longitud' => 'required|numeric',
+                'forzar'   => 'nullable|boolean', // Para confirmar acciones con advertencia
             ]);
+
             Log::info('Coordenadas recibidas', [
                 'latitud'  => $request->latitud,
                 'longitud' => $request->longitud,
             ]);
 
             $user = User::findOrFail($request->user_id);
-            // Permitir fichaje a todos los roles (operario y oficina)
             if (!in_array($user->rol, ['operario', 'oficina'])) {
                 return response()->json(['error' => 'No tienes permisos para fichar.'], 403);
             }
 
             /* 2) Obra cercana --------------------------------------------------------- */
-            // Eduardo Magro puede fichar sin verificación de ubicación
             if ($user->email === 'eduardo.magro@pacoreyes.com') {
-                $obraEncontrada = Obra::where('estado', 'activa')->first();
+                $obraEncontrada = Obra::first();
             } else {
                 $obraEncontrada = $this->buscarObraCercana($request->latitud, $request->longitud);
-                if (!$obraEncontrada) {
-                    return response()->json(['error' => 'No estás dentro de ninguna zona de trabajo.'], 403);
-                }
+            }
+
+            if (!$obraEncontrada) {
+                return response()->json(['error' => 'No estás dentro de ninguna zona de trabajo o no hay lugares configurados.'], 403);
             }
 
             /* 3) Hora actual + detección de turno/fecha ------------------------------ */
             $ahora = now();
             $horaActual = $ahora->format('H:i:s');
+            $fechaHoy = $ahora->toDateString();
 
             [$turnoDetectado, $fechaTurnoDetectado] = $this->detectarTurnoYFecha($ahora);
             if (!$turnoDetectado || !$fechaTurnoDetectado) {
@@ -400,132 +401,267 @@ class AsignacionTurnoController extends Controller
                 return response()->json(['error' => "No existe configurado el turno '{$turnoDetectado}'."], 500);
             }
 
-            /* 4) Rama por tipo de fichaje -------------------------------------------- */
+            /* 4) Buscar asignación existente ------------------------------------------ */
+            $asignacion = $user->asignacionesTurnos()
+                ->whereDate('fecha', $fechaTurnoDetectado)
+                ->first();
+
+            // También buscar en fecha real si es diferente
+            if (!$asignacion && $fechaHoy !== $fechaTurnoDetectado) {
+                $asignacion = $user->asignacionesTurnos()
+                    ->whereDate('fecha', $fechaHoy)
+                    ->first();
+            }
+
+            /* 5) Lógica de TURNO PARTIDO ---------------------------------------------- */
             $warning = null;
+            $campoActualizado = null;
 
             if ($request->tipo === 'entrada') {
-                // ======= ENTRADA ======================================================
-                // Buscar asignación del día (sin soft-deleted)
-                $asignacion = $user->asignacionesTurnos()
-                    ->whereDate('fecha', $fechaTurnoDetectado)
-                    ->first();
+                // ==================== FICHAJE ENTRADA ====================
+                return $this->procesarEntrada(
+                    $user, $asignacion, $turnoModelo, $turnoDetectado,
+                    $fechaTurnoDetectado, $horaActual, $obraEncontrada, $request->forzar
+                );
+            } else {
+                // ==================== FICHAJE SALIDA ====================
+                return $this->procesarSalida(
+                    $user, $asignacion, $horaActual, $obraEncontrada, $ahora, $request->forzar
+                );
+            }
 
-                if ($asignacion) {
-                    // Comprobar si el turno cambia para notificar
-                    $turnoAnterior = $asignacion->turno?->nombre;
-                    $turnoCambia = $asignacion->turno_id !== $turnoModelo->id;
+        } catch (\Throwable $e) {
+            Log::error('❌ Error en fichaje', ['exception' => $e]);
+            return response()->json(['error' => 'Error al registrar el fichaje: ' . $e->getMessage()], 500);
+        }
+    }
 
-                    // Si existe, actualizar con la entrada
-                    $asignacion->update([
-                        'turno_id'   => $turnoModelo->id,
-                        'estado'     => 'activo',
-                        'entrada'    => $horaActual,
-                        'obra_id'    => $obraEncontrada->id,
-                    ]);
+    /**
+     * Procesa el fichaje de ENTRADA (turno partido)
+     */
+    private function procesarEntrada($user, $asignacion, $turnoModelo, $turnoDetectado, $fechaTurnoDetectado, $horaActual, $obraEncontrada, $forzar = false)
+    {
+        $warning = null;
+        $campoActualizado = 'entrada';
 
-                    // Notificar si el turno cambió
-                    if ($turnoCambia) {
-                        try {
-                            $programadores = User::whereHas('departamentos', fn($q) => $q->where('nombre', 'Programador'))->get();
-                            $alerta = Alerta::create([
-                                'user_id_1' => $user->id,
-                                'mensaje'   => "🔁 Turno corregido de '{$turnoAnterior}' a '{$turnoDetectado}' para {$user->nombre_completo} en {$fechaTurnoDetectado}.",
-                                'tipo'      => 'Info Turnos',
-                                'leida'     => false,
-                            ]);
-                            foreach ($programadores as $p) {
-                                AlertaLeida::firstOrCreate(['alerta_id' => $alerta->id, 'user_id' => $p->id]);
-                            }
-                        } catch (\Throwable $e) {
-                            Log::error('No se pudo notificar corrección turno: ' . $e->getMessage());
-                        }
-                    }
-                } else {
-                    // Eliminar definitivamente cualquier registro soft-deleted para evitar conflicto
-                    $user->asignacionesTurnos()
-                        ->onlyTrashed()
-                        ->whereDate('fecha', $fechaTurnoDetectado)
-                        ->forceDelete();
+        if (!$asignacion) {
+            // === CASO 1: No existe asignación → Crear nueva con entrada ===
+            $user->asignacionesTurnos()
+                ->onlyTrashed()
+                ->whereDate('fecha', $fechaTurnoDetectado)
+                ->forceDelete();
 
-                    // Crear nuevo registro
-                    $asignacion = AsignacionTurno::create([
-                        'user_id'    => $user->id,
-                        'fecha'      => $fechaTurnoDetectado,
-                        'turno_id'   => $turnoModelo->id,
-                        'estado'     => 'activo',
-                        'entrada'    => $horaActual,
-                        'obra_id'    => $obraEncontrada->id,
-                    ]);
+            $asignacion = AsignacionTurno::create([
+                'user_id'  => $user->id,
+                'fecha'    => $fechaTurnoDetectado,
+                'turno_id' => $turnoModelo->id,
+                'estado'   => 'activo',
+                'entrada'  => $horaActual,
+                'obra_id'  => $obraEncontrada->id,
+            ]);
 
-                    // Notificación a programadores (solo cuando se crea nuevo)
-                    try {
-                        $programadores = User::whereHas('departamentos', fn($q) => $q->where('nombre', 'Programador'))->get();
-                        $alerta = Alerta::create([
-                            'user_id_1' => $user->id,
-                            'mensaje'   => "🆕 Turno creado automáticamente ({$turnoDetectado}) para {$user->nombre_completo} en {$fechaTurnoDetectado}.",
-                            'tipo'      => 'Info Turnos',
-                            'leida'     => false,
-                        ]);
-                        foreach ($programadores as $p) {
-                            AlertaLeida::firstOrCreate(['alerta_id' => $alerta->id, 'user_id' => $p->id]);
-                        }
-                    } catch (\Throwable $e) {
-                        Log::error('No se pudo notificar creación asignación: ' . $e->getMessage());
-                    }
-                }
+            $this->notificarProgramadores($user, "🆕 Turno creado automáticamente ({$turnoDetectado}) para {$user->nombre_completo} en {$fechaTurnoDetectado}.");
 
-                // Validación de horario (entrada)
-                if (!$this->validarHoraEntrada($turnoDetectado, $horaActual)) {
-                    $warning = 'Has fichado entrada fuera de tu horario.';
-                }
+        } elseif (!$asignacion->entrada) {
+            // === CASO 2: Existe asignación sin entrada → Registrar entrada ===
+            $asignacion->update([
+                'turno_id' => $turnoModelo->id,
+                'estado'   => 'activo',
+                'entrada'  => $horaActual,
+                'obra_id'  => $obraEncontrada->id,
+            ]);
 
+        } elseif ($asignacion->entrada && $asignacion->salida && !$asignacion->entrada2) {
+            // === CASO 3: Tiene entrada y salida, sin entrada2 → Registrar entrada2 (turno partido) ===
+            $asignacion->update([
+                'entrada2' => $horaActual,
+                'obra_id'  => $obraEncontrada->id,
+            ]);
+            $campoActualizado = 'entrada2';
+
+        } elseif ($asignacion->entrada && !$asignacion->salida) {
+            // === CASO 4: Ya tiene entrada sin salida → Advertir ===
+            return response()->json([
+                'warning_confirm' => true,
+                'titulo'          => 'Ya has fichado entrada',
+                'mensaje'         => "Ya fichaste entrada a las {$asignacion->entrada}. ¿Quieres sobrescribir la hora de entrada?",
+                'tipo_confirmacion' => 'sobrescribir_entrada',
+            ]);
+
+        } elseif ($asignacion->entrada2 && !$asignacion->salida2) {
+            // === CASO 5: Ya tiene entrada2 sin salida2 → Advertir ===
+            return response()->json([
+                'warning_confirm' => true,
+                'titulo'          => 'Ya has fichado segunda entrada',
+                'mensaje'         => "Ya fichaste la segunda entrada a las {$asignacion->entrada2}. ¿Quieres sobrescribir?",
+                'tipo_confirmacion' => 'sobrescribir_entrada2',
+            ]);
+
+        } elseif ($asignacion->entrada2 && $asignacion->salida2) {
+            // === CASO 6: Turno partido completo → No permitir más entradas ===
+            return response()->json([
+                'error' => 'Ya has completado el turno partido de hoy (entrada, salida, entrada2, salida2). No puedes registrar más fichajes.',
+            ], 403);
+        }
+
+        // Validación de horario
+        if (!$this->validarHoraEntrada($turnoDetectado, $horaActual)) {
+            $warning = 'Has fichado entrada fuera de tu horario.';
+        }
+
+        $mensaje = $campoActualizado === 'entrada2'
+            ? 'Segunda entrada registrada (turno partido).'
+            : 'Entrada registrada.';
+
+        return response()->json([
+            'success'     => $mensaje,
+            'warning'     => $warning,
+            'obra_nombre' => $obraEncontrada->obra,
+            'campo'       => $campoActualizado,
+            'estado'      => $this->getEstadoFichaje($asignacion->fresh()),
+        ]);
+    }
+
+    /**
+     * Procesa el fichaje de SALIDA (turno partido)
+     */
+    private function procesarSalida($user, $asignacion, $horaActual, $obraEncontrada, $ahora, $forzar = false)
+    {
+        $campoActualizado = 'salida';
+
+        // Buscar asignación abierta si no se encontró
+        if (!$asignacion) {
+            $asignacion = $this->buscarAsignacionAbiertaParaSalida($user, $ahora);
+        }
+
+        if (!$asignacion) {
+            // === CASO 1: No existe asignación → No se puede fichar salida ===
+            return response()->json([
+                'warning_confirm' => true,
+                'titulo'          => 'No has fichado entrada',
+                'mensaje'         => 'No tienes registro de entrada para hoy. ¿Quieres registrar la salida de todas formas? Se creará un registro solo con la hora de salida.',
+                'tipo_confirmacion' => 'salida_sin_entrada',
+            ]);
+        }
+
+        if (!$asignacion->entrada) {
+            // === CASO 2: Asignación sin entrada → Advertir ===
+            if (!$forzar) {
                 return response()->json([
-                    'success'     => 'Entrada registrada.',
-                    'warning'     => $warning,
-                    'obra_nombre' => $obraEncontrada->obra,
+                    'warning_confirm' => true,
+                    'titulo'          => 'No has fichado entrada',
+                    'mensaje'         => 'No has fichado la entrada de hoy. ¿Quieres registrar la salida de todas formas?',
+                    'tipo_confirmacion' => 'salida_sin_entrada',
                 ]);
             }
-
-            // ======= SALIDA ==========================================================
-            // La salida siempre usa la fecha REAL del fichaje, sin detectar turno
-            $fechaReal = $ahora->toDateString();
-
-            // Primero: buscar asignación abierta (con entrada y sin salida) en las últimas 36h
-            $asignacion = $this->buscarAsignacionAbiertaParaSalida($user, $ahora);
-
-            // Fallback: buscar asignación del día REAL (no del turno detectado)
-            if (!$asignacion) {
-                $asignacion = $user->asignacionesTurnos()
-                    ->whereDate('fecha', $fechaReal)
-                    ->orderByDesc('id')
-                    ->first();
-            }
-
-            // Si no hay asignación, no permitir fichar salida
-            if (!$asignacion) {
-                return response()->json([
-                    'error' => 'No tienes una asignación de turno para hoy. Debes fichar entrada primero.'
-                ], 403);
-            }
-
-            if (!$asignacion->entrada) {
-                return response()->json([
-                    'error' => 'No puedes fichar salida sin haber fichado entrada.'
-                ], 403);
-            }
-
+            // Si forzar, registrar salida sin entrada
             $asignacion->update([
                 'salida'  => $horaActual,
                 'obra_id' => $obraEncontrada->id,
             ]);
 
-            return response()->json([
-                'success'     => 'Salida registrada.',
-                'obra_nombre' => $obraEncontrada->obra,
+        } elseif ($asignacion->entrada && !$asignacion->salida) {
+            // === CASO 3: Tiene entrada sin salida → Registrar salida ===
+            $asignacion->update([
+                'salida'  => $horaActual,
+                'obra_id' => $obraEncontrada->id,
             ]);
+
+        } elseif ($asignacion->entrada && $asignacion->salida && !$asignacion->entrada2) {
+            // === CASO 4: Tiene entrada y salida, sin entrada2 → Advertir (debe fichar entrada2 primero) ===
+            return response()->json([
+                'warning_confirm' => true,
+                'titulo'          => 'No has fichado segunda entrada',
+                'mensaje'         => "Ya fichaste salida a las {$asignacion->salida}. Para registrar otra salida, primero debes fichar la segunda entrada (turno partido).",
+                'tipo_confirmacion' => 'necesita_entrada2',
+                'accion_alternativa' => 'fichar_entrada',
+            ]);
+
+        } elseif ($asignacion->entrada2 && !$asignacion->salida2) {
+            // === CASO 5: Tiene entrada2 sin salida2 → Registrar salida2 ===
+            $asignacion->update([
+                'salida2' => $horaActual,
+                'obra_id' => $obraEncontrada->id,
+            ]);
+            $campoActualizado = 'salida2';
+
+        } elseif ($asignacion->salida2) {
+            // === CASO 6: Ya tiene salida2 → Turno partido completo ===
+            return response()->json([
+                'error' => 'Ya has completado el turno partido de hoy. No puedes registrar más salidas.',
+            ], 403);
+        }
+
+        $mensaje = $campoActualizado === 'salida2'
+            ? 'Segunda salida registrada (turno partido completo).'
+            : 'Salida registrada.';
+
+        return response()->json([
+            'success'     => $mensaje,
+            'obra_nombre' => $obraEncontrada->obra,
+            'campo'       => $campoActualizado,
+            'estado'      => $this->getEstadoFichaje($asignacion->fresh()),
+        ]);
+    }
+
+    /**
+     * Obtiene el estado actual del fichaje para mostrar en la UI
+     */
+    private function getEstadoFichaje($asignacion)
+    {
+        if (!$asignacion) {
+            return ['fase' => 'sin_fichaje', 'descripcion' => 'Sin fichajes'];
+        }
+
+        $estado = [
+            'entrada'  => $asignacion->entrada,
+            'salida'   => $asignacion->salida,
+            'entrada2' => $asignacion->entrada2,
+            'salida2'  => $asignacion->salida2,
+        ];
+
+        if ($asignacion->salida2) {
+            $estado['fase'] = 'turno_completo';
+            $estado['descripcion'] = 'Turno partido completo';
+        } elseif ($asignacion->entrada2) {
+            $estado['fase'] = 'segunda_jornada';
+            $estado['descripcion'] = 'En segunda jornada';
+            $estado['proximo_fichaje'] = 'salida2';
+        } elseif ($asignacion->salida) {
+            $estado['fase'] = 'descanso';
+            $estado['descripcion'] = 'En descanso (entre jornadas)';
+            $estado['proximo_fichaje'] = 'entrada2';
+        } elseif ($asignacion->entrada) {
+            $estado['fase'] = 'trabajando';
+            $estado['descripcion'] = 'Trabajando';
+            $estado['proximo_fichaje'] = 'salida';
+        } else {
+            $estado['fase'] = 'pendiente';
+            $estado['descripcion'] = 'Pendiente de entrada';
+            $estado['proximo_fichaje'] = 'entrada';
+        }
+
+        return $estado;
+    }
+
+    /**
+     * Notifica a los programadores sobre eventos de turno
+     */
+    private function notificarProgramadores($user, $mensaje)
+    {
+        try {
+            $programadores = User::whereHas('departamentos', fn($q) => $q->where('nombre', 'Programador'))->get();
+            $alerta = Alerta::create([
+                'user_id_1' => $user->id,
+                'mensaje'   => $mensaje,
+                'tipo'      => 'Info Turnos',
+                'leida'     => false,
+            ]);
+            foreach ($programadores as $p) {
+                AlertaLeida::firstOrCreate(['alerta_id' => $alerta->id, 'user_id' => $p->id]);
+            }
         } catch (\Throwable $e) {
-            Log::error('❌ Error en fichaje', ['exception' => $e]);
-            return response()->json(['error' => 'Error al registrar el fichaje: ' . $e->getMessage()], 500);
+            Log::error('No se pudo notificar: ' . $e->getMessage());
         }
     }
 

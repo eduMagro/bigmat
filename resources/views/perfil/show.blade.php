@@ -154,7 +154,7 @@
                 return {
                     showModal: false,
                     userId: userId,
-                    fechaIncorporacion: '{{ $user->incorporacion && $user->incorporacion->fecha_incorporacion ? $user->incorporacion->fecha_incorporacion->format('Y-m-d') : ($user->fecha_incorporacion ? $user->fecha_incorporacion->format('Y-m-d') : '') }}',
+                    fechaIncorporacion: '{{ $user->fecha_incorporacion_efectiva ? $user->fecha_incorporacion_efectiva->format('Y-m-d') : '' }}',
                     contratos: @json($contratosIncorporacion),
                     hasIncorporacion: @json($hasIncorporacion),
                     openModal() {
@@ -389,6 +389,102 @@
             display: none;
         }
 
+        /* === FICHAJES === */
+        .fc .fichaje-evento {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 1px 2px !important;
+            min-height: auto !important;
+        }
+
+        .fc .fichaje-evento:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Contenedor principal de fichajes */
+        .fichajes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.62rem;
+            line-height: 1;
+            width: 100%;
+        }
+
+        /* Cuando hay dos jornadas, ponerlas lado a lado */
+        .fichajes-container.dos-jornadas {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        /* Cada jornada */
+        .jornada {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .jornada-1 {
+            justify-content: flex-start;
+        }
+
+        .jornada-2 {
+            justify-content: flex-end;
+        }
+
+        /* Label de jornada (1ª, 2ª) */
+        .jornada-label {
+            color: #6b7280;
+            font-weight: 700;
+            font-size: 0.55rem;
+            background: #f3f4f6;
+            padding: 1px 3px;
+            border-radius: 2px;
+            margin-right: 2px;
+        }
+
+        /* Hora de entrada - verde */
+        .hora-entrada {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border-left: 2px solid #22c55e;
+            font-weight: 600;
+        }
+
+        /* Hora de salida - rojo */
+        .hora-salida {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border-left: 2px solid #ef4444;
+            font-weight: 600;
+        }
+
+        /* Contenedor de eventos */
+        .fc .fc-daygrid-day-events {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1px !important;
+            min-height: 40px !important;
+            padding-top: 1px !important;
+        }
+
+        .fc .fc-daygrid-event-harness {
+            margin-top: 0 !important;
+        }
+
+        /* Asegurar que fichajes aparezcan despues de turnos */
+        .fc .fc-daygrid-event-harness:has(.fichaje-evento) {
+            order: 10 !important;
+        }
+
         /* Mas eventos link */
         .fc .fc-daygrid-more-link {
             color: #6366f1;
@@ -500,6 +596,26 @@
                 font-size: 0.65rem;
                 padding: 1px 4px;
             }
+
+            /* Fichajes en movil */
+            .fichajes-container {
+                font-size: 0.5rem !important;
+            }
+
+            .fichajes-container.dos-jornadas {
+                flex-direction: column !important;
+                gap: 1px !important;
+            }
+
+            .hora-entrada,
+            .hora-salida {
+                padding: 1px 2px !important;
+            }
+
+            .jornada-label {
+                font-size: 0.45rem !important;
+                padding: 0 2px !important;
+            }
         }
 
         /* SweetAlert personalizado para gestion de turnos */
@@ -583,68 +699,193 @@
             );
         }
 
-        function procesarFichaje(tipo, latitud, longitud, boton, textoOriginal) {
+        function procesarFichaje(tipo, latitud, longitud, boton, textoOriginal, forzar = false) {
+            // Si es forzado, no pedir confirmación inicial
+            if (forzar) {
+                enviarFichaje(tipo, latitud, longitud, boton, textoOriginal, true);
+                return;
+            }
+
             Swal.fire({
                 title: 'Confirmar Fichaje',
-                text: `Quieres registrar una ${tipo}?`,
+                text: `¿Quieres registrar una ${tipo}?`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Si, fichar',
+                confirmButtonColor: '#10B981',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Sí, fichar',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const payload = {
-                        user_id: "{{ auth()->id() }}",
-                        tipo: tipo,
-                        latitud: latitud,
-                        longitud: longitud,
-                    };
-
-                    fetch("{{ url('/fichar') }}", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify(payload)
-                        })
-                        .then(r => r.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: data.success,
-                                    text: `📍 Lugar: ${data.obra_nombre}`,
-                                    showConfirmButton: false,
-                                    timer: 3000
-                                });
-
-                                if (window.calendar) {
-                                    window.calendar.refetchEvents();
-                                }
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: data.error
-                                });
-                            }
-                        })
-                        .catch(err => {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'No se pudo comunicar con el servidor'
-                            });
-                        });
+                    enviarFichaje(tipo, latitud, longitud, boton, textoOriginal, false);
+                } else {
+                    boton.disabled = false;
+                    boton.querySelector('.texto').textContent = textoOriginal;
+                    boton.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
-
-                boton.disabled = false;
-                boton.querySelector('.texto').textContent = textoOriginal;
-                boton.classList.remove('opacity-50', 'cursor-not-allowed');
             });
+        }
+
+        function enviarFichaje(tipo, latitud, longitud, boton, textoOriginal, forzar = false) {
+            const payload = {
+                user_id: "{{ auth()->id() }}",
+                tipo: tipo,
+                latitud: latitud,
+                longitud: longitud,
+                forzar: forzar
+            };
+
+            fetch("{{ url('/fichar') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    // Caso: Requiere confirmación del usuario
+                    if (data.warning_confirm) {
+                        manejarConfirmacionFichaje(data, tipo, latitud, longitud, boton, textoOriginal);
+                        return;
+                    }
+
+                    // Caso: Éxito
+                    if (data.success) {
+                        let mensaje = `📍 Lugar: ${data.obra_nombre}`;
+                        if (data.estado) {
+                            mensaje += `\n📊 Estado: ${data.estado.descripcion}`;
+                        }
+                        if (data.warning) {
+                            mensaje += `\n⚠️ ${data.warning}`;
+                        }
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: data.success,
+                            html: mensaje.replace(/\n/g, '<br>'),
+                            showConfirmButton: true,
+                            confirmButtonColor: '#10B981',
+                            timer: 4000
+                        });
+
+                        if (window.calendar) {
+                            window.calendar.refetchEvents();
+                        }
+
+                        // Actualizar UI si hay estado
+                        if (data.estado) {
+                            actualizarEstadoFichaje(data.estado);
+                        }
+                    }
+                    // Caso: Error
+                    else if (data.error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error
+                        });
+                    }
+
+                    boton.disabled = false;
+                    boton.querySelector('.texto').textContent = textoOriginal;
+                    boton.classList.remove('opacity-50', 'cursor-not-allowed');
+                })
+                .catch(err => {
+                    console.error('Error fichaje:', err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudo comunicar con el servidor'
+                    });
+                    boton.disabled = false;
+                    boton.querySelector('.texto').textContent = textoOriginal;
+                    boton.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+        }
+
+        function manejarConfirmacionFichaje(data, tipo, latitud, longitud, boton, textoOriginal) {
+            // Configurar botones según el tipo de confirmación
+            let botones = {
+                confirmButtonText: 'Sí, continuar',
+                cancelButtonText: 'Cancelar'
+            };
+
+            // Si hay acción alternativa (por ejemplo, fichar entrada en vez de salida)
+            if (data.accion_alternativa === 'fichar_entrada') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: data.titulo,
+                    text: data.mensaje,
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonColor: '#10B981',
+                    denyButtonColor: '#3B82F6',
+                    cancelButtonColor: '#6B7280',
+                    confirmButtonText: 'Fichar Entrada',
+                    denyButtonText: 'Cancelar',
+                    cancelButtonText: 'Cerrar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Fichar entrada en lugar de salida
+                        procesarFichaje('entrada', latitud, longitud, boton, textoOriginal, true);
+                    } else {
+                        boton.disabled = false;
+                        boton.querySelector('.texto').textContent = textoOriginal;
+                        boton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                });
+                return;
+            }
+
+            // Confirmación estándar
+            Swal.fire({
+                icon: 'warning',
+                title: data.titulo,
+                text: data.mensaje,
+                showCancelButton: true,
+                confirmButtonColor: '#F59E0B',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Sí, continuar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Reenviar con forzar = true
+                    enviarFichaje(tipo, latitud, longitud, boton, textoOriginal, true);
+                } else {
+                    boton.disabled = false;
+                    boton.querySelector('.texto').textContent = textoOriginal;
+                    boton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
+        }
+
+        function actualizarEstadoFichaje(estado) {
+            // Actualizar indicadores visuales en la página si existen
+            const indicadorEstado = document.getElementById('estado-fichaje');
+            if (indicadorEstado) {
+                indicadorEstado.textContent = estado.descripcion;
+
+                // Cambiar color según fase
+                indicadorEstado.className = 'px-3 py-1 rounded-full text-sm font-medium ';
+                switch(estado.fase) {
+                    case 'trabajando':
+                        indicadorEstado.className += 'bg-green-100 text-green-800';
+                        break;
+                    case 'descanso':
+                        indicadorEstado.className += 'bg-yellow-100 text-yellow-800';
+                        break;
+                    case 'segunda_jornada':
+                        indicadorEstado.className += 'bg-blue-100 text-blue-800';
+                        break;
+                    case 'turno_completo':
+                        indicadorEstado.className += 'bg-gray-100 text-gray-800';
+                        break;
+                    default:
+                        indicadorEstado.className += 'bg-gray-100 text-gray-600';
+                }
+            }
         }
     </script>
 

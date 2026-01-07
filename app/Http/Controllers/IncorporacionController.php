@@ -84,10 +84,12 @@ class IncorporacionController extends Controller
             'primer_apellido' => 'nullable|string|max:255',
             'segundo_apellido' => 'nullable|string|max:255',
             'telefono_provisional' => 'required|string|max:20',
+            'requiere_aprobacion' => 'nullable|boolean',
         ]);
 
         $validated['created_by'] = auth()->id();
         $validated['token'] = Str::random(64);
+        $validated['requiere_aprobacion'] = $request->boolean('requiere_aprobacion', true);
 
         $incorporacion = Incorporacion::create($validated);
 

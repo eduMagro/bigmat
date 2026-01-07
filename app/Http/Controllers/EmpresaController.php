@@ -21,7 +21,7 @@ class EmpresaController extends Controller
         $tramos = TasaIrpf::all();
         $convenio = Convenio::all();
         $turnos = Turno::all();
-        $categorias = Categoria::all();
+        $categorias = Categoria::withCount('users')->get();
         return view('empresas.index', compact('empresas', 'obras', 'porcentajes_ss', 'tramos', 'convenio', 'turnos', 'categorias'));
     }
 

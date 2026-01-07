@@ -180,7 +180,7 @@
                 return {
                     showModal: false,
                     userId: userId,
-                    fechaIncorporacion: '{{ $user->incorporacion && $user->incorporacion->fecha_incorporacion ? $user->incorporacion->fecha_incorporacion->format('Y-m-d') : ($user->fecha_incorporacion ? $user->fecha_incorporacion->format('Y-m-d') : '') }}',
+                    fechaIncorporacion: '{{ $user->fecha_incorporacion_efectiva ? $user->fecha_incorporacion_efectiva->format('Y-m-d') : '' }}',
                     contratos: @json($contratosIncorporacion),
                     hasIncorporacion: @json($hasIncorporacion),
                     openModal() {

@@ -122,13 +122,21 @@ class DocumentoEmpleadoController extends Controller
             'fecha_incorporacion' => 'nullable|date',
         ]);
 
-        $user->fecha_incorporacion = $request->fecha_incorporacion;
-        $user->save();
+        // Actualizar en la incorporacion del usuario
+        if (!$user->incorporacion) {
+            return response()->json([
+                'success' => false,
+                'error' => 'El usuario no tiene una incorporacion vinculada'
+            ], 400);
+        }
+
+        $user->incorporacion->fecha_incorporacion = $request->fecha_incorporacion;
+        $user->incorporacion->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Fecha de incorporación actualizada correctamente',
-            'fecha_incorporacion' => $user->fecha_incorporacion ? $user->fecha_incorporacion->format('Y-m-d') : null
+            'message' => 'Fecha de incorporacion actualizada correctamente',
+            'fecha_incorporacion' => $user->incorporacion->fecha_incorporacion ? $user->incorporacion->fecha_incorporacion->format('Y-m-d') : null
         ]);
     }
 

@@ -246,17 +246,42 @@ class IncorporacionPublicaController extends Controller
                 $this->guardarFormacionConTemporal($incorporacion, $request->file('formacion_especifica'), session()->get("{$sessionKey}.formacion_especifica"), 'formacion_especifica_puesto', null, $carpetaUsuario);
             }
 
+            // Si la incorporación NO requiere aprobación, crear usuario automáticamente
+            $usuario = null;
+            if (!$incorporacion->requiere_aprobacion) {
+                $usuario = $this->crearUsuario($incorporacion, $validated);
+                $incorporacion->update([
+                    'user_id' => $usuario->id,
+                    'aprobado_rrhh' => true,
+                    'aprobado_rrhh_at' => now(),
+                    'aprobado_ceo' => true,
+                    'aprobado_ceo_at' => now(),
+                ]);
+
+                Log::info('Usuario creado automáticamente (sin aprobación requerida)', [
+                    'incorporacion_id' => $incorporacion->id,
+                    'user_id' => $usuario->id,
+                ]);
+            }
+
             // Registrar log
+            $logDatos = [
+                'dni' => $incorporacion->dni,
+                'email' => $incorporacion->email,
+                'telefono' => $incorporacion->telefono,
+            ];
+
+            if ($usuario) {
+                $logDatos['user_id'] = $usuario->id;
+            }
+
             $incorporacion->registrarLog(
                 IncorporacionLog::ACCION_DATOS_COMPLETADOS,
-                'El candidato ha completado el formulario de incorporación. Usuario creado automáticamente.',
+                $usuario
+                    ? 'El candidato ha completado el formulario de incorporación. Usuario creado automáticamente (no requería aprobación).'
+                    : 'El candidato ha completado el formulario de incorporación. Pendiente de aprobación.',
                 null,
-                [
-                    'dni' => $incorporacion->dni,
-                    'email' => $incorporacion->email,
-                    'telefono' => $incorporacion->telefono,
-                    'user_id' => $usuario->id,
-                ]
+                $logDatos
             );
 
             DB::commit();
