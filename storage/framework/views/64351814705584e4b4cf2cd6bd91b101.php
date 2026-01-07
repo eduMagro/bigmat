@@ -200,8 +200,14 @@
                 },
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) return null;
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) return null;
+                return response.json();
+            })
             .then(data => {
+                if (!data) return;
                 const badge = document.getElementById('alerta-count');
                 if (badge) {
                     if (data.cantidad > 0) {
@@ -214,7 +220,7 @@
                     }
                 }
             })
-            .catch(error => console.error("Error al obtener alertas:", error));
+            .catch(() => {});
     }
 
     document.addEventListener("DOMContentLoaded", function() {

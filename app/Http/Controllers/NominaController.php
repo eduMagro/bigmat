@@ -115,6 +115,7 @@ class NominaController extends Controller
         }
 
         // 7) Guardar un PDF por clave en la misma carpeta: nominas_mes_año/{CLAVE}_{MES}_{AÑO}.pdf
+        $dnisImportados = []; // DNIs que realmente se importaron
         foreach ($pdfPorDni as $clave => $fpdi) {
             // Nombre de archivo
             $nombreArchivo = $clave . '_' . $mesEnEspañol . '_' . $anio . '.pdf';
@@ -124,6 +125,10 @@ class NominaController extends Controller
 
             try {
                 $fpdi->Output($rutaSalida, 'F');
+                // Solo agregar si es un DNI válido (no un fallback como "nomina_001")
+                if (isset($mapaDnis[$clave])) {
+                    $dnisImportados[] = $clave;
+                }
             } catch (\Throwable $e) {
                 \Log::error('❌ Error guardando PDF ' . $nombreArchivo . ': ' . $e->getMessage());
             }
@@ -155,8 +160,8 @@ class NominaController extends Controller
             }
         }
 
-        // 9) Notificar a usuarios de oficina y operarios que las nóminas están disponibles
-        $this->notificarNominasImportadas($mesEnEspañol, $anio);
+        // 9) Notificar solo a los usuarios cuya nómina fue importada
+        $this->notificarNominasImportadas($mesEnEspañol, $anio, $dnisImportados);
 
         // 10) Borrar archivo temporal
         Storage::delete($rutaRelativa);
@@ -318,7 +323,13 @@ class NominaController extends Controller
     // --------------------- GENERACION NOMINA
     public function index()
     {
-        return view('nominas.index');
+        $empresas = Empresa::All();
+        $nominas = Nomina::with('empleado')->get()->sortBy(function ($nomina) {
+            return $nomina->empleado->name ?? '';
+        });
+        $trabajadores = User::with('categoria')->orderBy('name')->get();
+
+        return view('nominas.index', compact('nominas', 'empresas', 'trabajadores'));
     }
 
     public function generarNominasMensuales(Request $request, ?int $mes = null, ?int $anio = null)
@@ -787,44 +798,78 @@ class NominaController extends Controller
     }
 
     /**
-     * Notifica a todos los usuarios de oficina y operarios que las nóminas de un mes están disponibles
-     * Evita duplicados verificando si ya existe una alerta para ese mes/año
+     * Notifica solo a los usuarios cuya nómina fue importada (por DNI)
+     * Si ya tenían alerta previa, envía mensaje de reimportación
+     *
+     * @param string $mes Nombre del mes en español
+     * @param string $anio Año
+     * @param array $dnisImportados Lista de DNIs cuyas nóminas fueron importadas
      */
-    private function notificarNominasImportadas(string $mes, string $anio): void
+    private function notificarNominasImportadas(string $mes, string $anio, array $dnisImportados): void
     {
+        if (empty($dnisImportados)) {
+            \Log::info("ℹ️ No hay DNIs importados para notificar nóminas de {$mes} {$anio}");
+            return;
+        }
+
         try {
             $alertaService = app(AlertaService::class);
             $emisorId = auth()->id();
 
-            $mensaje = "Las nóminas de {$mes} {$anio} ya están disponibles. Puedes solicitarla desde tu perfil.";
+            $mensajeNuevo = "Tu nómina de {$mes} {$anio} ya está disponible. Puedes solicitarla desde tu perfil.";
+            $mensajeReimportacion = "Se ha reimportado tu nómina de {$mes} {$anio}. Puedes solicitarla desde tu perfil.";
 
-            // Buscar usuarios que ya tienen alerta de nómina para este mes/año
-            $usuariosYaNotificados = \App\Models\Alerta::where('tipo', 'nomina')
-                ->where('mensaje', $mensaje)
-                ->pluck('destinatario_id')
-                ->toArray();
+            // Normalizar DNIs importados para comparación
+            $dnisNormalizados = array_map(function($dni) {
+                return strtoupper(preg_replace('/[^A-Z0-9]/', '', $dni));
+            }, $dnisImportados);
 
-            // Buscar usuarios con rol oficina u operario que estén activos y NO hayan sido notificados
-            $usuarios = User::whereIn('rol', ['oficina', 'operario'])
-                ->where('estado', 'activo')
-                ->whereNotIn('id', $usuariosYaNotificados)
-                ->get();
+            // Buscar todos los usuarios activos cuyo DNI está en la lista de importados
+            $usuariosConNomina = User::where('estado', 'activo')
+                ->get()
+                ->filter(function($user) use ($dnisNormalizados) {
+                    if (!$user->dni) return false;
+                    $dniUsuario = strtoupper(preg_replace('/[^A-Z0-9]/', '', $user->dni));
+                    return in_array($dniUsuario, $dnisNormalizados);
+                });
 
-            if ($usuarios->isEmpty()) {
-                \Log::info("ℹ️ Todos los usuarios ya tienen alerta de nóminas para {$mes} {$anio}");
+            if ($usuariosConNomina->isEmpty()) {
+                \Log::info("ℹ️ No hay usuarios con DNI coincidente para {$mes} {$anio}");
                 return;
             }
 
-            foreach ($usuarios as $usuario) {
-                $alertaService->crearAlerta(
-                    emisorId: $emisorId,
-                    destinatarioId: $usuario->id,
-                    mensaje: $mensaje,
-                    tipo: 'nomina'
-                );
+            // Buscar usuarios que ya tienen alerta de nómina para este mes/año (mensaje original)
+            $usuariosYaNotificados = \App\Models\Alerta::where('tipo', 'nomina')
+                ->where('mensaje', $mensajeNuevo)
+                ->pluck('destinatario_id')
+                ->toArray();
+
+            $contadorNuevos = 0;
+            $contadorReimportados = 0;
+
+            foreach ($usuariosConNomina as $usuario) {
+                if (in_array($usuario->id, $usuariosYaNotificados)) {
+                    // Ya tenía alerta previa → enviar mensaje de reimportación
+                    $alertaService->crearAlerta(
+                        emisorId: $emisorId,
+                        destinatarioId: $usuario->id,
+                        mensaje: $mensajeReimportacion,
+                        tipo: 'nomina'
+                    );
+                    $contadorReimportados++;
+                } else {
+                    // Primera vez → enviar mensaje nuevo
+                    $alertaService->crearAlerta(
+                        emisorId: $emisorId,
+                        destinatarioId: $usuario->id,
+                        mensaje: $mensajeNuevo,
+                        tipo: 'nomina'
+                    );
+                    $contadorNuevos++;
+                }
             }
 
-            \Log::info("✅ Alertas de nóminas enviadas a " . $usuarios->count() . " usuarios (evitados " . count($usuariosYaNotificados) . " duplicados)");
+            \Log::info("✅ Alertas de nóminas: {$contadorNuevos} nuevas, {$contadorReimportados} reimportaciones");
 
         } catch (\Throwable $e) {
             \Log::error('❌ Error notificando nóminas importadas: ' . $e->getMessage());

@@ -93,7 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/simulacion-irpf', [NominaController::class, 'formularioSimulacion'])->name('nomina.simulacion');
     Route::post('/simulacion-irpf', [NominaController::class, 'simular'])->name('nomina.simular');
     Route::post('/simulacion-inversa', [NominaController::class, 'simularDesdeNeto'])->name('nomina.inversa.calcular');
-    Route::post('/nominas/descargar-mes', [NominaController::class, 'descargarMes'])->name('nominas.crearDescargarMes');
+    Route::post('/nominas/descargar-mes', [NominaController::class, 'descargarNominasMes'])->name('nominas.crearDescargarMes');
 
     // === INCORPORACIONES ===
     Route::resource('incorporaciones', IncorporacionController::class)->parameters(['incorporaciones' => 'incorporacion']);
@@ -153,10 +153,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('secciones', SeccionController::class);
 
     // === ALERTAS ===
-    Route::resource('alertas', AlertaController::class);
+    // IMPORTANTE: Las rutas específicas deben ir ANTES del resource
     Route::post('/alertas/marcar-leidas', [AlertaController::class, 'marcarLeidas'])->name('alertas.marcarLeidas');
     Route::get('/alertas/sin-leer', [AlertaController::class, 'sinLeer'])->name('alertas.verSinLeer');
     Route::get('/alertas/{id}/hilo', [AlertaController::class, 'obtenerHilo'])->name('alertas.obtenerHilo');
+    Route::resource('alertas', AlertaController::class);
 
     // === PLANIFICACION ===
     Route::get('/planificacion/trabajadores', [ProduccionController::class, 'trabajadores'])->name('planificacion.trabajadores');

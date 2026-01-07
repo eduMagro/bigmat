@@ -371,7 +371,7 @@
         </div>
         <script>
             function actualizarPermisos(departamentoId, userId, tipo, valor) {
-                fetch(`/departamentos/${departamentoId}/permisos`, {
+                fetch(`{{ url("departamentos") }}/${departamentoId}/permisos`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -466,7 +466,7 @@
                     <tr class="text-center text-xs uppercase">
                         <th class="px-4 py-2 text-left">Nombre</th>
                         <th class="px-4 py-2 text-left">Ruta</th>
-                        <th class="px-4 py-2 text-left">Icono</th>
+                        
                         <th class="px-4 py-2 text-left">Departamentos asociados</th>
                         <th class="px-4 py-2 text-left">Pagina Principal</th>
                     </tr>
@@ -501,20 +501,7 @@
                                     class="form-control form-control-sm">
                             </td>
 
-                            <!-- Icono -->
-                            <td class="px-4 py-2 border text-center">
-                                <template x-if="!editando">
-                                    <template x-if="seccion.icono">
-                                        <img :src="'{{ asset('') }}' + seccion.icono" alt="Icono"
-                                            class="h-6 mx-auto">
-                                    </template>
-                                    <template x-if="!seccion.icono">
-                                        <span class="text-gray-400 italic">Sin icono</span>
-                                    </template>
-                                </template>
-                                <input x-show="editando" type="text" x-model="seccion.icono"
-                                    class="form-control form-control-sm">
-                            </td>
+
 
                             <!-- Departamentos asociados -->
                             <td class="px-4 py-2 border text-center">
@@ -580,9 +567,6 @@
                             @forelse ($departamentoOperarios->secciones as $seccion)
                                 <span
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                                    @if ($seccion->icono)
-                                        <img src="{{ asset($seccion->icono) }}" alt="" class="w-4 h-4">
-                                    @endif
                                     {{ $seccion->nombre }}
                                 </span>
                             @empty
@@ -675,7 +659,7 @@
                         body: JSON.stringify({
                             nombre: seccion.nombre,
                             ruta: seccion.ruta,
-                            icono: seccion.icono,
+                            
                             mostrar_en_dashboard: seccion.mostrar_en_dashboard ? 1 : 0
                         })
                     })
@@ -726,9 +710,7 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700">Ruta del icono</label>
-                            <input type="text" name="icono" class="w-full p-2 border border-gray-300 rounded-lg"
-                                placeholder="imagenes/iconos/nombre.png">
+
                         </div>
 
                         <div class="mt-4 flex justify-end space-x-2">
@@ -955,15 +937,10 @@
                                             class="mt-1 w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 focus:ring-2 cursor-pointer">
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-start gap-2">
-                                                @if ($seccion->icono)
-                                                    <img src="{{ asset($seccion->icono) }}"
-                                                        alt="{{ $seccion->nombre }}" class="w-8 h-8 rounded-lg">
-                                                @else
-                                                    <div
+                                                <div
                                                         class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-semibold text-xs">
                                                         {{ strtoupper(substr($seccion->nombre, 0, 2)) }}
                                                     </div>
-                                                @endif
                                                 <div class="flex-1 min-w-0">
                                                     <p
                                                         class="font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">

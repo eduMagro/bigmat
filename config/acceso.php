@@ -70,7 +70,7 @@ return [
         'alertas.store',
         'alertas.update',
         'alertas.destroy',
-        'alertas.verMarcarLeidas',
+        'alertas.marcarLeidas',
         'alertas.verSinLeer',
         'vacaciones.solicitar',
         'users.verEventos-turnos',

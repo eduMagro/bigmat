@@ -117,24 +117,61 @@ class VerificarAccesoSeccion
             $accionRuta = strtolower(Str::afterLast($nombreRutaActual, '.'));
             $seccionBase = Str::before($nombreRutaActual, '.');
 
-            $seccion = Seccion::whereRaw('LOWER(ruta) LIKE ?', [strtolower($seccionBase) . '.%'])->first();
+            // Buscar sección exacta primero, luego por prefijo
+            $seccion = Seccion::whereRaw('LOWER(ruta) = ?', [strtolower($nombreRutaActual)])->first();
+            if (!$seccion) {
+                $seccion = Seccion::whereRaw('LOWER(ruta) LIKE ?', [strtolower($seccionBase) . '.%'])->first();
+            }
             if (!$seccion) {
                 Log::warning('❌ Ruta sin sección registrada', ['ruta' => $nombreRutaActual]);
                 return $this->denegarAcceso($request, "La sección '{$seccionBase}' no está registrada en el sistema.");
             }
 
-            $permisos = PermisoAcceso::where('user_id', $usuarioAutenticado->id)
-                ->where('seccion_id', $seccion->id)
-                ->get();
+            // === Verificar acceso por DEPARTAMENTO ===
+            $departamentosUsuario = $usuarioAutenticado->departamentos->pluck('id')->toArray();
+            $departamentosSeccion = $seccion->departamentos->pluck('id')->toArray();
+            $tieneAccesoPorDepartamento = !empty(array_intersect($departamentosUsuario, $departamentosSeccion));
 
-            if ($permisos->isEmpty()) {
-                Log::debug('❌ Sin permisos para sección', [
+            // Si NO tiene acceso por departamento, denegar
+            if (!$tieneAccesoPorDepartamento) {
+                Log::debug('❌ Sin acceso por departamento', [
                     'usuario' => $usuarioAutenticado->email,
                     'seccion' => $seccion->ruta,
-                    'ruta' => $nombreRutaActual,
+                    'departamentos_usuario' => $departamentosUsuario,
+                    'departamentos_seccion' => $departamentosSeccion,
                 ]);
-                return $this->denegarAcceso($request, "No tienes permisos asignados para la sección '{$seccion->nombre}'.");
+                return $this->denegarAcceso($request, "No tienes acceso a la sección '{$seccion->nombre}'.");
             }
+
+            // === Verificar permisos granulares (ver/crear/editar) ===
+            $permisos = PermisoAcceso::where('user_id', $usuarioAutenticado->id)
+                ->where('seccion_id', $seccion->id)
+                ->first();
+
+            // Si no tiene permisos específicos, solo permitir VER (index/show)
+            if (!$permisos) {
+                $esAccionVer = in_array($accionRuta, ['index', 'show'])
+                    || Str::startsWith($accionRuta, 'ver')
+                    || Str::startsWith($accionRuta, 'show');
+
+                if ($esAccionVer) {
+                    Log::debug('✅ Acceso por departamento (solo ver)', [
+                        'usuario' => $usuarioAutenticado->email,
+                        'seccion' => $seccion->ruta,
+                    ]);
+                    return $next($request);
+                }
+
+                Log::debug('❌ Sin permisos para crear/editar', [
+                    'usuario' => $usuarioAutenticado->email,
+                    'seccion' => $seccion->ruta,
+                    'accion' => $accionRuta,
+                ]);
+                return $this->denegarAcceso($request, "No tienes permisos para realizar esta acción en '{$seccion->nombre}'.");
+            }
+
+            // Convertir a collection para mantener compatibilidad con el código existente
+            $permisos = collect([$permisos]);
 
             $autorizado = false;
             foreach ($permisos as $permiso) {

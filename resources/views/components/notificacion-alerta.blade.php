@@ -66,32 +66,31 @@
 </style>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        fetch("/alertas/sin-leer", {
+        fetch("{{ route('alertas.verSinLeer') }}", {
                 headers: {
                     'Accept': 'application/json'
                 },
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.cantidad > 0) {
-                    let notificacion = document.getElementById("notificacion-alerta");
-                    let notificacionTexto = document.getElementById("notificacion-alertas-texto");
-
-                    let mensaje = data.cantidad === 1 ?
-                        `🔔 Tienes 1 mensaje sin leer` :
-                        `🔔 Tienes ${data.cantidad} mensajes sin leer`;
-
-                    notificacion.style.display = "block";
-                    notificacion.classList.add("visible");
-                    notificacionTexto.innerHTML = mensaje;
-
-                    // if ("{{ auth()->user()->categoria }}" === "gruista") {
-                    //     let sonido = new Audio("/sonidos/alerta1.mp3");
-                    //     sonido.play().catch(error => console.error("Error al reproducir el sonido:", error));
-                    // }
-                }
+            .then(response => {
+                if (!response.ok) return null;
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) return null;
+                return response.json();
             })
-            .catch(error => console.error("Error al obtener alertas:", error));
+            .then(data => {
+                if (!data || !data.cantidad) return;
+                let notificacion = document.getElementById("notificacion-alerta");
+                let notificacionTexto = document.getElementById("notificacion-alertas-texto");
+
+                let mensaje = data.cantidad === 1 ?
+                    `🔔 Tienes 1 mensaje sin leer` :
+                    `🔔 Tienes ${data.cantidad} mensajes sin leer`;
+
+                notificacion.style.display = "block";
+                notificacion.classList.add("visible");
+                notificacionTexto.innerHTML = mensaje;
+            })
+            .catch(() => {});
     });
 </script>

@@ -1048,7 +1048,7 @@
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        fetch(`/alertas/${idAEliminar}`, {
+                        fetch(`{{ url('alertas') }}/${idAEliminar}`, {
                             method: 'DELETE',
                             headers: {
                                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -1113,7 +1113,7 @@
             }
 
             window.guardarAlerta = function(alerta) {
-                fetch(`/alertas/${alerta.id}`, {
+                fetch(`{{ url('alertas') }}/${alerta.id}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1199,7 +1199,7 @@
                     data.append('_token', '{{ csrf_token() }}');
                     data.append('alerta_ids[]', alertaId);
 
-                    fetch("{{ route('alertas.verMarcarLeidas') }}", {
+                    fetch("{{ route('alertas.marcarLeidas') }}", {
                             method: 'POST',
                             body: data
                         })
@@ -1278,7 +1278,7 @@
             }
 
             window.cargarHiloConversacion = function(alertaId) {
-                fetch(`/alertas/${alertaId}/hilo`)
+                fetch(`{{ url('alertas') }}/${alertaId}/hilo`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.hilo) {
