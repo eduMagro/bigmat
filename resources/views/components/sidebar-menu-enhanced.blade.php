@@ -6,21 +6,31 @@
 
 {{-- Script inline que se ejecuta ANTES de Alpine para evitar flash del sidebar --}}
 <script>
-    (function() {
-        if (window.innerWidth >= 768) {
-            var sidebarOpen = localStorage.getItem('sidebar_open') !== 'false';
-            document.documentElement.classList.add(sidebarOpen ? 'sidebar-initially-open' : 'sidebar-initially-closed');
-        } else {
-            document.documentElement.classList.add('sidebar-initially-closed');
-        }
-    })();
+    // Solo ejecutar en la carga inicial, no después de wire:navigate
+    if (!window.__sidebarScriptRan) {
+        window.__sidebarScriptRan = true;
 
-    // Remover clases iniciales cuando Alpine esté listo para que no interfieran
-    document.addEventListener('alpine:init', function() {
-        setTimeout(function() {
+        (function() {
+            if (window.innerWidth >= 768) {
+                var sidebarOpen = localStorage.getItem('sidebar_open') !== 'false';
+                document.documentElement.classList.add(sidebarOpen ? 'sidebar-initially-open' : 'sidebar-initially-closed');
+            } else {
+                document.documentElement.classList.add('sidebar-initially-closed');
+            }
+        })();
+
+        // Remover clases iniciales cuando Alpine esté listo
+        document.addEventListener('alpine:init', function() {
+            setTimeout(function() {
+                document.documentElement.classList.remove('sidebar-initially-open', 'sidebar-initially-closed');
+            }, 100);
+        });
+
+        // Limpiar clases después de navegación Livewire
+        document.addEventListener('livewire:navigated', function() {
             document.documentElement.classList.remove('sidebar-initially-open', 'sidebar-initially-closed');
-        }, 100);
-    });
+        });
+    }
 </script>
 
 @if(auth()->user()->esOficina())
