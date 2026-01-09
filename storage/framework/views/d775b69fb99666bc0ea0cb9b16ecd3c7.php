@@ -295,6 +295,22 @@
         </div>
     </div>
     <!-- Livewire Scripts -->
+    <script data-navigate-once>
+        // Interceptar fetch para corregir URLs de Livewire en subdirectorio
+        (function() {
+            const originalFetch = window.fetch;
+            const baseUrl = '<?php echo e(url("")); ?>';
+
+            window.fetch = function(url, options) {
+                // Si es una petición a /livewire/, añadir el prefijo correcto
+                if (typeof url === 'string' && url.startsWith('/livewire/')) {
+                    url = baseUrl + url;
+                    console.log('Livewire URL corregida:', url);
+                }
+                return originalFetch.call(this, url, options);
+            };
+        })();
+    </script>
     <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts(['navigate' => true]); ?>
 
 

@@ -44,6 +44,12 @@ class PerfilController extends Controller
         // Horas trabajadas del mes
         $horasMensuales = $this->getHorasMensuales($user);
 
+        // Solicitudes de vacaciones pendientes del usuario
+        $solicitudesVacaciones = VacacionesSolicitud::where('user_id', $user->id)
+            ->where('estado', 'pendiente')
+            ->orderBy('fecha_inicio')
+            ->get();
+
         // Configuración del calendario (para fichajes y visualización)
         $esOficina = Auth::user()->rol === 'oficina';
         $config = [
@@ -54,6 +60,7 @@ class PerfilController extends Controller
                 'eventosUrl' => route('users.verEventos-turnos', $user->id),
                 'resumenUrl' => route('users.verResumen-asistencia', ['user' => $user->id]),
                 'vacacionesStoreUrl' => route('vacaciones.solicitar'),
+                'vacacionesDeleteUrl' => url('/vacaciones/solicitud'),
                 'storeUrl' => route('asignaciones-turnos.store'),
                 'destroyUrl' => route('asignaciones-turnos.destroyByPost'),
                 'vacationDataUrl' => route('usuarios.getVacationData', ['user' => $user->id]),
@@ -79,7 +86,8 @@ class PerfilController extends Controller
             'turnos',
             'resumen',
             'horasMensuales',
-            'config'
+            'config',
+            'solicitudesVacaciones'
         ));
     }
     private function getResumenAsistencia(User $user): array

@@ -19,7 +19,7 @@
     </div>
 
     <div class="container mx-auto sm:px-4">
-        <x-ficha-trabajador :user="$user" :resumen="$resumen" />
+        <x-ficha-trabajador :user="$user" :resumen="$resumen" :solicitudesVacaciones="$solicitudesVacaciones" />
     </div>
 
     @php
@@ -436,15 +436,9 @@
             justify-content: flex-end;
         }
 
-        /* Label de jornada (1ª, 2ª) */
+        /* Ocultar label de jornada (1ª, 2ª) */
         .jornada-label {
-            color: #6b7280;
-            font-weight: 700;
-            font-size: 0.55rem;
-            background: #f3f4f6;
-            padding: 1px 3px;
-            border-radius: 2px;
-            margin-right: 2px;
+            display: none;
         }
 
         /* Hora de entrada - verde */
@@ -525,11 +519,15 @@
         .fc .bg-select-endpoint-left {
             border-top-left-radius: 12px;
             border-bottom-left-radius: 12px;
+            border-left: 3px solid rgba(99, 102, 241, 0.8);
+            box-shadow: -4px 0 8px rgba(99, 102, 241, 0.4);
         }
 
         .fc .bg-select-endpoint-right {
             border-top-right-radius: 12px;
             border-bottom-right-radius: 12px;
+            border-right: 3px solid rgba(99, 102, 241, 0.8);
+            box-shadow: 4px 0 8px rgba(99, 102, 241, 0.4);
         }
 
         .fc .fc-daygrid-day-bg {
@@ -616,6 +614,24 @@
                 font-size: 0.45rem !important;
                 padding: 0 2px !important;
             }
+        }
+
+        /* === ESTILOS MINIMALISTAS PARA EVENTOS === */
+        .evento-simple {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Borde lateral sutil */
+        .fc .fc-event:not(.fichaje-evento) {
+            border-left: 3px solid rgba(0,0,0,0.2) !important;
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
         }
 
         /* SweetAlert personalizado para gestion de turnos */
@@ -886,6 +902,58 @@
                         indicadorEstado.className += 'bg-gray-100 text-gray-600';
                 }
             }
+        }
+
+        function eliminarSolicitudVacaciones(solicitudId, fechaInicio, fechaFin) {
+            Swal.fire({
+                title: '¿Eliminar solicitud?',
+                html: `¿Estás seguro de que quieres eliminar la solicitud de vacaciones del <strong>${fechaInicio}</strong> al <strong>${fechaFin}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`{{ url('/vacaciones/solicitud') }}/${solicitudId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Eliminada',
+                                text: data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'No se pudo eliminar la solicitud'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Ocurrió un error al eliminar la solicitud'
+                        });
+                    });
+                }
+            });
         }
     </script>
 

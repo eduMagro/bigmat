@@ -1,4 +1,4 @@
-@props(['user', 'resumen'])
+@props(['user', 'resumen', 'solicitudesVacaciones' => collect()])
 
 <style>
     [x-cloak] {
@@ -14,7 +14,19 @@
     seccionNomina: false,
     seccionContrato: false,
     seccionJustificante: false
-}">
+}"
+@justificante-guardado-success.window="
+    seccionJustificante = false;
+    Swal.fire({
+        icon: 'success',
+        title: '¡Guardado!',
+        text: $event.detail[0].mensaje + ' para el ' + $event.detail[0].fecha,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+    });
+">
     <div class="max-w-7xl mx-auto">
 
         {{-- Header con banner degradado --}}
@@ -356,6 +368,65 @@
                                 </svg>
                                 Descargar PDF
                             </a>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Solicitudes de Vacaciones Pendientes --}}
+            @if ($solicitudesVacaciones->count() > 0)
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+                    x-data="{ seccionSolicitudes: false }">
+                    <button @click="seccionSolicitudes = !seccionSolicitudes"
+                        class="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-amber-100 rounded-lg p-1.5">
+                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-900">Solicitudes de Vacaciones</span>
+                            <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{{ $solicitudesVacaciones->count() }} pendientes</span>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                            :class="{ 'rotate-180': seccionSolicitudes }" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div x-cloak x-show="seccionSolicitudes" x-collapse>
+                        <div class="px-3 pb-3 space-y-2">
+                            <p class="text-xs text-gray-500 mb-2">Haz clic en una solicitud para eliminarla</p>
+                            @foreach ($solicitudesVacaciones as $solicitud)
+                                <div class="flex items-center justify-between p-2 bg-amber-50 rounded-lg border border-amber-200 hover:bg-amber-100 cursor-pointer transition-colors group"
+                                    onclick="eliminarSolicitudVacaciones({{ $solicitud->id }}, '{{ \Carbon\Carbon::parse($solicitud->fecha_inicio)->format('d/m/Y') }}', '{{ \Carbon\Carbon::parse($solicitud->fecha_fin)->format('d/m/Y') }}')">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div>
+                                            <p class="text-xs font-medium text-gray-900">
+                                                {{ \Carbon\Carbon::parse($solicitud->fecha_inicio)->format('d/m/Y') }} -
+                                                {{ \Carbon\Carbon::parse($solicitud->fecha_fin)->format('d/m/Y') }}
+                                            </p>
+                                            <p class="text-[10px] text-gray-500">
+                                                Solicitado el {{ $solicitud->created_at->format('d/m/Y H:i') }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">Pendiente</span>
+                                        <svg class="w-4 h-4 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>

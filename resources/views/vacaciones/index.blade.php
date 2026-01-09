@@ -27,22 +27,27 @@
 
     <style>
         /* Estilos para seleccion de rango */
-        .bg-select-range {
+        .fc .bg-select-range {
             background: rgba(99, 102, 241, 0.25) !important;
+            border-radius: 4px;
         }
 
-        .bg-select-endpoint {
+        .fc .bg-select-endpoint {
             background: rgba(99, 102, 241, 0.45) !important;
         }
 
-        .bg-select-endpoint-left {
+        .fc .bg-select-endpoint-left {
             border-top-left-radius: 12px;
             border-bottom-left-radius: 12px;
+            border-left: 3px solid rgba(99, 102, 241, 0.8);
+            box-shadow: -4px 0 8px rgba(99, 102, 241, 0.4);
         }
 
-        .bg-select-endpoint-right {
+        .fc .bg-select-endpoint-right {
             border-top-right-radius: 12px;
             border-bottom-right-radius: 12px;
+            border-right: 3px solid rgba(99, 102, 241, 0.8);
+            box-shadow: 4px 0 8px rgba(99, 102, 241, 0.4);
         }
 
         .fc .fc-daygrid-day-bg {

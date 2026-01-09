@@ -462,11 +462,15 @@
         .fc .bg-select-endpoint-left {
             border-top-left-radius: 12px;
             border-bottom-left-radius: 12px;
+            border-left: 3px solid rgba(99, 102, 241, 0.8);
+            box-shadow: -4px 0 8px rgba(99, 102, 241, 0.4);
         }
 
         .fc .bg-select-endpoint-right {
             border-top-right-radius: 12px;
             border-bottom-right-radius: 12px;
+            border-right: 3px solid rgba(99, 102, 241, 0.8);
+            box-shadow: 4px 0 8px rgba(99, 102, 241, 0.4);
         }
 
         .fc .fc-daygrid-day-bg {
@@ -477,6 +481,114 @@
         .fc .bg-select-range,
         .fc .bg-select-endpoint {
             pointer-events: none !important;
+        }
+
+        /* === FICHAJES === */
+        .fc .fichaje-evento {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 1px 2px !important;
+            min-height: auto !important;
+        }
+
+        .fc .fichaje-evento:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Contenedor principal de fichajes */
+        .fichajes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.62rem;
+            line-height: 1;
+            width: 100%;
+        }
+
+        /* Cuando hay dos jornadas, ponerlas lado a lado */
+        .fichajes-container.dos-jornadas {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        /* Cada jornada */
+        .jornada {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .jornada-1 {
+            justify-content: flex-start;
+        }
+
+        .jornada-2 {
+            justify-content: flex-end;
+        }
+
+        /* Ocultar label de jornada (1ª, 2ª) */
+        .jornada-label {
+            display: none;
+        }
+
+        /* Hora de entrada - verde */
+        .hora-entrada {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border-left: 2px solid #22c55e;
+            font-weight: 600;
+        }
+
+        /* Hora de salida - rojo */
+        .hora-salida {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border-left: 2px solid #ef4444;
+            font-weight: 600;
+        }
+
+        /* Contenedor de eventos */
+        .fc .fc-daygrid-day-events {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1px !important;
+            min-height: 40px !important;
+            padding-top: 1px !important;
+        }
+
+        .fc .fc-daygrid-event-harness {
+            margin-top: 0 !important;
+        }
+
+        /* Asegurar que fichajes aparezcan despues de turnos */
+        .fc .fc-daygrid-event-harness:has(.fichaje-evento) {
+            order: 10 !important;
+        }
+
+        /* === ESTILOS MINIMALISTAS PARA EVENTOS === */
+        .evento-simple {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Borde lateral sutil */
+        .fc .fc-event:not(.fichaje-evento) {
+            border-left: 3px solid rgba(0,0,0,0.2) !important;
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
         }
 
         /* Vista lista */
@@ -532,6 +644,26 @@
             .fc .fc-event {
                 font-size: 0.65rem;
                 padding: 1px 4px;
+            }
+
+            /* Fichajes en movil */
+            .fichajes-container {
+                font-size: 0.5rem !important;
+            }
+
+            .fichajes-container.dos-jornadas {
+                flex-direction: column !important;
+                gap: 1px !important;
+            }
+
+            .hora-entrada,
+            .hora-salida {
+                padding: 1px 2px !important;
+            }
+
+            .jornada-label {
+                font-size: 0.45rem !important;
+                padding: 0 2px !important;
             }
         }
 

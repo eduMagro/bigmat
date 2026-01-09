@@ -3,7 +3,6 @@
     "allow": [
       "Bash(composer require:*)",
       "Bash(php artisan:*)",
-      "Bash(php -r \"chdir\\(''C:/xampp/htdocs/manager''\\); passthru\\(''php artisan festivos:sincronizar 2026''\\);\")",
       "Bash(dir:*)",
       "Bash(php -r:*)",
       "Bash(/c/xampp/mysql/bin/mysql:*)",
@@ -14,8 +13,17 @@
       "Bash(gh repo create:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(ls -la \"C:\\\\xampp\\\\htdocs\\\\bigmat\\\\app\"\" 2>/dev/null || ls -la \"C:xampphtdocsbigmatapp \")",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(dir \"%USERPROFILE%\\\\.claude\")",
+      "Bash(dir \"%APPDATA%\\\\Claude\")",
+      "Bash(dir \"%LOCALAPPDATA%\\\\Claude\")",
+      "Bash(php:*)",
+      "Bash(findstr:*)",
+      "Bash(git checkout:*)",
+      "Bash(del \"C:\\\\xampp\\\\htdocs\\\\bigmat\\\\CONTINUACION_2026-01-08.md\")",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(copy \"C:\\\\xampp\\\\htdocs\\\\manager\\\\public\\\\js\\\\calendario\\\\calendario.js\" \"C:\\\\xampp\\\\htdocs\\\\manager\\\\resources\\\\js\\\\calendario\\\\calendario.js\" /Y)"
     ]
   }
 }

@@ -419,8 +419,11 @@ class SubirJustificante extends Component
             $this->cargarAsignacionesDisponibles();
             $this->cargarJustificantesExistentes();
 
-            session()->flash('justificante_success', 'Justificante guardado correctamente.');
-            $this->dispatch('justificante-guardado');
+            // Emitir evento para cerrar sección y mostrar SweetAlert2
+            $this->dispatch('justificante-guardado-success', [
+                'mensaje' => 'Justificante guardado correctamente',
+                'fecha' => $asignacion->fecha->format('d/m/Y'),
+            ]);
 
         } catch (\Exception $e) {
             $this->error = 'Error al guardar el justificante: ' . $e->getMessage();

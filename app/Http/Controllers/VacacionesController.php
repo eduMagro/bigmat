@@ -144,19 +144,23 @@ class VacacionesController extends Controller
             ], 500);
         }
     }
-    public function aprobar($id)
+    public function aprobar(Request $request, $id)
     {
         $solicitud = VacacionesSolicitud::with('user')->findOrFail($id);
         $user = $solicitud->user;
+
+        // Obtener año de cargo (del request o año de la fecha de inicio)
+        $fechaInicio = Carbon::parse($solicitud->fecha_inicio);
+        $anioCargo = $request->input('anio_cargo', $fechaInicio->year);
 
         $rango = CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin);
         $diasNuevos = 0;
         $fechasAsignables = [];
 
-        $inicioAño = Carbon::now()->startOfYear();
+        // Contar días ya asignados para el año de cargo seleccionado
         $diasYaAsignados = $user->asignacionesTurnos()
             ->where('estado', 'vacaciones')
-            ->where('fecha', '>=', $inicioAño)
+            ->where('anio_cargo', $anioCargo)
             ->count();
 
         foreach ($rango as $fecha) {
@@ -177,13 +181,13 @@ class VacacionesController extends Controller
             }
         }
 
-        $tope = $user->vacaciones_correspondientes;
+        $tope = 22; // Máximo 22 días por año
 
         if (($diasYaAsignados + $diasNuevos) > $tope) {
-            return redirect()->back()->with('error', "No se puede aprobar la solicitud. El usuario ya tiene {$diasYaAsignados} días asignados y esta solicitud añade {$diasNuevos}, superando el tope de {$tope} días.");
+            return redirect()->back()->with('error', "No se puede aprobar la solicitud. El usuario ya tiene {$diasYaAsignados} días asignados en {$anioCargo} y esta solicitud añade {$diasNuevos}, superando el tope de {$tope} días.");
         }
 
-        // ✔️ Asignación real
+        // Asignación real
         foreach ($rango as $fecha) {
             $fechaStr = $fecha->format('Y-m-d');
 
@@ -199,10 +203,11 @@ class VacacionesController extends Controller
             $estadoAnterior = $asignacion->estado;
 
             $asignacion->estado = 'vacaciones';
+            $asignacion->anio_cargo = $anioCargo;
             $asignacion->maquina_id = $user->maquina_id;
             $asignacion->save();
 
-            Log::info("✏️ Asignación actualizada para $fechaStr - estado anterior: " . ($estadoAnterior ?? 'ninguno'));
+            Log::info("Asignación vacaciones para $fechaStr - año cargo: $anioCargo - estado anterior: " . ($estadoAnterior ?? 'ninguno'));
         }
 
         // ✔️ Marcar solicitud como aprobada
@@ -241,6 +246,101 @@ class VacacionesController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Solicitud denegada y alerta enviada.');
+    }
+
+    /**
+     * Eliminar un día específico de una solicitud de vacaciones
+     * Si es el único día, elimina la solicitud completa
+     * Si es el primer/último día, ajusta las fechas
+     * Si es un día del medio, divide la solicitud en dos
+     */
+    public function eliminarDiaSolicitud(Request $request, $id)
+    {
+        $solicitud = VacacionesSolicitud::findOrFail($id);
+
+        // Verificar que la solicitud pertenece al usuario autenticado
+        if ($solicitud->user_id !== auth()->id()) {
+            return response()->json([
+                'error' => 'No tienes permiso para modificar esta solicitud.'
+            ], 403);
+        }
+
+        // Verificar que la solicitud está pendiente
+        if ($solicitud->estado !== 'pendiente') {
+            return response()->json([
+                'error' => 'Solo puedes modificar solicitudes pendientes.'
+            ], 400);
+        }
+
+        $fechaEliminar = $request->input('fecha');
+        if (!$fechaEliminar) {
+            return response()->json([
+                'error' => 'Debe especificar la fecha a eliminar.'
+            ], 400);
+        }
+
+        $fechaEliminar = Carbon::parse($fechaEliminar)->format('Y-m-d');
+        $fechaInicio = Carbon::parse($solicitud->fecha_inicio)->format('Y-m-d');
+        $fechaFin = Carbon::parse($solicitud->fecha_fin)->format('Y-m-d');
+
+        // Verificar que la fecha está dentro del rango de la solicitud
+        if ($fechaEliminar < $fechaInicio || $fechaEliminar > $fechaFin) {
+            return response()->json([
+                'error' => 'La fecha no pertenece a esta solicitud.'
+            ], 400);
+        }
+
+        // Caso 1: Es el único día - eliminar la solicitud completa
+        if ($fechaInicio === $fechaFin) {
+            $solicitud->delete();
+            return response()->json([
+                'success' => true,
+                'message' => "Solicitud de vacaciones del {$fechaEliminar} eliminada."
+            ]);
+        }
+
+        // Caso 2: Es el primer día - ajustar fecha_inicio
+        if ($fechaEliminar === $fechaInicio) {
+            $nuevaFechaInicio = Carbon::parse($fechaInicio)->addDay()->format('Y-m-d');
+            $solicitud->fecha_inicio = $nuevaFechaInicio;
+            $solicitud->save();
+            return response()->json([
+                'success' => true,
+                'message' => "Día {$fechaEliminar} eliminado. La solicitud ahora es del {$nuevaFechaInicio} al {$fechaFin}."
+            ]);
+        }
+
+        // Caso 3: Es el último día - ajustar fecha_fin
+        if ($fechaEliminar === $fechaFin) {
+            $nuevaFechaFin = Carbon::parse($fechaFin)->subDay()->format('Y-m-d');
+            $solicitud->fecha_fin = $nuevaFechaFin;
+            $solicitud->save();
+            return response()->json([
+                'success' => true,
+                'message' => "Día {$fechaEliminar} eliminado. La solicitud ahora es del {$fechaInicio} al {$nuevaFechaFin}."
+            ]);
+        }
+
+        // Caso 4: Es un día del medio - dividir en dos solicitudes
+        $nuevaFechaFinPrimera = Carbon::parse($fechaEliminar)->subDay()->format('Y-m-d');
+        $nuevaFechaInicioSegunda = Carbon::parse($fechaEliminar)->addDay()->format('Y-m-d');
+
+        // Actualizar la solicitud original (primera parte)
+        $solicitud->fecha_fin = $nuevaFechaFinPrimera;
+        $solicitud->save();
+
+        // Crear nueva solicitud (segunda parte)
+        VacacionesSolicitud::create([
+            'user_id' => $solicitud->user_id,
+            'fecha_inicio' => $nuevaFechaInicioSegunda,
+            'fecha_fin' => $fechaFin,
+            'estado' => 'pendiente',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Día {$fechaEliminar} eliminado. Se han creado dos solicitudes: {$fechaInicio} al {$nuevaFechaFinPrimera} y {$nuevaFechaInicioSegunda} al {$fechaFin}."
+        ]);
     }
 
     public function eliminarEvento(Request $request)

@@ -179,10 +179,12 @@ class IncorporacionController extends Controller
     public function updateFechaIncorporacion(Request $request, Incorporacion $incorporacion)
     {
         $validated = $request->validate([
-            'fecha_incorporacion' => 'required|date',
+            'fecha_incorporacion' => 'nullable|date',
         ]);
 
-        $incorporacion->update($validated);
+        $incorporacion->update([
+            'fecha_incorporacion' => $validated['fecha_incorporacion'] ?: null,
+        ]);
 
         return response()->json([
             'success' => true,

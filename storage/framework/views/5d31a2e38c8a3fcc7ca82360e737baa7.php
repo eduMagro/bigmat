@@ -6,21 +6,31 @@
 
 
 <script>
-    (function() {
-        if (window.innerWidth >= 768) {
-            var sidebarOpen = localStorage.getItem('sidebar_open') !== 'false';
-            document.documentElement.classList.add(sidebarOpen ? 'sidebar-initially-open' : 'sidebar-initially-closed');
-        } else {
-            document.documentElement.classList.add('sidebar-initially-closed');
-        }
-    })();
+    // Solo ejecutar en la carga inicial, no después de wire:navigate
+    if (!window.__sidebarScriptRan) {
+        window.__sidebarScriptRan = true;
 
-    // Remover clases iniciales cuando Alpine esté listo para que no interfieran
-    document.addEventListener('alpine:init', function() {
-        setTimeout(function() {
+        (function() {
+            if (window.innerWidth >= 768) {
+                var sidebarOpen = localStorage.getItem('sidebar_open') !== 'false';
+                document.documentElement.classList.add(sidebarOpen ? 'sidebar-initially-open' : 'sidebar-initially-closed');
+            } else {
+                document.documentElement.classList.add('sidebar-initially-closed');
+            }
+        })();
+
+        // Remover clases iniciales cuando Alpine esté listo
+        document.addEventListener('alpine:init', function() {
+            setTimeout(function() {
+                document.documentElement.classList.remove('sidebar-initially-open', 'sidebar-initially-closed');
+            }, 100);
+        });
+
+        // Limpiar clases después de navegación Livewire
+        document.addEventListener('livewire:navigated', function() {
             document.documentElement.classList.remove('sidebar-initially-open', 'sidebar-initially-closed');
-        }, 100);
-    });
+        });
+    }
 </script>
 
 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->user()->esOficina()): ?>
@@ -529,7 +539,7 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
                         </path>
                     </svg>
-                    <span x-show="open"
+                    <span x-show="open" x-cloak x-transition
                         class="sidebar-text text-gray-400 group-hover:text-white transition">Buscar
                         (Ctrl+K)</span>
                 </button>
@@ -547,7 +557,7 @@
                             d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
                         </path>
                     </svg>
-                    <span x-show="open"
+                    <span x-show="open" x-cloak x-transition
                         class="sidebar-text text-gray-400 group-hover:text-white transition">Favoritos</span>
                     <span x-show="open && favorites.length > 0"
                         class="sidebar-text ml-auto bg-yellow-600 text-xs px-2 py-0.5 rounded-full"
@@ -613,7 +623,7 @@
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
                         </path>
                     </svg>
-                    <span x-show="open"
+                    <span x-show="open" x-cloak x-transition
                         class="sidebar-text text-gray-400 group-hover:text-white transition">Recientes
                         (Ctrl+H)</span>
                 </button>
@@ -789,7 +799,7 @@
                         d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
                     </path>
                 </svg>
-                <span x-show="open"
+                <span x-show="open" x-cloak x-transition
                     class="sidebar-text text-gray-400 group-hover:text-white">Dashboard</span>
             </a>
 
@@ -809,7 +819,7 @@
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z">
                     </path>
                 </svg>
-                <span x-show="open"
+                <span x-show="open" x-cloak x-transition
                     class="sidebar-text text-gray-400 group-hover:text-white"
                     x-text="darkMode ? 'Modo Claro' : 'Modo Oscuro'"></span>
             </button>
@@ -1016,19 +1026,28 @@
 
         /* Elementos ocultos por defecto (antes de Alpine) */
         .sidebar-mobile-hidden .sidebar-text {
-            display: none !important;
+            opacity: 0;
             visibility: hidden;
+            transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
         }
 
-        /* Mostrar elementos solo cuando sidebar abierto Y listo */
+        /* Mostrar elementos solo cuando sidebar abierto Y listo - con delay para esperar expansión */
         .sidebar-mobile-hidden.sidebar-open.sidebar-ready .sidebar-text {
-            display: inline !important;
+            opacity: 1;
             visibility: visible;
+            transition-delay: 0.2s; /* Esperar a que el sidebar se expanda */
         }
 
         /* Para SVGs usar inline-block */
         .sidebar-mobile-hidden.sidebar-open.sidebar-ready svg.sidebar-text {
             display: inline-block !important;
+        }
+
+        /* Ocultar inmediatamente al cerrar (sin delay) */
+        .sidebar-mobile-hidden.sidebar-closed .sidebar-text {
+            opacity: 0;
+            visibility: hidden;
+            transition-delay: 0s;
         }
 
         .sidebar-mobile-hidden.sidebar-open {

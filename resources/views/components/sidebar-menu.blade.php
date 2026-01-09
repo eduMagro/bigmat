@@ -5,10 +5,22 @@
 @endphp
 
 <div x-data="{
-    open: true,
+    open: window.innerWidth >= 768 ? (localStorage.getItem('sidebar_open') !== 'false') : false,
     activeSection: null,
     searchOpen: false,
     searchQuery: '',
+    isToggling: false,
+
+    toggleSidebar() {
+        if (this.isToggling) return;
+        this.isToggling = true;
+        this.open = !this.open;
+        localStorage.setItem('sidebar_open', this.open);
+        setTimeout(() => {
+            this.isToggling = false;
+        }, 300);
+    },
+
     init() {
         // Detectar sección activa basada en ruta actual
         @foreach($menuItems as $index => $section)
@@ -30,6 +42,11 @@
                     this.$nextTick(() => this.$refs.searchInput?.focus());
                 }
             }
+            // Atajo Cmd/Ctrl + B para toggle sidebar
+            if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+                e.preventDefault();
+                this.toggleSidebar();
+            }
         });
     }
 }" class="flex h-screen">
@@ -43,7 +60,7 @@
             <div x-show="open" x-transition class="flex items-center space-x-2">
                 <span class="text-lg font-bold">Manager</span>
             </div>
-            <button @click="open = !open" class="p-2 hover:bg-gray-800 rounded-lg transition">
+            <button @click="toggleSidebar()" class="p-2 hover:bg-gray-800 rounded-lg transition" title="Toggle Sidebar (Ctrl+B)">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           :d="open ? 'M11 19l-7-7 7-7m8 14l-7-7 7-7' : 'M13 5l7 7-7 7M5 5l7 7-7 7'"></path>

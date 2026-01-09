@@ -358,6 +358,7 @@ class ProfileController extends Controller
                 'eventosUrl' => route('users.verEventos-turnos', $user->id),
                 'resumenUrl' => route('users.verResumen-asistencia', ['user' => $user->id]),
                 'vacacionesStoreUrl' => route('vacaciones.solicitar'),
+                'vacacionesDeleteUrl' => url('/vacaciones/solicitud'),
                 'storeUrl' => route('asignaciones-turnos.store'),
                 'destroyUrl' => route('asignaciones-turnos.destroyByPost'),
                 'vacationDataUrl' => route('usuarios.getVacationData', ['user' => $user->id]),
@@ -1101,6 +1102,13 @@ class ProfileController extends Controller
                             'backgroundColor' => $color,
                             'borderColor' => $color,
                             'textColor' => $textColor,
+                            'extendedProps' => [
+                                'solicitud_id' => $solicitud->id,
+                                'estado' => $solicitud->estado,
+                                'fecha_inicio' => $solicitud->fecha_inicio,
+                                'fecha_fin' => $solicitud->fecha_fin,
+                                'es_solicitud_vacaciones' => true,
+                            ],
                         ];
                     });
             })->values();
