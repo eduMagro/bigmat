@@ -1141,8 +1141,9 @@ class AsignacionTurnoController extends Controller
                 foreach ($periodo as $currentDate) {
                     $dateStr = $currentDate->toDateString();
 
+                    // Saltar fines de semana y festivos para vacaciones y turnos
                     if (
-                        $tipo === 'vacaciones' &&
+                        ($tipo === 'vacaciones' || $esTurno) &&
                         (in_array($currentDate->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]) ||
                             in_array($dateStr, $festivos))
                     ) {

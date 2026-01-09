@@ -145,6 +145,157 @@
         // Cache global de usuarios
         let usuariosCache = null;
 
+        // Funciones AJAX para aprobar/denegar solicitudes
+        function aprobarSolicitud(solicitudId, btn) {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            if (!tokenMeta) {
+                Swal.fire('Error', 'No se encontró el token CSRF. Recarga la página.', 'error');
+                return;
+            }
+            const token = tokenMeta.getAttribute('content');
+            const row = btn.closest('tr');
+
+            // Deshabilitar botones mientras se procesa
+            const btns = row.querySelectorAll('button');
+            btns.forEach(b => b.disabled = true);
+            btn.textContent = 'Procesando...';
+
+            fetch(`{{ url('/vacaciones') }}/${solicitudId}/aprobar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            return JSON.parse(text);
+                        } catch {
+                            throw new Error(text.substring(0, 200));
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Eliminar la fila de la tabla
+                    row.remove();
+                    // Refrescar el calendario
+                    refrescarCalendarios();
+                    // Verificar si quedan solicitudes
+                    verificarTablasVacias();
+                    // Mostrar notificacion
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Aprobada',
+                        text: data.message || 'Solicitud aprobada correctamente',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'No se pudo aprobar la solicitud', 'error');
+                    btns.forEach(b => b.disabled = false);
+                    btn.textContent = 'Aprobar';
+                }
+            })
+            .catch(error => {
+                console.error('Error aprobar:', error);
+                Swal.fire('Error', error.message || 'Error de conexion', 'error');
+                btns.forEach(b => b.disabled = false);
+                btn.textContent = 'Aprobar';
+            });
+        }
+
+        function denegarSolicitud(solicitudId, btn) {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            if (!tokenMeta) {
+                Swal.fire('Error', 'No se encontró el token CSRF. Recarga la página.', 'error');
+                return;
+            }
+            const token = tokenMeta.getAttribute('content');
+            const row = btn.closest('tr');
+
+            // Deshabilitar botones mientras se procesa
+            const btns = row.querySelectorAll('button');
+            btns.forEach(b => b.disabled = true);
+            btn.textContent = 'Procesando...';
+
+            fetch(`{{ url('/vacaciones') }}/${solicitudId}/denegar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            return JSON.parse(text);
+                        } catch {
+                            throw new Error(text.substring(0, 200));
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Eliminar la fila de la tabla
+                    row.remove();
+                    // Verificar si quedan solicitudes
+                    verificarTablasVacias();
+                    // Mostrar notificacion
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Denegada',
+                        text: data.message || 'Solicitud denegada correctamente',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'No se pudo denegar la solicitud', 'error');
+                    btns.forEach(b => b.disabled = false);
+                    btn.textContent = 'Denegar';
+                }
+            })
+            .catch(error => {
+                console.error('Error denegar:', error);
+                Swal.fire('Error', error.message || 'Error de conexion', 'error');
+                btns.forEach(b => b.disabled = false);
+                btn.textContent = 'Denegar';
+            });
+        }
+
+        function refrescarCalendarios() {
+            // Refrescar el calendario de la pagina si existe
+            const calEl = document.getElementById('calendario-vacaciones');
+            if (calEl && calEl._calendar) {
+                calEl._calendar.refetchEvents();
+            }
+            // Invalidar cache de usuarios
+            usuariosCache = null;
+        }
+
+        function verificarTablasVacias() {
+            // Buscar todas las tablas de solicitudes
+            document.querySelectorAll('table').forEach(tabla => {
+                const tbody = tabla.querySelector('tbody');
+                if (tbody && tbody.querySelectorAll('tr').length === 0) {
+                    // Reemplazar la tabla con mensaje de "no hay solicitudes"
+                    const container = tabla.closest('.overflow-x-auto');
+                    if (container) {
+                        container.innerHTML = '<p class="text-gray-600">No hay solicitudes pendientes.</p>';
+                    }
+                }
+            });
+        }
+
         function inicializarCalendario() {
             const el = document.getElementById('calendario-vacaciones');
             if (!el) return;
@@ -228,7 +379,7 @@
                 // Cargar usuarios si no estan en cache
                 if (!usuariosCache) {
                     try {
-                        const response = await fetch('/vacaciones/usuarios-con-vacaciones');
+                        const response = await fetch('{{ url("/vacaciones/usuarios-con-vacaciones") }}');
                         usuariosCache = await response.json();
                     } catch (error) {
                         console.error('Error cargando usuarios:', error);
@@ -320,7 +471,7 @@
 
                 // Hacer la peticion para asignar vacaciones
                 try {
-                    const response = await fetch('/vacaciones/asignar-directo', {
+                    const response = await fetch('{{ url("/vacaciones/asignar-directo") }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -395,7 +546,7 @@
                     right: ''
                 },
                 events: function(info, successCallback, failureCallback) {
-                    fetch('/vacaciones/eventos')
+                    fetch('{{ url("/vacaciones/eventos") }}')
                         .then(r => r.json())
                         .then(data => successCallback(data))
                         .catch(err => {
@@ -436,7 +587,7 @@
                         return;
                     }
 
-                    fetch('/vacaciones/reprogramar', {
+                    fetch('{{ url("/vacaciones/reprogramar") }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -493,7 +644,7 @@
                             cancelButtonText: 'Cancelar'
                         }).then(result => {
                             if (result.isConfirmed) {
-                                fetch('/vacaciones/eliminar-evento', {
+                                fetch('{{ url("/vacaciones/eliminar-evento") }}', {
                                         method: 'POST',
                                         headers: {
                                             'Content-Type': 'application/json',

@@ -1082,16 +1082,29 @@ class ProfileController extends Controller
         // 4. Festivos
         $eventos = $eventos->merge(Festivo::eventosCalendario());
 
-        // 5. Vacaciones pendientes/denegadas
+        // 5. Vacaciones pendientes/denegadas (excluyendo fines de semana y festivos)
+        $festivosFechas = Festivo::pluck('fecha')->map(fn($f) => $f->format('Y-m-d'))->toArray();
+
         $vacaciones = VacacionesSolicitud::where('user_id', $user->id)
             ->whereIn('estado', ['pendiente', 'denegada'])
             ->get()
-            ->flatMap(function ($solicitud) {
+            ->flatMap(function ($solicitud) use ($festivosFechas) {
                 $title = $solicitud->estado === 'pendiente' ? 'V. pendiente' : 'V. denegadas';
                 $color = $solicitud->estado === 'pendiente' ? '#fcdde8' : '#000000';
                 $textColor = $solicitud->estado === 'pendiente' ? 'black' : 'white';
 
                 return collect(CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin)->toArray())
+                    ->filter(function ($fecha) use ($festivosFechas) {
+                        // Excluir fines de semana (sábado=6, domingo=0)
+                        if ($fecha->isWeekend()) {
+                            return false;
+                        }
+                        // Excluir festivos
+                        if (in_array($fecha->format('Y-m-d'), $festivosFechas)) {
+                            return false;
+                        }
+                        return true;
+                    })
                     ->map(function ($fecha) use ($title, $color, $textColor, $solicitud) {
                         $fechaStr = $fecha->format('Y-m-d');
                         return [

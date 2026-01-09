@@ -74,7 +74,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/vacaciones/eliminar-evento', [VacacionesController::class, 'eliminarEvento'])->name('vacaciones.eliminarEvento');
     Route::post('/vacaciones/{id}/aprobar', [VacacionesController::class, 'aprobar'])->name('vacaciones.editarAprobar');
     Route::post('/vacaciones/{id}/denegar', [VacacionesController::class, 'denegar'])->name('vacaciones.editarDenegar');
+    Route::get('/vacaciones/mis-solicitudes-pendientes', [VacacionesController::class, 'misSolicitudesPendientes'])->name('vacaciones.misSolicitudesPendientes');
     Route::delete('/vacaciones/solicitud/{id}', [VacacionesController::class, 'eliminarSolicitud'])->name('vacaciones.eliminarSolicitud');
+    Route::post('/vacaciones/solicitud/eliminar-dias', [VacacionesController::class, 'eliminarDiasSolicitud'])->name('vacaciones.eliminarDiasSolicitud');
     Route::resource('vacaciones', VacacionesController::class);
 
     // === TURNOS Y ASIGNACIONES ===
