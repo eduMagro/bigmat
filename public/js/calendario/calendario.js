@@ -357,6 +357,109 @@
                 cancelButtonText: "Cancelar",
             });
             if (!isConfirmed) return;
+
+            // Validar días disponibles antes de enviar
+            const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
+
+            // Obtener datos de vacaciones frescos para validar
+            const baseUrl = routes.vacationDataUrl || `/usuarios/${userId}/vacation-data`;
+            const fetchUrl = `${baseUrl}?fecha=${fechaInicio}`;
+
+            let disponiblesTotal = 0;
+
+            try {
+                const response = await fetch(fetchUrl);
+                if (!response.ok) throw new Error('Error al obtener datos');
+                const data = await response.json();
+
+                const fechaInc = data.fecha_incorporacion ? new Date(data.fecha_incorporacion) : null;
+                const clickDate = new Date(fechaInicio);
+                const clickYear = clickDate.getFullYear();
+                const previousYear = clickYear - 1;
+
+                const isGracePeriod = clickDate.getMonth() <= 2; // enero, febrero, marzo
+                let disponiblesAnterior = 0;
+                let disponiblesActual = 0;
+
+                // Incluir días de solicitudes pendientes
+                const diasSolicitadosAnterior = data.dias_solicitados_anterior || 0;
+                const diasSolicitadosActual = data.dias_solicitados_actual || 0;
+                const diasSolicitadosPeriodoGracia = data.dias_solicitados_periodo_gracia || 0;
+                const diasSolicitadosPostGracia = data.dias_solicitados_post_gracia || 0;
+
+                if (fechaInc && fechaInc < new Date(clickYear, 0, 1)) {
+                    // Usuario incorporado antes de este año
+                    const diasUsadosAnterior = (data.dias_asignados_anterior || 0) + diasSolicitadosAnterior;
+                    const diasUsadosPeriodoGracia = (data.dias_usados_periodo_gracia || 0) + diasSolicitadosPeriodoGracia;
+                    const diasUsadosPostGracia = (data.dias_usados_post_gracia || 0) + diasSolicitadosPostGracia;
+
+                    const generadasAnterior = 22;
+                    const saldoAnterior = Math.max(0, generadasAnterior - diasUsadosAnterior);
+
+                    if (isGracePeriod) {
+                        disponiblesAnterior = Math.max(0, saldoAnterior - diasUsadosPeriodoGracia);
+                        const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
+                        disponiblesActual = 22 - excesoSobreAnterior - diasUsadosPostGracia;
+                        disponiblesTotal = disponiblesAnterior + disponiblesActual;
+                    } else {
+                        const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
+                        disponiblesTotal = 22 - excesoSobreAnterior - diasUsadosPostGracia;
+                    }
+                } else {
+                    // Usuario incorporado este año - cálculo proporcional PROGRESIVO
+                    // Los días se activan proporcionalmente hasta la fecha de la solicitud
+                    const diasUsadosEsteAnio = (data.dias_asignados_actual || 0) + diasSolicitadosActual;
+
+                    if (fechaInc) {
+                        const inicioAnio = new Date(clickYear, 0, 1);
+                        const finDeAnio = new Date(clickYear, 11, 31);
+                        const diasTotalesAnio = Math.ceil((finDeAnio - inicioAnio) / (1000 * 60 * 60 * 24)) + 1;
+
+                        // Días desde incorporación hasta la fecha solicitada
+                        const diasHastaFechaSolicitada = Math.max(0, Math.ceil((clickDate - fechaInc) / (1000 * 60 * 60 * 24)) + 1);
+                        // Días que le corresponderían en todo el año
+                        const diasDesdeIncorporacionHastaFinAnio = Math.ceil((finDeAnio - fechaInc) / (1000 * 60 * 60 * 24)) + 1;
+                        const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 22);
+
+                        // Días activados hasta la fecha solicitada (proporcional)
+                        const proporcionTrabajada = Math.min(1, diasHastaFechaSolicitada / diasDesdeIncorporacionHastaFinAnio);
+                        const generadasHastaFecha = Math.floor(generadasTotalesAnio * proporcionTrabajada);
+
+                        disponiblesTotal = generadasHastaFecha - diasUsadosEsteAnio;
+                    } else {
+                        disponiblesTotal = 22 - diasUsadosEsteAnio;
+                    }
+                    disponiblesActual = Math.max(0, disponiblesTotal);
+                }
+
+            } catch (error) {
+                console.error('Error obteniendo datos de vacaciones:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron verificar los días disponibles. Inténtalo de nuevo.',
+                    confirmButtonColor: '#1e3a5f',
+                });
+                return;
+            }
+
+            const restantes = disponiblesTotal - diasSeleccionados;
+
+            if (restantes < 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Días insuficientes',
+                    html: `
+                        <p class="text-gray-600 mb-2">No tienes suficientes días de vacaciones disponibles.</p>
+                        <p class="text-gray-600">Disponibles: <strong>${disponiblesTotal}</strong></p>
+                        <p class="text-gray-600">Solicitados: <strong>${diasSeleccionados}</strong></p>
+                        <p class="text-red-600 font-semibold mt-2">Te faltan ${Math.abs(restantes)} día(s)</p>
+                    `,
+                    confirmButtonColor: '#1e3a5f',
+                });
+                return;
+            }
+
             if (!routes.vacacionesStoreUrl) {
                 Swal.fire(
                     "Error",
@@ -699,6 +802,39 @@
                 }
             }
 
+            // Validar que no se excedan los días disponibles de vacaciones
+            if (tipoSeleccionado === 'vacaciones') {
+                if (!vacationData) {
+                    console.error('vacationData no está definido - no se puede validar días disponibles');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudieron cargar los datos de vacaciones. Recarga la página e inténtalo de nuevo.',
+                        confirmButtonColor: '#1e3a5f',
+                    });
+                    return;
+                }
+
+                const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
+                const restantes = vacationData.disponiblesTotal - diasSeleccionados;
+                console.log('Validación vacaciones:', { diasSeleccionados, disponibles: vacationData.disponiblesTotal, restantes });
+
+                if (restantes < 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Días insuficientes',
+                        html: `
+                            <p class="text-gray-600 mb-2">No tienes suficientes días de vacaciones disponibles.</p>
+                            <p class="text-gray-600">Disponibles: <strong>${vacationData.disponiblesTotal}</strong></p>
+                            <p class="text-gray-600">Solicitados: <strong>${diasSeleccionados}</strong></p>
+                            <p class="text-red-600 font-semibold mt-2">Te faltan ${Math.abs(restantes)} día(s)</p>
+                        `,
+                        confirmButtonColor: '#1e3a5f',
+                    });
+                    return;
+                }
+            }
+
             fetch(routes.storeUrl, {
                 method: "POST",
                 headers: {
@@ -876,42 +1012,48 @@
                                             generadasAnterior = Math.floor(Math.min((diffDaysPrev / 30) * 2.5, 22)); // Truncado, Max 22 días
                                         }
 
-                                        // Días usados del año anterior (en fechas del año anterior)
-                                        const usadasAnteriorDirec = data.dias_asignados_anterior || 0;
+                                        // Días usados del año anterior (en fechas del año anterior) + solicitados
+                                        const diasSolicitadosAnterior = data.dias_solicitados_anterior || 0;
+                                        const diasSolicitadosPeriodoGracia = data.dias_solicitados_periodo_gracia || 0;
+                                        const diasSolicitadosPostGracia = data.dias_solicitados_post_gracia || 0;
+
+                                        const usadasAnteriorDirec = (data.dias_asignados_anterior || 0) + diasSolicitadosAnterior;
 
                                         // Saldo del año anterior AL FINALIZAR el año anterior
                                         const saldoAnteriorAlFinalizar = generadasAnterior - usadasAnteriorDirec;
 
-                                        // Días usados durante el período de gracia (1 ene - 31 mar del año actual)
-                                        const usadasPeriodoGracia = data.dias_usados_periodo_gracia || 0;
+                                        // Días usados durante el período de gracia (1 ene - 31 mar del año actual) + solicitados
+                                        const usadasPeriodoGracia = (data.dias_usados_periodo_gracia || 0) + diasSolicitadosPeriodoGracia;
 
-                                        // Días usados después del período de gracia (1 abril en adelante)
-                                        const usadasPostGracia = data.dias_usados_post_gracia || 0;
+                                        // Días usados después del período de gracia (1 abril en adelante) + solicitados
+                                        const usadasPostGracia = (data.dias_usados_post_gracia || 0) + diasSolicitadosPostGracia;
 
                                         if (isGracePeriod && incorpDate < new Date(clickYear, 0, 1)) {
                                             // === PERÍODO DE GRACIA (1 ene - 31 mar) ===
                                             // Las vacaciones del período de gracia se descuentan PRIMERO del año anterior
 
+                                            // Saldo del año anterior (nunca negativo)
+                                            const saldoAnteriorPositivo = Math.max(0, saldoAnteriorAlFinalizar);
+
                                             // Cuántas del año anterior quedan después de descontar las del período de gracia
-                                            const usadasDelAnterior = Math.min(usadasPeriodoGracia, Math.max(0, saldoAnteriorAlFinalizar));
-                                            const disponiblesAnterior = Math.max(0, saldoAnteriorAlFinalizar - usadasPeriodoGracia);
+                                            const disponiblesAnterior = Math.max(0, saldoAnteriorPositivo - usadasPeriodoGracia);
 
                                             // Si usó más que las del año anterior, el exceso viene del año actual
-                                            const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - Math.max(0, saldoAnteriorAlFinalizar));
+                                            const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - saldoAnteriorPositivo);
 
                                             // Si entró antes de este año, tiene los 22 días completos
                                             const generadasActual = 22;
 
-                                            // Disponibles del año actual = generadas - exceso que se usó del actual
-                                            const disponiblesActual = generadasActual - excesoSobreAnterior;
+                                            // Disponibles del año actual = generadas - exceso - post gracia ya usadas
+                                            const disponiblesActual = generadasActual - excesoSobreAnterior - usadasPostGracia;
                                             const disponiblesTotal = disponiblesAnterior + disponiblesActual;
 
                                             // === SIN VACACIONES FUTURAS ===
                                             const usadasPeriodoGraciaHastaFecha = data.dias_usados_periodo_gracia_hasta_fecha || 0;
-                                            const usadasDelAnteriorSinFuturas = Math.min(usadasPeriodoGraciaHastaFecha, Math.max(0, saldoAnteriorAlFinalizar));
-                                            const disponiblesAnteriorSinFuturas = Math.max(0, saldoAnteriorAlFinalizar - usadasPeriodoGraciaHastaFecha);
-                                            const excesoSobreAnteriorSinFuturas = Math.max(0, usadasPeriodoGraciaHastaFecha - Math.max(0, saldoAnteriorAlFinalizar));
-                                            const disponiblesActualSinFuturas = generadasActual - excesoSobreAnteriorSinFuturas;
+                                            const usadasPostGraciaHastaFecha = data.dias_usados_post_gracia_hasta_fecha || 0;
+                                            const disponiblesAnteriorSinFuturas = Math.max(0, saldoAnteriorPositivo - usadasPeriodoGraciaHastaFecha);
+                                            const excesoSobreAnteriorSinFuturas = Math.max(0, usadasPeriodoGraciaHastaFecha - saldoAnteriorPositivo);
+                                            const disponiblesActualSinFuturas = generadasActual - excesoSobreAnteriorSinFuturas - usadasPostGraciaHastaFecha;
                                             const disponiblesTotalSinFuturas = disponiblesAnteriorSinFuturas + disponiblesActualSinFuturas;
 
                                             const colorAnterior = disponiblesAnterior >= 0 ? 'text-amber-400' : 'text-red-400';
@@ -973,23 +1115,36 @@
                                             // Mostrar modal inicial (0 días seleccionados)
                                             updateVacationModal(0);
                                         } else {
-                                            // === PERSONA INCORPORADA ESTE AÑO: cálculo proporcional ===
-                                            const diffTime = Math.abs(clickDate - incorpDate);
-                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                            const generadas = Math.floor(Math.min((diffDays / 30) * 2.5, 22)); // 2.5 días por mes trabajado, max 22
-                                            const disponibles = generadas - diasVacacionesAsignados;
+                                            // === PERSONA INCORPORADA ESTE AÑO: cálculo proporcional PROGRESIVO ===
+                                            // Incluir días solicitados pendientes
+                                            const diasSolicitadosActual = data.dias_solicitados_actual || 0;
+                                            const diasUsadosEsteAnio = (data.dias_asignados_actual || 0) + diasSolicitadosActual;
 
-                                            // === SIN VACACIONES FUTURAS ===
-                                            const diasUsadosHastaFecha = data.dias_usados_hasta_fecha || 0;
-                                            const disponiblesSinFuturas = generadas - diasUsadosHastaFecha;
+                                            const inicioAnio = new Date(clickYear, 0, 1);
+                                            const finDeAnio = new Date(clickYear, 11, 31);
+                                            const diasTotalesAnio = Math.ceil((finDeAnio - inicioAnio) / (1000 * 60 * 60 * 24)) + 1;
+
+                                            // Días desde incorporación hasta la fecha clickeada
+                                            const diasHastaFechaClickeada = Math.max(0, Math.ceil((clickDate - incorpDate) / (1000 * 60 * 60 * 24)) + 1);
+                                            // Días que le corresponderían en todo el año
+                                            const diasDesdeIncorporacionHastaFinAnio = Math.ceil((finDeAnio - incorpDate) / (1000 * 60 * 60 * 24)) + 1;
+                                            const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 22);
+
+                                            // Días activados hasta la fecha clickeada (proporcional)
+                                            const proporcionTrabajada = Math.min(1, diasHastaFechaClickeada / diasDesdeIncorporacionHastaFinAnio);
+                                            const generadasHastaFecha = Math.floor(generadasTotalesAnio * proporcionTrabajada);
+
+                                            const disponibles = generadasHastaFecha - diasUsadosEsteAnio;
 
                                             // Guardar datos para actualización dinámica
                                             vacationData = {
-                                                disponiblesTotal: disponibles,
+                                                disponiblesTotal: Math.max(0, disponibles),
                                                 disponiblesAnterior: 0,
                                                 previousYear: clickDate.getFullYear() - 1,
                                                 clickYear: clickDate.getFullYear(),
-                                                colorBase: 'text-green-400'
+                                                colorBase: 'text-green-400',
+                                                generadasHastaFecha,
+                                                generadasTotalesAnio
                                             };
 
                                             // Mostrar modal inicial (0 días seleccionados)
