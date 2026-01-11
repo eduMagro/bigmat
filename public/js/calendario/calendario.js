@@ -164,10 +164,8 @@
             vacationData = null;
         }
 
-        // Actualiza el modal con los días seleccionados
+        // Actualiza el modal con solo el botón de cancelar
         function updateVacationModal(diasSeleccionados) {
-            if (!vacationData) return;
-
             const modal = document.getElementById('vacation-bottom-modal');
             const content = document.getElementById('vacation-bottom-content');
             if (!modal || !content) return;
@@ -175,38 +173,12 @@
             modal.classList.remove('translate-y-full');
             modal.classList.add('translate-y-0');
 
-            const { disponiblesTotal, disponiblesAnterior, previousYear, clickYear, colorBase, perdidas } = vacationData;
-            const restantes = disponiblesTotal - diasSeleccionados;
-            const colorClass = restantes >= 0 ? colorBase : 'text-red-400';
-
-            const desgloseHtml = disponiblesAnterior > 0
-                ? `<span class="text-gray-500 text-xs">(${disponiblesAnterior} de ${previousYear} + ${disponiblesTotal - disponiblesAnterior} de ${clickYear})</span>`
-                : '';
-
-            const seleccionHtml = diasSeleccionados > 1
-                ? `<span class="text-blue-400 text-xs">(-${diasSeleccionados})</span>`
-                : '';
-
-            const perdidasHtml = perdidas && perdidas > 0
-                ? `<span class="text-xs text-red-400 ml-2">(perdiste ${perdidas} del año pasado)</span>`
-                : '';
-
-            const cancelarBtnHtml = `
-                <button id="btn-cancelar-seleccion" style="background:#ef4444;color:white;padding:4px 12px;border-radius:6px;font-weight:600;font-size:12px;display:flex;align-items:center;gap:4px;border:none;cursor:pointer;margin-left:auto;">
-                    ✕ Cancelar
-                </button>
-            `;
-
             content.innerHTML = `
-                <div class="flex items-center gap-4 text-sm">
-                    <div class="flex items-center gap-2">
-                        <span class="text-gray-400">Dias disponibles:</span>
-                        <span class="${colorClass} font-bold text-lg">${restantes}</span>
-                        ${seleccionHtml}
-                        ${desgloseHtml}
-                        ${perdidasHtml}
-                    </div>
-                    ${cancelarBtnHtml}
+                <div class="flex items-center gap-3 text-xs sm:text-sm">
+                    <span class="text-amber-300">Selecciona dia final</span>
+                    <button id="btn-cancelar-seleccion" style="background:#ef4444;color:white;padding:4px 12px;border-radius:6px;font-weight:600;font-size:12px;display:flex;align-items:center;gap:4px;border:none;cursor:pointer;">
+                        Cancelar
+                    </button>
                 </div>
             `;
 

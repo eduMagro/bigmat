@@ -218,27 +218,10 @@
     <!-- Bottom Modal para Vacaciones -->
     <div id="vacation-bottom-modal"
         class="fixed bottom-0 left-0 right-0 z-[9999] transform translate-y-full transition-transform duration-300 ease-in-out shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)]">
-        <div
-            class="bg-gray-900 text-white px-6 py-4 flex flex-col sm:flex-row justify-center items-center gap-4 border-t border-gray-700">
-            <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span class="text-lg font-medium">Estimación de vacaciones</span>
-            </div>
-            <div id="vacation-bottom-content" class="flex items-center gap-3">
+        <div class="bg-gray-800 text-white px-4 py-3 flex justify-center items-center border-t border-gray-600">
+            <div id="vacation-bottom-content" class="flex flex-wrap items-center justify-center gap-2">
                 <!-- Content injected via JS -->
             </div>
-            <button
-                onclick="document.getElementById('vacation-bottom-modal').classList.remove('translate-y-0'); document.getElementById('vacation-bottom-modal').classList.add('translate-y-full')"
-                class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
         </div>
     </div>
 
