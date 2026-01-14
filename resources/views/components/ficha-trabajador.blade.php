@@ -467,6 +467,127 @@
                 </div>
             @endif
 
+            {{-- Privacidad y Consentimiento - solo visible para el propio usuario --}}
+            @if (auth()->check() && auth()->id() === $user->id)
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="{ seccionPrivacidad: false }">
+                    <button @click="seccionPrivacidad = !seccionPrivacidad"
+                        class="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-gray-100 rounded-lg p-1.5">
+                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-900">Privacidad y Consentimiento</span>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                            :class="{ 'rotate-180': seccionPrivacidad }" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div x-cloak x-show="seccionPrivacidad" x-collapse>
+                        <div class="px-3 pb-3 space-y-3">
+                            {{-- Estado de aceptación --}}
+                            @if ($user->fecha_aceptacion_politicas)
+                                <div class="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <p class="text-xs text-green-800">
+                                        Politicas aceptadas el <strong>{{ $user->fecha_aceptacion_politicas->format('d/m/Y') }}</strong>
+                                    </p>
+                                </div>
+                            @endif
+
+                            {{-- Enlaces a las políticas --}}
+                            <div class="space-y-1">
+                                <p class="text-[10px] text-gray-500 uppercase font-medium">Consultar politicas</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <a href="{{ route('politicas.privacidad') }}" target="_blank"
+                                        class="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        Privacidad
+                                    </a>
+                                    <a href="{{ route('politicas.cookies') }}" target="_blank"
+                                        class="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        Cookies
+                                    </a>
+                                    <a href="{{ route('politicas.terminos') }}" target="_blank"
+                                        class="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        Terminos
+                                    </a>
+                                </div>
+                            </div>
+
+                            {{-- Botón revocar --}}
+                            <div class="pt-2 border-t border-gray-200">
+                                <p class="text-[10px] text-gray-500 mb-2">
+                                    Puedes retirar tu consentimiento en cualquier momento. Esto cerrara tu sesion y no podras usar la aplicacion hasta volver a aceptar.
+                                </p>
+                                <button type="button" onclick="confirmarRevocacion()"
+                                    class="text-xs text-red-600 hover:text-red-800 font-medium flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                    </svg>
+                                    Revocar consentimiento
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function confirmarRevocacion() {
+                        Swal.fire({
+                            title: 'Revocar consentimiento',
+                            html: `
+                                <p class="text-sm text-gray-600 mb-3">
+                                    Al revocar tu consentimiento:
+                                </p>
+                                <ul class="text-left text-sm text-gray-600 space-y-1 mb-3">
+                                    <li>• Se cerrara tu sesion automaticamente</li>
+                                    <li>• No podras acceder a la aplicacion</li>
+                                    <li>• Deberas aceptar las politicas de nuevo para volver a entrar</li>
+                                </ul>
+                                <p class="text-sm font-medium text-red-600">¿Estas seguro de que deseas continuar?</p>
+                            `,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#DC2626',
+                            cancelButtonColor: '#6B7280',
+                            confirmButtonText: 'Si, revocar',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Enviar formulario de revocación
+                                const form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = '{{ route("politicas.revocar") }}';
+
+                                const csrf = document.createElement('input');
+                                csrf.type = 'hidden';
+                                csrf.name = '_token';
+                                csrf.value = '{{ csrf_token() }}';
+                                form.appendChild(csrf);
+
+                                document.body.appendChild(form);
+                                form.submit();
+                            }
+                        });
+                    }
+                </script>
+            @endif
+
         </div>
     </div>
 </div>

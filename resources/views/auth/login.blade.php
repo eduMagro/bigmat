@@ -9,6 +9,13 @@
         </div>
     @endif
 
+    <!-- Mensaje informativo (ej: revocación de consentimiento) -->
+    @if (session('info'))
+        <div class="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">
+            {{ session('info') }}
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('login') }}" id="loginForm">
         @csrf
 

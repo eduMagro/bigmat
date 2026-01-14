@@ -84,12 +84,11 @@ return [
             'color' => 'gray',
             'submenu' => [
                 [
-                    'label' => 'Turnos',
-                    'route' => 'turnos.index',
-                    'icon' => '🕐',
+                    'label' => 'Ajustes',
+                    'route' => 'ajustes.index',
+                    'icon' => '🔧',
                     'actions' => [
-                        ['label' => 'Ver todos', 'route' => 'turnos.index', 'permission' => 'ver'],
-                        ['label' => 'Nuevo turno', 'route' => 'turnos.create', 'permission' => 'crear'],
+                        ['label' => 'Ver ajustes', 'route' => 'ajustes.index', 'permission' => 'ver'],
                     ]
                 ],
                 [
@@ -99,14 +98,6 @@ return [
                     'actions' => [
                         ['label' => 'Ver todos', 'route' => 'departamentos.index', 'permission' => 'ver'],
                         ['label' => 'Nuevo departamento', 'route' => 'departamentos.create', 'permission' => 'crear'],
-                    ]
-                ],
-                [
-                    'label' => 'Festivos',
-                    'route' => 'festivos.index',
-                    'icon' => '📅',
-                    'actions' => [
-                        ['label' => 'Ver festivos', 'route' => 'festivos.index', 'permission' => 'ver'],
                     ]
                 ],
                 [
@@ -173,13 +164,24 @@ return [
             ]
         ],
 
+        'ajustes' => [
+            'items' => [
+                ['label' => 'Ajustes', 'route' => 'ajustes.index', 'icon' => '🔧'],
+            ],
+            'config' => [
+                'colorBase' => 'gray',
+                'style' => 'tabs',
+                'mobileLabel' => 'Ajustes',
+            ]
+        ],
+
         'turnos' => [
             'items' => [
-                ['label' => 'Configuración', 'route' => 'turnos.index', 'icon' => '⚙️'],
+                ['label' => 'Ajustes', 'route' => 'ajustes.index', 'icon' => '🔧'],
                 ['label' => 'Asignaciones', 'route' => 'asignaciones-turnos.index', 'icon' => '⏱️'],
             ],
             'config' => [
-                'colorBase' => 'indigo',
+                'colorBase' => 'gray',
                 'style' => 'tabs',
                 'mobileLabel' => 'Turnos',
             ]
@@ -220,7 +222,7 @@ return [
 
         'festivos' => [
             'items' => [
-                ['label' => 'Todos', 'route' => 'festivos.index', 'icon' => '📅'],
+                ['label' => 'Ajustes', 'route' => 'ajustes.index', 'icon' => '🔧'],
             ],
             'config' => [
                 'colorBase' => 'gray',

@@ -28,6 +28,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+
+        // Si el usuario es operario, redirigir directamente a su perfil
+        if ($user->esOperario()) {
+            return redirect()->route('usuarios.show', $user->id);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

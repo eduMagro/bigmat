@@ -121,7 +121,7 @@
                             </button>
 
                             {{-- Botón exportar Excel --}}
-                            <a href="{{ route('users.verExportar', request()->query()) }}" wire:navigate title="Descarga los registros en Excel"
+                            <a href="{{ route('users.verExportar', request()->query()) }}" title="Descarga los registros en Excel"
                                 class="bg-green-600 hover:bg-green-700 text-white rounded text-xs flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="h-6 w-8">
                                     <path fill="#21A366"
@@ -343,17 +343,16 @@
     <x-tabla.paginacion-livewire :paginador="$registrosUsuarios" />
 
     <script>
+        // Turnos desde la base de datos
+        const turnosDisponibles = @json($turnos->pluck('nombre', 'id'));
+
         function confirmarGenerarTurnos(userId, obras) {
             // Paso 1: Seleccionar tipo de turno
             Swal.fire({
                 title: "Generar turnos",
                 html: `<p class="mb-3">¿Qué tipo de turno desea generar para el resto del año?</p>`,
                 input: 'select',
-                inputOptions: {
-                    'diurno': 'Diurno (rota mañana/tarde los viernes)',
-                    'nocturno': 'Nocturno (fijo)',
-                    'mañana': 'Mañana (fijo)'
-                },
+                inputOptions: turnosDisponibles,
                 inputPlaceholder: 'Seleccione un tipo de turno',
                 showCancelButton: true,
                 confirmButtonText: 'Siguiente',
@@ -391,7 +390,7 @@
                     `,
                     icon: "warning",
                     showCancelButton: true,
-                    confirmButtonText: tipoTurno === 'diurno' ? "Siguiente" : "Generar turnos",
+                    confirmButtonText: "Generar turnos",
                     cancelButtonText: "Cancelar",
                     confirmButtonColor: "#3085d6",
                     cancelButtonColor: "#d33",
@@ -408,26 +407,8 @@
                     const obraId = respuestaObra.value;
                     document.getElementById("obra_id_input_" + userId).value = obraId;
 
-                    // Paso 3: Si es diurno, preguntar turno inicial
-                    if (tipoTurno === "diurno") {
-                        Swal.fire({
-                            title: "Selecciona el turno inicial",
-                            text: "¿Con qué turno quieres comenzar para el turno diurno?",
-                            icon: "question",
-                            showCancelButton: true,
-                            confirmButtonText: "Mañana",
-                            cancelButtonText: "Tarde",
-                            confirmButtonColor: "#3085d6",
-                            cancelButtonColor: "#d33"
-                        }).then((result) => {
-                            document.getElementById("turno_inicio_" + userId).value =
-                                result.isConfirmed ? "mañana" : "tarde";
-
-                            document.getElementById("form-generar-turnos-" + userId).submit();
-                        });
-                    } else {
-                        document.getElementById("form-generar-turnos-" + userId).submit();
-                    }
+                    // Enviar formulario
+                    document.getElementById("form-generar-turnos-" + userId).submit();
                 });
             });
         }
@@ -481,22 +462,12 @@
                         if (data.errors) {
                             errorMsg = Object.values(data.errors).flat().join("<br>");
                         }
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error al actualizar",
-                            html: errorMsg,
-                            confirmButtonText: "OK"
-                        });
+                        mostrarError(errorMsg, "Error al actualizar");
                     }
                 })
                 .catch((err) => {
                     console.error("Error en la solicitud fetch:", err);
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error de conexión",
-                        text: err.message || "No se pudo actualizar el usuario. Inténtalo nuevamente.",
-                        confirmButtonText: "OK"
-                    });
+                    mostrarError(err.message || "No se pudo actualizar el usuario. Inténtalo nuevamente.", "Error de conexión");
                 });
         }
     </script>

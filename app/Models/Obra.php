@@ -28,6 +28,12 @@ class Obra extends Model
         'tipo'
     ];
 
+    protected $casts = [
+        'latitud' => 'decimal:15',
+        'longitud' => 'decimal:15',
+        'distancia' => 'integer',
+    ];
+
     public function getEsAlmacenAttribute(): bool
     {
         return preg_match('/almac.*n/i', $this->obra ?? '') > 0;

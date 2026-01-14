@@ -422,7 +422,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-gray-600">{{ $obra->ciudad ?? '-' }}</td>
                                     <td class="px-4 py-3 text-gray-600 text-xs">
-                                        @if($obra->latitud && $obra->longitud)
+                                        @if($obra->latitud !== null && $obra->longitud !== null)
                                             <span class="text-green-600">{{ number_format($obra->latitud, 6) }}, {{ number_format($obra->longitud, 6) }}</span>
                                         @else
                                             <span class="text-red-500">Sin coordenadas</span>
@@ -436,9 +436,9 @@
                                                     obra: '{{ addslashes($obra->obra) }}',
                                                     direccion: '{{ addslashes($obra->direccion ?? '') }}',
                                                     ciudad: '{{ addslashes($obra->ciudad ?? '') }}',
-                                                    latitud: '{{ $obra->latitud ?? '' }}',
-                                                    longitud: '{{ $obra->longitud ?? '' }}',
-                                                    distancia: '{{ $obra->distancia ?? '' }}'
+                                                    latitud: {{ $obra->latitud !== null ? $obra->latitud : "''" }},
+                                                    longitud: {{ $obra->longitud !== null ? $obra->longitud : "''" }},
+                                                    distancia: {{ $obra->distancia !== null ? $obra->distancia : "''" }}
                                                 };"
                                                 class="inline-flex items-center px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
                                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

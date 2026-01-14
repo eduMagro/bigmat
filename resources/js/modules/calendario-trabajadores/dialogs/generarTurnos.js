@@ -439,12 +439,11 @@ export async function generarTurnosDialog(fechaISO, maquinaId, maquinaNombre, ho
         };
     } catch (error) {
         console.error("Error al generar turnos:", error);
-        await Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: error.message || "No se pudieron generar los turnos",
-            confirmButtonText: "Aceptar",
-        });
+        if (typeof mostrarError === 'function') {
+            await mostrarError(error.message || "No se pudieron generar los turnos");
+        } else {
+            await Swal.fire({ icon: "error", title: "Error", text: error.message || "No se pudieron generar los turnos" });
+        }
         return null;
     }
 }

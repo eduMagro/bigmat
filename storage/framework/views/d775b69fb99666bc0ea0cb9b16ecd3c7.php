@@ -290,6 +290,17 @@
                         <?php echo e($slot); ?>
 
                     </div>
+
+                    <!-- Footer con enlaces legales -->
+                    <footer class="mt-8 pb-4 text-center text-xs text-gray-400 dark:text-gray-500">
+                        <div class="flex justify-center items-center gap-2 flex-wrap">
+                            <a href="<?php echo e(route('politicas.privacidad')); ?>" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Politica de Privacidad</a>
+                            <span>|</span>
+                            <a href="<?php echo e(route('politicas.cookies')); ?>" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Politica de Cookies</a>
+                            <span>|</span>
+                            <a href="<?php echo e(route('politicas.terminos')); ?>" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Terminos y Condiciones</a>
+                        </div>
+                    </footer>
                 </div>
             </main>
         </div>

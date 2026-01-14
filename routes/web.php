@@ -21,25 +21,45 @@ use App\Http\Controllers\DocumentoEmpleadoController;
 use App\Http\Controllers\PermisoAccesoController;
 use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\ProduccionController;
+use App\Http\Controllers\AjustesController;
+use App\Http\Controllers\PoliticasController;
 
-// Ruta principal - redirige a login o dashboard
+// Ruta principal - redirige a login, dashboard o mi-perfil según el rol
 Route::get('/', function () {
     if (auth()->check()) {
+        $user = auth()->user();
+        if ($user->esOperario()) {
+            return redirect()->route('usuarios.show', $user->id);
+        }
         return redirect()->route('dashboard');
     }
     return redirect()->route('login');
 });
 
+// =============================================
+// POLITICAS - RUTAS PUBLICAS (sin autenticacion)
+// =============================================
+Route::get('/politica-privacidad', [PoliticasController::class, 'privacidad'])->name('politicas.privacidad');
+Route::get('/politica-cookies', [PoliticasController::class, 'cookies'])->name('politicas.cookies');
+Route::get('/terminos-condiciones', [PoliticasController::class, 'terminos'])->name('politicas.terminos');
+
+// POLITICAS - ACEPTACION Y REVOCACION (requiere auth, pero NO verificacion de politicas)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/aceptar-politicas', [PoliticasController::class, 'mostrar'])->name('politicas.mostrar');
+    Route::post('/aceptar-politicas', [PoliticasController::class, 'aceptar'])->name('politicas.aceptar');
+    Route::post('/revocar-politicas', [PoliticasController::class, 'revocar'])->name('politicas.revocar');
+});
+
 // Dashboard principal
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified', 'politicas.verificar', 'operario.redirect'])->name('dashboard');
 
 // =============================================
 // RUTAS DE RECURSOS HUMANOS
 // =============================================
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar', 'operario.redirect'])->group(function () {
 
     // === USUARIOS ===
     Route::resource('users', ProfileController::class)->except(['create', 'store']);
@@ -79,6 +99,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/vacaciones/solicitud/eliminar-dias', [VacacionesController::class, 'eliminarDiasSolicitud'])->name('vacaciones.eliminarDiasSolicitud');
     Route::resource('vacaciones', VacacionesController::class);
 
+    // === AJUSTES (Turnos y Festivos) ===
+    Route::get('/ajustes', [AjustesController::class, 'index'])->name('ajustes.index');
+
     // === TURNOS Y ASIGNACIONES ===
     Route::resource('turnos', TurnoController::class);
     Route::patch('turnos/{turno}/toggle', [TurnoController::class, 'toggleActivo'])->name('turnos.toggle');
@@ -116,6 +139,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/incorporaciones/{incorporacion}/resubir-archivo', [IncorporacionController::class, 'resubirArchivo'])->name('incorporaciones.editarResubirArchivo');
     Route::post('/incorporaciones/{incorporacion}/actualizar-campo', [IncorporacionController::class, 'actualizarCampo'])->name('incorporaciones.editarActualizarCampo');
     Route::get('/api/users/buscar-para-incorporacion', [IncorporacionController::class, 'buscarUsuarios'])->name('incorporaciones.buscarUsuarios');
+    Route::post('/incorporaciones/{incorporacion}/crear-usuario', [IncorporacionController::class, 'crearOEncontrarUsuario'])->name('incorporaciones.crearUsuario');
     Route::get('/mi-contrato/descargar', [IncorporacionController::class, 'descargarMiContrato'])->name('incorporaciones.descargarMiContrato');
 
     // === DOCUMENTOS EMPLEADO ===

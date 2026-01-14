@@ -203,11 +203,7 @@
                                 throw new Error(data.error || 'Error al actualizar');
                             }
                         } catch (error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: error.message
-                            });
+                            mostrarError(error.message);
                         }
                     }
                 }
@@ -682,11 +678,7 @@
                     procesarFichaje(tipo, latitud, longitud, boton, textoOriginal);
                 },
                 function(error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de ubicacion',
-                        text: `${error.message}`
-                    });
+                    mostrarError(error.message, 'Error de ubicación');
                     boton.disabled = false;
                     boton.querySelector('.texto').textContent = textoOriginal;
                     boton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -780,11 +772,7 @@
                     }
                     // Caso: Error
                     else if (data.error) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: data.error
-                        });
+                        mostrarError(data.error);
                     }
 
                     boton.disabled = false;
@@ -793,11 +781,7 @@
                 })
                 .catch(err => {
                     console.error('Error fichaje:', err);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No se pudo comunicar con el servidor'
-                    });
+                    mostrarError('No se pudo comunicar con el servidor');
                     boton.disabled = false;
                     boton.querySelector('.texto').textContent = textoOriginal;
                     boton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -920,20 +904,12 @@
                                 window.location.reload();
                             });
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.error || 'No se pudo eliminar la solicitud'
-                            });
+                            mostrarError(data.error || 'No se pudo eliminar la solicitud');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Ocurrió un error al eliminar la solicitud'
-                        });
+                        mostrarError('Ocurrió un error al eliminar la solicitud');
                     });
                 }
             });

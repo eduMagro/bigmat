@@ -25,7 +25,7 @@
 
 
 
-<!-- Función para notificar a programadores -->
+<!-- Función para notificar a programadores y administradores -->
 <script>
     function notificarProgramador(mensaje, asunto = 'Error reportado por usuario') {
         const urlActual = window.location.href;
@@ -57,7 +57,7 @@ Navegador: ${navigator.userAgent}`;
                 },
                 body: JSON.stringify({
                     mensaje: mensajeCompleto,
-                    enviar_a_departamentos: ['Programador']
+                    enviar_a_departamentos: ['Programador', 'Administrador']
                 })
             })
             .then(async resp => {
@@ -84,6 +84,66 @@ Navegador: ${navigator.userAgent}`;
                     confirmButtonColor: '#d33'
                 });
             });
+    }
+
+    /**
+     * Función global para mostrar errores con botón de reportar
+     * Uso: mostrarError('Mensaje de error')
+     * Uso: mostrarError('Mensaje', 'Título personalizado')
+     * Uso: mostrarError('Mensaje', 'Título', { timer: 5000 })
+     */
+    window.mostrarError = function(mensaje, titulo = 'Error', opciones = {}) {
+        return Swal.fire({
+            icon: 'error',
+            title: titulo,
+            text: mensaje,
+            confirmButtonColor: '#d33',
+            showCancelButton: true,
+            cancelButtonText: 'Reportar Error',
+            cancelButtonColor: '#6c757d',
+            ...opciones
+        }).then((result) => {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                notificarProgramador(mensaje, titulo);
+            }
+            return result;
+        });
+    }
+
+    /**
+     * Función global para mostrar éxito
+     * Uso: mostrarExito('Operación completada')
+     */
+    window.mostrarExito = function(mensaje, titulo = null, opciones = {}) {
+        return Swal.fire({
+            icon: 'success',
+            title: titulo,
+            text: mensaje,
+            confirmButtonColor: '#28a745',
+            ...opciones
+        });
+    }
+
+    /**
+     * Función global para mostrar advertencia con botón de reportar
+     * Uso: mostrarAdvertencia('Mensaje de advertencia')
+     */
+    window.mostrarAdvertencia = function(mensaje, titulo = 'Atención', opciones = {}) {
+        return Swal.fire({
+            icon: 'warning',
+            title: titulo,
+            text: mensaje,
+            confirmButtonColor: '#FBBF24',
+            showCancelButton: true,
+            cancelButtonText: 'Reportar',
+            cancelButtonColor: '#6c757d',
+            ...opciones
+        }).then((result) => {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                notificarProgramador(mensaje, titulo);
+            }
+            return result;
+        });
     }
 </script>
 

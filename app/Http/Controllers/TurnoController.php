@@ -86,7 +86,7 @@ class TurnoController extends Controller
 
         Turno::create($data);
 
-        return redirect()->route('turnos.index')
+        return redirect()->route('ajustes.index')
             ->with('success', 'Turno creado exitosamente');
     }
 
@@ -158,7 +158,7 @@ class TurnoController extends Controller
 
         $turno->update($data);
 
-        return redirect()->route('turnos.index')
+        return redirect()->route('ajustes.index')
             ->with('success', 'Turno actualizado exitosamente');
     }
 
@@ -169,7 +169,7 @@ class TurnoController extends Controller
     {
         $turno->delete();
 
-        return redirect()->route('turnos.index')
+        return redirect()->route('ajustes.index')
             ->with('success', 'Turno eliminado exitosamente');
     }
 
@@ -191,7 +191,7 @@ class TurnoController extends Controller
             ]);
         }
 
-        return redirect()->route('turnos.index')
+        return redirect()->route('ajustes.index')
             ->with('success', "Turno {$estado} exitosamente");
     }
 }

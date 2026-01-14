@@ -130,29 +130,22 @@ class VerificarFichajesEntrada extends Command
             'leida' => false,
         ]);
 
-        // Obtener usuarios del departamento de Programación
-        $programadores = User::whereHas('departamentos', function ($q) {
-            $q->whereRaw('LOWER(nombre) = ?', ['programador']);
+        // Obtener usuarios del departamento de Programador y Administrador
+        $destinatarios = User::whereHas('departamentos', function ($q) {
+            $q->whereRaw('LOWER(nombre) IN (?, ?)', ['programador', 'administrador']);
         })->get();
 
-        // Si no encuentra "programador", buscar "programación"
-        if ($programadores->isEmpty()) {
-            $programadores = User::whereHas('departamentos', function ($q) {
-                $q->whereRaw('LOWER(nombre) LIKE ?', ['%programaci%']);
-            })->get();
-        }
-
-        // Crear registros de alerta para cada programador
-        foreach ($programadores as $programador) {
+        // Crear registros de alerta para cada destinatario
+        foreach ($destinatarios as $destinatario) {
             AlertaLeida::firstOrCreate([
                 'alerta_id' => $alerta->id,
-                'user_id' => $programador->id,
+                'user_id' => $destinatario->id,
             ]);
         }
 
         Log::info("Alerta de fichajes enviada", [
             'trabajadores_sin_fichar' => $trabajadoresSinFichar->count(),
-            'programadores_notificados' => $programadores->count(),
+            'destinatarios_notificados' => $destinatarios->count(),
         ]);
     }
 }

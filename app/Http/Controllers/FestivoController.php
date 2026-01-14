@@ -30,7 +30,7 @@ class FestivoController extends Controller
             'anio'   => (int) $fecha->year,
         ]);
 
-        return redirect()->route('festivos.index')->with('success', 'Festivo creado correctamente.');
+        return redirect()->route('ajustes.index')->with('success', 'Festivo creado correctamente.');
     }
 
     public function update(Request $request, Festivo $festivo)
@@ -47,7 +47,7 @@ class FestivoController extends Controller
             'anio'   => (int) $fecha->year,
         ]);
 
-        return redirect()->route('festivos.index')->with('success', 'Festivo actualizado correctamente.');
+        return redirect()->route('ajustes.index')->with('success', 'Festivo actualizado correctamente.');
     }
 
     public function actualizarFecha(Request $request, Festivo $festivo)
@@ -75,6 +75,6 @@ class FestivoController extends Controller
     {
         $festivo->delete();
 
-        return redirect()->route('festivos.index')->with('success', 'Festivo eliminado correctamente.');
+        return redirect()->route('ajustes.index')->with('success', 'Festivo eliminado correctamente.');
     }
 }

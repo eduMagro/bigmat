@@ -23,7 +23,9 @@
       "Bash(del \"C:\\\\xampp\\\\htdocs\\\\bigmat\\\\CONTINUACION_2026-01-08.md\")",
       "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(copy \"C:\\\\xampp\\\\htdocs\\\\manager\\\\public\\\\js\\\\calendario\\\\calendario.js\" \"C:\\\\xampp\\\\htdocs\\\\manager\\\\resources\\\\js\\\\calendario\\\\calendario.js\" /Y)"
+      "Bash(copy \"C:\\\\xampp\\\\htdocs\\\\manager\\\\public\\\\js\\\\calendario\\\\calendario.js\" \"C:\\\\xampp\\\\htdocs\\\\manager\\\\resources\\\\js\\\\calendario\\\\calendario.js\" /Y)",
+      "Bash(find:*)",
+      "Bash(more:*)"
     ]
   }
 }

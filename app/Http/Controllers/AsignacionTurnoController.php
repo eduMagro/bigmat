@@ -645,19 +645,21 @@ class AsignacionTurnoController extends Controller
     }
 
     /**
-     * Notifica a los programadores sobre eventos de turno
+     * Notifica a los programadores y administradores sobre eventos de turno
      */
     private function notificarProgramadores($user, $mensaje)
     {
         try {
-            $programadores = User::whereHas('departamentos', fn($q) => $q->where('nombre', 'Programador'))->get();
+            $destinatarios = User::whereHas('departamentos', fn($q) =>
+                $q->whereRaw('LOWER(nombre) IN (?, ?)', ['programador', 'administrador'])
+            )->get();
             $alerta = Alerta::create([
                 'user_id_1' => $user->id,
                 'mensaje'   => $mensaje,
                 'tipo'      => 'Info Turnos',
                 'leida'     => false,
             ]);
-            foreach ($programadores as $p) {
+            foreach ($destinatarios as $p) {
                 AlertaLeida::firstOrCreate(['alerta_id' => $alerta->id, 'user_id' => $p->id]);
             }
         } catch (\Throwable $e) {

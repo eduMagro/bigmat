@@ -11,7 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'operario.redirect' => \App\Http\Middleware\RedirectOperario::class,
+            'politicas.verificar' => \App\Http\Middleware\VerificarAceptacionPoliticas::class,
+            'acceso.verificar' => \App\Http\Middleware\VerificarAccesoSeccion::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

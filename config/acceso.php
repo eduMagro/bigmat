@@ -6,6 +6,9 @@ return [
     'prefijos_operario' => [
         'produccion.trabajadores',
         'users.',
+        'usuarios.show',
+        'usuarios.imagen',
+        'usuarios.editarSubirImagen',
         'users.verEventos-turnos',
         'users.verResumen-asistencia',
         'alertas.',
@@ -80,6 +83,10 @@ return [
     ],
 
     // 📌 Correos con acceso total
-    'correos_acceso_total' => [],
+    'correos_acceso_total' => [
+        'eduardo.magro@pacoreyes.com',
+        'edumagrolemus@hotmail.com',
+
+    ],
 
 ];

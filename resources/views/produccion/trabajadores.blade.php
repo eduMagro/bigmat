@@ -407,11 +407,11 @@
                         });
                         Swal.fire({ icon: 'success', title: 'Asignacion creada', timer: 1200, showConfirmButton: false });
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: createData.message || 'No se pudo crear la asignacion' });
+                        mostrarError(createData.message || 'No se pudo crear la asignación');
                     }
                 } catch (e) {
                     console.error(e);
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Error al crear la asignacion' });
+                    mostrarError('Error al crear la asignación');
                 }
             };
 

@@ -410,14 +410,16 @@ class IncorporacionPublicaController extends Controller
     }
 
     /**
-     * Notificar a los departamentos de programador y recursos humanos
+     * Notificar a los departamentos de programador, administrador y recursos humanos
      */
     private function notificarDepartamentos(Incorporacion $incorporacion): void
     {
         try {
-            // Obtener emails de usuarios en departamentos de programador y recursos humanos
+            // Obtener emails de usuarios en departamentos de programador, administrador y recursos humanos
             $emails = User::whereHas('departamentos', function ($query) {
-                $query->whereIn('nombre', ['programador', 'recursos humanos', 'Programador', 'Recursos Humanos', 'RRHH', 'rrhh']);
+                $query->whereRaw('LOWER(nombre) IN (?, ?, ?, ?)', [
+                    'programador', 'administrador', 'recursos humanos', 'rrhh'
+                ]);
             })
             ->where('estado', 'activo')
             ->whereNotNull('email')

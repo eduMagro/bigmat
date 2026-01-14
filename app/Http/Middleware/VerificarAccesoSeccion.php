@@ -6,11 +6,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use App\Models\Seccion;
 use App\Models\PermisoAcceso;
-use App\Models\Empresa;
 
 class VerificarAccesoSeccion
 {
@@ -44,7 +42,6 @@ class VerificarAccesoSeccion
 
         $correoUsuario = strtolower(trim($usuarioAutenticado->email));
         $nombreRutaActual = $request->route()?->getName() ?? '';
-        $empresaUsuarioId = $usuarioAutenticado->empresa_id;
         $rolUsuario = strtolower((string) $usuarioAutenticado->rol);
 
         // === 1) Acceso total por correo (desde config/acceso.php) ===
@@ -53,29 +50,13 @@ class VerificarAccesoSeccion
             return $next($request);
         }
 
-        // === 2) Cachear IDs de empresas clave ===
-        $empresaReyesTejeroId = Cache::remember('empresa_id_reyes_tejero', 86400, function () {
-            return Empresa::whereRaw("LOWER(nombre) LIKE ?", ['%reyes tejero%'])->value('id');
-        });
-        $empresaHPRId = Cache::remember('empresa_id_hpr', 86400, function () {
-            return Empresa::whereRaw("LOWER(nombre) LIKE ?", ['%hierros paco reyes%'])->value('id');
-        });
-        $empresaServiciosId = Cache::remember('empresa_id_hpr_servicios', 86400, function () {
-            return Empresa::whereRaw("LOWER(nombre) LIKE ?", ['%hpr servicios%'])->value('id');
-        });
-
-        $empresasConAccesoCompleto = [$empresaHPRId, $empresaServiciosId];
-
-        // === 3) Rutas libres (desde config/acceso.php) ===
+        // === 2) Rutas libres (desde config/acceso.php) ===
         $rutasLibres = config('acceso.rutas_libres', []);
-        if (
-            (in_array($empresaUsuarioId, $empresasConAccesoCompleto, true) && in_array($nombreRutaActual, $rutasLibres, true)) ||
-            ($empresaUsuarioId === $empresaReyesTejeroId && in_array($nombreRutaActual, $rutasLibres, true))
-        ) {
+        if (in_array($nombreRutaActual, $rutasLibres, true)) {
             return $next($request);
         }
 
-        // === 4) Roles y permisos ===
+        // === 3) Roles y permisos ===
         if ($rolUsuario === 'operario') {
             $prefijosOperario = config('acceso.prefijos_operario', []);
             $permitido = collect($prefijosOperario)->contains(
@@ -108,12 +89,8 @@ class VerificarAccesoSeccion
             return $next($request);
         }
 
-        if (
-            $rolUsuario === 'oficina' && (
-                in_array($empresaUsuarioId, $empresasConAccesoCompleto, true)
-                || $empresaUsuarioId === $empresaReyesTejeroId
-            )
-        ) {
+        // === 4) Usuarios de oficina - verificar secciones y departamentos ===
+        if ($rolUsuario === 'oficina') {
             $accionRuta = strtolower(Str::afterLast($nombreRutaActual, '.'));
             $seccionBase = Str::before($nombreRutaActual, '.');
 
@@ -210,10 +187,9 @@ class VerificarAccesoSeccion
             return $next($request);
         }
 
-        // === 5) Denegación por defecto ===
-        Log::warning('🚫 Ruta denegada por configuración (sin coincidencias)', [
+        // === 5) Denegación por defecto (rol no reconocido) ===
+        Log::warning('🚫 Ruta denegada - rol no reconocido', [
             'usuario' => $usuarioAutenticado->email,
-            'empresa_id' => $empresaUsuarioId,
             'ruta' => $nombreRutaActual,
             'rol' => $rolUsuario,
         ]);

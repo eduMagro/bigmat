@@ -406,12 +406,11 @@
 
             } catch (error) {
                 console.error('Error obteniendo datos de vacaciones:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudieron verificar los días disponibles. Inténtalo de nuevo.',
-                    confirmButtonColor: '#1e3a5f',
-                });
+                if (typeof mostrarError === 'function') {
+                    mostrarError('No se pudieron verificar los días disponibles. Inténtalo de nuevo.');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron verificar los días disponibles.' });
+                }
                 return;
             }
 
@@ -638,12 +637,20 @@
                             );
                             Swal.fire("Actualizado", "Horas actualizadas correctamente.", "success");
                         } else {
-                            Swal.fire("Error", data.error || "No se pudieron actualizar las horas.", "error");
+                            if (typeof mostrarError === 'function') {
+                                mostrarError(data.error || "No se pudieron actualizar las horas.");
+                            } else {
+                                Swal.fire("Error", data.error || "No se pudieron actualizar las horas.", "error");
+                            }
                         }
                     })
                     .catch((err) => {
                         console.error("Error:", err);
-                        Swal.fire("Error", "Ocurrio un problema al actualizar las horas.", "error");
+                        if (typeof mostrarError === 'function') {
+                            mostrarError("Ocurrió un problema al actualizar las horas.");
+                        } else {
+                            Swal.fire("Error", "Ocurrió un problema al actualizar las horas.", "error");
+                        }
                     });
                 return;
             }
@@ -778,12 +785,11 @@
             if (tipoSeleccionado === 'vacaciones') {
                 if (!vacationData) {
                     console.error('vacationData no está definido - no se puede validar días disponibles');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No se pudieron cargar los datos de vacaciones. Recarga la página e inténtalo de nuevo.',
-                        confirmButtonColor: '#1e3a5f',
-                    });
+                    if (typeof mostrarError === 'function') {
+                        mostrarError('No se pudieron cargar los datos de vacaciones. Recarga la página e inténtalo de nuevo.');
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar los datos de vacaciones.' });
+                    }
                     return;
                 }
 
@@ -1385,12 +1391,12 @@
                                         Swal.fire('Eliminada', data.message, 'success');
                                         smartRefetch(calendar);
                                     } else {
-                                        Swal.fire('Error', data.error || 'No se pudo eliminar la solicitud.', 'error');
+                                        if (typeof mostrarError === 'function') { mostrarError(data.error || 'No se pudo eliminar la solicitud.'); } else { Swal.fire('Error', data.error || 'No se pudo eliminar la solicitud.', 'error'); }
                                     }
                                 })
                                 .catch(err => {
                                     console.error('Error:', err);
-                                    Swal.fire('Error', 'Ocurrio un problema al eliminar la solicitud.', 'error');
+                                    if (typeof mostrarError === 'function') { mostrarError('Ocurrió un problema al eliminar la solicitud.'); } else { Swal.fire('Error', 'Ocurrió un problema al eliminar la solicitud.', 'error'); }
                                 });
                             }
                         } else if (result.isConfirmed) {
@@ -1411,12 +1417,12 @@
                                         Swal.fire('Eliminada', data.message, 'success');
                                         smartRefetch(calendar);
                                     } else {
-                                        Swal.fire('Error', data.error || 'No se pudo eliminar la solicitud.', 'error');
+                                        if (typeof mostrarError === 'function') { mostrarError(data.error || 'No se pudo eliminar la solicitud.'); } else { Swal.fire('Error', data.error || 'No se pudo eliminar la solicitud.', 'error'); }
                                     }
                                 })
                                 .catch(err => {
                                     console.error('Error:', err);
-                                    Swal.fire('Error', 'Ocurrio un problema al eliminar la solicitud.', 'error');
+                                    if (typeof mostrarError === 'function') { mostrarError('Ocurrió un problema al eliminar la solicitud.'); } else { Swal.fire('Error', 'Ocurrió un problema al eliminar la solicitud.', 'error'); }
                                 });
                             } else if (diasEliminar && diasEliminar.length > 0) {
                                 // Eliminar días específicos
@@ -1437,12 +1443,12 @@
                                         Swal.fire('Modificada', data.message, 'success');
                                         smartRefetch(calendar);
                                     } else {
-                                        Swal.fire('Error', data.error || 'No se pudo modificar la solicitud.', 'error');
+                                        if (typeof mostrarError === 'function') { mostrarError(data.error || 'No se pudo modificar la solicitud.'); } else { Swal.fire('Error', data.error || 'No se pudo modificar la solicitud.', 'error'); }
                                     }
                                 })
                                 .catch(err => {
                                     console.error('Error:', err);
-                                    Swal.fire('Error', 'Ocurrio un problema al modificar la solicitud.', 'error');
+                                    if (typeof mostrarError === 'function') { mostrarError('Ocurrió un problema al modificar la solicitud.'); } else { Swal.fire('Error', 'Ocurrió un problema al modificar la solicitud.', 'error'); }
                                 });
                             }
                         }

@@ -149,7 +149,7 @@
                         </a>
                     </template>
                     {{-- Botón ver perfil --}}
-                    <a :href="'/users/' + seleccionado?.id"
+                    <a :href="'{{ url('users') }}/' + seleccionado?.id"
                         class="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center text-purple-600 border border-purple-100"
                         title="Ver perfil">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -353,26 +353,10 @@
                         this.editando = false;
                     } else {
                         const errMsg = data.message || 'No se pudo guardar el usuario.';
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: errMsg,
-                            toast: true,
-                            position: "top-end",
-                            timer: 2500,
-                            showConfirmButton: false
-                        });
+                        mostrarError(errMsg);
                     }
                 } catch (e) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error de conexión",
-                        text: e.message || "No se pudo guardar el usuario.",
-                        toast: true,
-                        position: "top-end",
-                        timer: 2500,
-                        showConfirmButton: false
-                    });
+                    mostrarError(e.message || "No se pudo guardar el usuario.", "Error de conexión");
                 }
             },
         };

@@ -178,20 +178,12 @@ function initUsersShowCalendario() {
                                         200
                                     );
                                 } else {
-                                    Swal.fire({
-                                        title: "Error",
-                                        text: data.error,
-                                        icon: "error",
-                                    });
+                                    if (typeof mostrarError === 'function') { mostrarError(data.error); } else { Swal.fire({ title: "Error", text: data.error, icon: "error" }); }
                                 }
                             })
                             .catch((error) => {
                                 console.error("Error:", error);
-                                Swal.fire({
-                                    title: "Error",
-                                    text: "Ocurrió un problema al eliminar los turnos.",
-                                    icon: "error",
-        });
+                                if (typeof mostrarError === 'function') { mostrarError("Ocurrió un problema al eliminar los turnos."); } else { Swal.fire({ title: "Error", text: "Ocurrió un problema al eliminar los turnos.", icon: "error" }); }
 }
 
 // Inicialización compatible con Livewire Navigate
@@ -224,20 +216,12 @@ document.addEventListener("livewire:navigated", initUsersShowCalendario);
                                         200
                                     );
                                 } else {
-                                    Swal.fire({
-                                        title: "Error",
-                                        text: data.error,
-                                        icon: "error",
-                                    });
+                                    if (typeof mostrarError === 'function') { mostrarError(data.error); } else { Swal.fire({ title: "Error", text: data.error, icon: "error" }); }
                                 }
                             })
                             .catch((error) => {
                                 console.error("Error:", error);
-                                Swal.fire({
-                                    title: "Error",
-                                    text: "Ocurrió un problema al registrar los turnos.",
-                                    icon: "error",
-                                });
+                                if (typeof mostrarError === 'function') { mostrarError("Ocurrió un problema al registrar los turnos."); } else { Swal.fire({ title: "Error", text: "Ocurrió un problema al registrar los turnos.", icon: "error" }); }
                             });
                     }
                 }

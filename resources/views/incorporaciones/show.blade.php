@@ -37,16 +37,14 @@
 
             <!-- Acciones -->
             <div class="flex gap-2">
-                @if ($incorporacion->datos_completados_at)
-                    <a href="{{ route('incorporaciones.verDescargarZip', $incorporacion) }}"
-                        class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Descargar ZIP
-                    </a>
-                @endif
+                <a href="{{ route('incorporaciones.verDescargarZip', $incorporacion) }}"
+                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Descargar ZIP
+                </a>
                 <button onclick="cambiarEstado()"
                     class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition">
                     Cambiar estado
@@ -191,11 +189,20 @@
                 <!-- Datos del candidato -->
                 <div class="bg-white rounded-lg shadow-sm border p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Datos Personales</h2>
-                    @if ($incorporacion->datos_completados_at)
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{-- DNI --}}
                             <div>
                                 <label class="text-sm text-gray-500">DNI</label>
-                                <p class="font-medium">{{ $incorporacion->dni }}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium" id="texto-dni">{{ $incorporacion->dni ?? 'No especificado' }}</p>
+                                    <button onclick="editarCampoTexto('dni', 'DNI/NIE', {{ json_encode($incorporacion->dni ?? '') }})"
+                                        class="text-amber-500 hover:text-amber-700 p-1" title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
                                 {{-- Enlaces para ver/descargar imágenes del DNI --}}
                                 <div class="flex gap-3 mt-2 flex-wrap">
                                     @if ($incorporacion->dni_frontal)
@@ -305,14 +312,77 @@
                                     </button>
                                 </div>
                             </div>
+                            {{-- Email --}}
                             <div>
                                 <label class="text-sm text-gray-500">Email</label>
-                                <p class="font-medium">{{ $incorporacion->email }}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium" id="texto-email">{{ $incorporacion->email ?? 'No especificado' }}</p>
+                                    <button onclick="editarCampoTexto('email', 'Email', {{ json_encode($incorporacion->email ?? '') }})"
+                                        class="text-amber-500 hover:text-amber-700 p-1" title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
+                            {{-- Telefono --}}
                             <div>
-                                <label class="text-sm text-gray-500">Teléfono</label>
-                                <p class="font-medium">{{ $incorporacion->telefono }}</p>
+                                <label class="text-sm text-gray-500">Telefono</label>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium" id="texto-telefono">{{ $incorporacion->telefono ?? 'No especificado' }}</p>
+                                    <button onclick="editarCampoTexto('telefono', 'Telefono', {{ json_encode($incorporacion->telefono ?? '') }})"
+                                        class="text-amber-500 hover:text-amber-700 p-1" title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
+                            {{-- Nombre --}}
+                            <div>
+                                <label class="text-sm text-gray-500">Nombre</label>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium" id="texto-name">{{ $incorporacion->name ?? 'No especificado' }}</p>
+                                    <button onclick="editarCampoTexto('name', 'Nombre', {{ json_encode($incorporacion->name ?? '') }})"
+                                        class="text-amber-500 hover:text-amber-700 p-1" title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            {{-- Primer Apellido --}}
+                            <div>
+                                <label class="text-sm text-gray-500">Primer Apellido</label>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium" id="texto-primer_apellido">{{ $incorporacion->primer_apellido ?? 'No especificado' }}</p>
+                                    <button onclick="editarCampoTexto('primer_apellido', 'Primer Apellido', {{ json_encode($incorporacion->primer_apellido ?? '') }})"
+                                        class="text-amber-500 hover:text-amber-700 p-1" title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            {{-- Segundo Apellido --}}
+                            <div>
+                                <label class="text-sm text-gray-500">Segundo Apellido</label>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium" id="texto-segundo_apellido">{{ $incorporacion->segundo_apellido ?? 'No especificado' }}</p>
+                                    <button onclick="editarCampoTexto('segundo_apellido', 'Segundo Apellido', {{ json_encode($incorporacion->segundo_apellido ?? '') }})"
+                                        class="text-amber-500 hover:text-amber-700 p-1" title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            {{-- Certificado bancario --}}
                             <div class="sm:col-span-2">
                                 <label class="text-sm text-gray-500">Certificado bancario</label>
                                 @if ($incorporacion->certificado_bancario)
@@ -358,19 +428,15 @@
                                 @endif
                             </div>
                         </div>
-                        <p class="mt-4 text-sm text-gray-500">
-                            Datos completados el {{ $incorporacion->datos_completados_at->format('d/m/Y H:i') }}
-                        </p>
-                    @else
-                        <div class="text-center py-8 text-gray-500">
-                            <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p>Esperando que el candidato complete el formulario</p>
-                        </div>
-                    @endif
+                        @if ($incorporacion->datos_completados_at)
+                            <p class="mt-4 text-sm text-green-600">
+                                Datos completados el {{ $incorporacion->datos_completados_at->format('d/m/Y H:i') }}
+                            </p>
+                        @else
+                            <p class="mt-4 text-sm text-amber-600">
+                                Esperando que el candidato complete el formulario (puedes añadir datos manualmente)
+                            </p>
+                        @endif
                 </div>
 
                 <!-- Documentos post-incorporación -->
@@ -647,6 +713,38 @@
                 <div class="bg-white rounded-lg shadow-sm border p-6" x-data="userAssignment()">
                     <h3 class="font-semibold text-gray-800 mb-4">Usuario Asignado</h3>
 
+                    <!-- Banner informativo -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-blue-100 rounded-full p-1.5 flex-shrink-0">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="text-xs">
+                                <p class="font-semibold text-gray-800 mb-2">¿Como se asigna un usuario a la incorporacion?</p>
+                                <div class="space-y-2 text-gray-600">
+                                    <div class="flex items-start gap-2">
+                                        <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">AUTO</span>
+                                        <p><span class="font-medium text-gray-700">Sin aprobacion requerida:</span> El usuario se crea automaticamente cuando el candidato completa el formulario publico.</p>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">AUTO</span>
+                                        <p><span class="font-medium text-gray-700">Con aprobacion requerida:</span> El usuario se crea automaticamente cuando el CEO aprueba la incorporacion (despues de RRHH).</p>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">MANUAL</span>
+                                        <p><span class="font-medium text-gray-700">Buscar y vincular:</span> Usa el buscador para encontrar un usuario existente por nombre, DNI o email y vincularlo a esta incorporacion.</p>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">MANUAL</span>
+                                        <p><span class="font-medium text-gray-700">Crear usuario:</span> Crea un nuevo usuario con los datos de la incorporacion. Si ya existe un usuario con el mismo DNI, se vinculara automaticamente.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <template x-if="selectedUser">
                         <div
                             class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
@@ -717,8 +815,24 @@
                                     </div>
                                 </template>
                             </div>
-                            <p class="text-xs text-gray-400 mt-1">Vincula esta incorporación a un usuario del sistema.
-                            </p>
+                            <p class="text-xs text-gray-400 mt-1">Vincula esta incorporacion a un usuario del sistema.</p>
+
+                            <!-- Separador -->
+                            <div class="flex items-center gap-2 my-3">
+                                <div class="flex-1 border-t border-gray-200"></div>
+                                <span class="text-xs text-gray-400">o</span>
+                                <div class="flex-1 border-t border-gray-200"></div>
+                            </div>
+
+                            <!-- Boton crear usuario -->
+                            <button @click="crearUsuario()"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                                </svg>
+                                Crear Usuario
+                            </button>
+                            <p class="text-xs text-gray-400 text-center mt-1">Crea un usuario con los datos de la incorporacion o vincula uno existente por DNI.</p>
                         </div>
                     </template>
                 </div>
@@ -920,6 +1034,74 @@
                     })
                 },
 
+                async crearUsuario() {
+                    const result = await Swal.fire({
+                        title: 'Crear/Vincular Usuario',
+                        text: 'Se buscara un usuario existente con el mismo DNI o se creara uno nuevo con los datos de la incorporacion.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#10B981',
+                        cancelButtonColor: '#6B7280',
+                        confirmButtonText: 'Continuar',
+                        cancelButtonText: 'Cancelar'
+                    });
+
+                    if (result.isConfirmed) {
+                        try {
+                            Swal.fire({
+                                title: 'Procesando...',
+                                allowOutsideClick: false,
+                                didOpen: () => Swal.showLoading()
+                            });
+
+                            const res = await fetch('{{ route('incorporaciones.crearUsuario', $incorporacion) }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            });
+
+                            const data = await res.json();
+
+                            if (data.success) {
+                                this.selectedUser = data.usuario;
+                                let icon = 'success';
+                                let title = 'Usuario creado';
+
+                                if (data.accion === 'vinculado') {
+                                    title = 'Usuario vinculado';
+                                } else if (data.accion === 'ya_vinculado') {
+                                    icon = 'info';
+                                    title = 'Usuario ya vinculado';
+                                }
+
+                                Swal.fire({
+                                    icon: icon,
+                                    title: title,
+                                    text: data.message,
+                                    timer: 2500,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.message || 'Error al procesar la solicitud'
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error de conexion con el servidor'
+                            });
+                        }
+                    }
+                },
+
                 async updateUser(id, userObj) {
                     try {
                         const res = await fetch(
@@ -949,10 +1131,10 @@
                                 position: 'top-end'
                             });
                         } else {
-                            Swal.fire('Error', data.message || 'Error al actualizar', 'error');
+                            mostrarError(data.message || 'Error al actualizar');
                         }
                     } catch (e) {
-                        Swal.fire('Error', 'Error de conexión', 'error');
+                        mostrarError('Error de conexión');
                     }
                 }
             }
@@ -1016,7 +1198,7 @@
                         status.classList.remove('hidden');
                         setTimeout(() => status.classList.add('hidden'), 2000);
                     } else {
-                        Swal.fire('Error', 'No se pudo actualizar la fecha', 'error');
+                        mostrarError('No se pudo actualizar la fecha');
                     }
                 });
         }
@@ -1329,6 +1511,129 @@
                                 });
                             }
                         });
+                }
+            });
+        }
+
+        function editarCampoTexto(campo, nombreMostrar, valorActual) {
+            // Configuraciones especificas por campo
+            const configs = {
+                dni: {
+                    placeholder: '12345678A',
+                    maxlength: 9,
+                    validator: (value) => {
+                        if (!value) return 'Debes introducir el DNI/NIE';
+                        if (!/^([0-9]{8}[A-Z]|[XYZ][0-9]{7}[A-Z])$/i.test(value)) {
+                            return 'Formato invalido (DNI: 8 numeros + letra, NIE: X/Y/Z + 7 numeros + letra)';
+                        }
+                    }
+                },
+                email: {
+                    placeholder: 'correo@ejemplo.com',
+                    maxlength: 255,
+                    inputType: 'email',
+                    validator: (value) => {
+                        if (!value) return 'Debes introducir el email';
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                            return 'El email no tiene un formato valido';
+                        }
+                    }
+                },
+                telefono: {
+                    placeholder: '612345678',
+                    maxlength: 9,
+                    validator: (value) => {
+                        if (!value) return 'Debes introducir el telefono';
+                        const clean = value.replace(/\s/g, '');
+                        if (!/^[0-9]{9}$/.test(clean)) {
+                            return 'El telefono debe tener 9 digitos';
+                        }
+                    }
+                },
+                name: {
+                    placeholder: 'Juan',
+                    maxlength: 100,
+                    validator: (value) => {
+                        if (!value || !value.trim()) return 'Debes introducir el nombre';
+                    }
+                },
+                primer_apellido: {
+                    placeholder: 'Garcia',
+                    maxlength: 100,
+                    validator: (value) => {
+                        if (!value || !value.trim()) return 'Debes introducir el primer apellido';
+                    }
+                },
+                segundo_apellido: {
+                    placeholder: 'Lopez (opcional)',
+                    maxlength: 100,
+                    validator: null // Opcional
+                }
+            };
+
+            const config = configs[campo] || { placeholder: '', maxlength: 255 };
+
+            Swal.fire({
+                title: `Editar ${nombreMostrar}`,
+                input: config.inputType || 'text',
+                inputValue: valorActual || '',
+                inputPlaceholder: config.placeholder,
+                inputAttributes: {
+                    maxlength: config.maxlength
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#2563eb',
+                inputValidator: config.validator
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('{{ route('incorporaciones.editarActualizarCampo', $incorporacion) }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            campo: campo,
+                            valor: result.value
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const elemento = document.getElementById(`texto-${campo}`);
+                            if (elemento) {
+                                elemento.textContent = result.value || 'No especificado';
+                            }
+                            // Actualizar titulo si es nombre o apellidos
+                            if (['name', 'primer_apellido', 'segundo_apellido'].includes(campo)) {
+                                location.reload();
+                            }
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Actualizado',
+                                text: `${nombreMostrar} actualizado correctamente.`,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Error al actualizar'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de conexion'
+                        });
+                    });
                 }
             });
         }

@@ -193,12 +193,11 @@ export async function propagarDiaDialog({ fechaISO, maquinaId, maquinaNombre, ca
 
     } catch (error) {
         console.error("Error al propagar día:", error);
-        await Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: error.message || "No se pudieron propagar las asignaciones",
-            confirmButtonText: "Aceptar",
-        });
+        if (typeof mostrarError === 'function') {
+            await mostrarError(error.message || "No se pudieron propagar las asignaciones");
+        } else {
+            await Swal.fire({ icon: "error", title: "Error", text: error.message || "No se pudieron propagar las asignaciones" });
+        }
         return null;
     }
 }

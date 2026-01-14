@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use App\Models\AsignacionTurno;
 use App\Models\Epi;
 use App\Models\EpiUsuario;
+use App\Notifications\ResetPasswordNotification;
 
 
 class User extends Authenticatable
@@ -54,6 +55,9 @@ class User extends Authenticatable
         'updated_by',
         'puede_usar_asistente',
         'puede_modificar_bd',
+        'acepta_politica_privacidad',
+        'acepta_politica_cookies',
+        'fecha_aceptacion_politicas',
     ];
 
     /**
@@ -79,7 +83,19 @@ class User extends Authenticatable
         'password' => 'hashed',
         'puede_usar_asistente' => 'boolean',
         'puede_modificar_bd' => 'boolean',
+        'acepta_politica_privacidad' => 'boolean',
+        'acepta_politica_cookies' => 'boolean',
+        'fecha_aceptacion_politicas' => 'date',
     ];
+
+    /**
+     * Enviar notificación de restablecimiento de contraseña en español
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
     public function getRutaImagenAttribute()
     {
         return $this->imagen
@@ -233,6 +249,14 @@ class User extends Authenticatable
     public function esOficina()
     {
         return $this->rol === 'oficina' || $this->rol === 'admin';
+    }
+
+    /**
+     * Verificar si el usuario ha aceptado todas las políticas
+     */
+    public function haAceptadoPoliticas(): bool
+    {
+        return $this->acepta_politica_privacidad && $this->acepta_politica_cookies;
     }
 
     public function documentosEmpleado()

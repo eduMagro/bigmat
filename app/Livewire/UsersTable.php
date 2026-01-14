@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Empresa;
 use App\Models\Categoria;
 use App\Models\Obra;
+use App\Models\Turno;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Url;
@@ -309,7 +310,7 @@ class UsersTable extends Component
         $empresas = Empresa::orderBy('nombre')->get();
         $categorias = Categoria::orderBy('nombre')->get();
         $roles = ['operario', 'oficina', 'transportista', 'visitante'];
-        $turnos = ['diurno', 'nocturno', 'mañana', 'flexible'];
+        $turnos = Turno::where('activo', true)->ordenados()->get();
         $contactosAgenda = User::with(['empresa', 'categoria'])
             ->orderBy('name')
             ->orderBy('primer_apellido')

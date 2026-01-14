@@ -234,11 +234,7 @@
                                 throw new Error(data.error || 'Error al actualizar');
                             }
                         } catch (error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: error.message
-                            });
+                            mostrarError(error.message);
                         }
                     },
 
@@ -715,11 +711,7 @@
                     procesarFichaje(tipo, latitud, longitud, boton, textoOriginal);
                 },
                 function(error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de ubicacion',
-                        text: `${error.message}`
-                    });
+                    mostrarError(error.message, 'Error de ubicación');
                     boton.disabled = false;
                     boton.querySelector('.texto').textContent = textoOriginal;
                     boton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -773,19 +765,11 @@
                                     window.calendar.refetchEvents();
                                 }
                             } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: data.error
-                                });
+                                mostrarError(data.error);
                             }
                         })
                         .catch(err => {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'No se pudo comunicar con el servidor'
-                            });
+                            mostrarError('No se pudo comunicar con el servidor');
                         });
                 }
 

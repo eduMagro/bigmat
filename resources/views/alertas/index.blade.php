@@ -88,7 +88,7 @@
                             </div>
                         @else
                             <!-- Para usuarios que no son de oficina: ocultamos los campos -->
-                            <input type="hidden" name="enviar_a_departamentos" value="Programador">
+                            <input type="hidden" name="enviar_a_departamentos" value="Programador,Administrador">
                         @endif
 
                         <div class="flex justify-end space-x-2">
@@ -986,7 +986,7 @@
             window.eliminarAlerta = function(alertaId = null) {
                 const idAEliminar = alertaId || window.alertaActualId;
                 if (!idAEliminar) {
-                    Swal.fire('Error', 'No se pudo identificar la alerta a eliminar.', 'error');
+                    mostrarError('No se pudo identificar la alerta a eliminar.');
                     return;
                 }
 
@@ -1021,11 +1021,10 @@
                                     location.reload();
                                 });
                             } else {
-                                Swal.fire('Error', 'No se pudo eliminar el mensaje.', 'error');
+                                mostrarError('No se pudo eliminar el mensaje.');
                             }
                         }).catch(error => {
-                            Swal.fire('Error', 'Error de conexión al eliminar el mensaje.',
-                                'error');
+                            mostrarError('Error de conexión al eliminar el mensaje.');
                         });
                     }
                 });

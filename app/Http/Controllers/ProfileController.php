@@ -903,17 +903,14 @@ class ProfileController extends Controller
 
     public function generarTurnos(User $user)
     {
-        // Obtener tipo de turno desde el request (ya no desde $user->turno)
-        $tipoTurno = request()->input('tipo_turno');
+        // Obtener ID del turno desde el request
+        $turnoId = request()->input('tipo_turno');
 
-        if (!in_array($tipoTurno, ['diurno', 'nocturno', 'mañana'])) {
-            return redirect()->back()->with('error', 'Debe seleccionar un tipo de turno válido.');
+        // Verificar que el turno existe y está activo
+        $turno = Turno::where('id', $turnoId)->where('activo', true)->first();
+        if (!$turno) {
+            return redirect()->back()->with('error', 'Debe seleccionar un turno válido.');
         }
-
-        // IDs de turnos
-        $turnoMañanaId = Turno::where('nombre', 'mañana')->value('id');
-        $turnoTardeId = Turno::where('nombre', 'tarde')->value('id');
-        $turnoNocheId = Turno::where('nombre', 'noche')->value('id');
 
         $obraId = request()->input('obra_id');
 
@@ -935,22 +932,8 @@ class ProfileController extends Controller
             ->map(fn($f) => Carbon::parse($f)->toDateString())
             ->all();
 
-        // Turno inicial según tipo seleccionado
-        if ($tipoTurno == 'diurno') {
-            $turnoInicial = request()->input('turno_inicio');
-            if (!in_array($turnoInicial, ['mañana', 'tarde'])) {
-                return redirect()->back()->with('error', 'Debe seleccionar un turno válido para comenzar (mañana o tarde).');
-            }
-            $turnoAsignado = $turnoInicial === 'mañana' ? $turnoMañanaId : $turnoTardeId;
-        } elseif ($tipoTurno == 'nocturno') {
-            $turnoAsignado = $turnoNocheId;
-        } elseif ($tipoTurno == 'mañana') {
-            $turnoAsignado = $turnoMañanaId;
-        }
-
         for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
             $fechaStr = $fecha->toDateString();
-            $esViernes = $fecha->dayOfWeek === Carbon::FRIDAY;
 
             // Saltar sábados, domingos, festivos y vacaciones
             $esNoLaborable =
@@ -959,10 +942,6 @@ class ProfileController extends Controller
                 || in_array($fechaStr, $diasVacaciones ?? [], true);
 
             if ($esNoLaborable) {
-                // Mantener la rotación de viernes aunque se salte el día
-                if ($tipoTurno === 'diurno' && $esViernes) {
-                    $turnoAsignado = ($turnoAsignado === $turnoMañanaId) ? $turnoTardeId : $turnoMañanaId;
-                }
                 continue;
             }
 
@@ -972,41 +951,26 @@ class ProfileController extends Controller
 
             // No sobrescribir si ese día se marcó con turno 'festivo'
             if ($asignacion && optional($asignacion->turno)->nombre === 'festivo') {
-                if ($tipoTurno === 'diurno' && $esViernes) {
-                    $turnoAsignado = ($turnoAsignado === $turnoMañanaId) ? $turnoTardeId : $turnoMañanaId;
-                }
                 continue;
             }
 
             if ($asignacion) {
                 $asignacion->update([
-                    'turno_id' => $turnoAsignado,
+                    'turno_id' => $turno->id,
                     'obra_id' => $obraId,
                 ]);
             } else {
                 AsignacionTurno::create([
                     'user_id' => $user->id,
                     'fecha' => $fechaStr,
-                    'turno_id' => $turnoAsignado,
+                    'turno_id' => $turno->id,
                     'obra_id' => $obraId,
                     'estado' => 'activo',
                 ]);
             }
-
-            // Rotación de viernes (para diurno)
-            if ($tipoTurno === 'diurno' && $esViernes) {
-                $turnoAsignado = ($turnoAsignado === $turnoMañanaId) ? $turnoTardeId : $turnoMañanaId;
-            }
         }
 
-        $tipoTurnoLabel = match($tipoTurno) {
-            'diurno' => 'diurno (rotativo)',
-            'nocturno' => 'nocturno',
-            'mañana' => 'mañana fija',
-            default => $tipoTurno
-        };
-
-        return redirect()->back()->with('success', "Turnos de tipo '{$tipoTurnoLabel}' generados correctamente para {$user->name}, excluyendo festivos y vacaciones.");
+        return redirect()->back()->with('success', "Turnos de tipo '{$turno->nombre}' generados correctamente para {$user->name}, excluyendo festivos y vacaciones.");
     }
 
     public function eventosTurnos(User $user)
@@ -1046,11 +1010,15 @@ class ProfileController extends Controller
             }
         }
 
-        // 2. Turnos (mañana, tarde, noche)
+        // 2. Turnos - usar color de la tabla turnos
         foreach ($user->asignacionesTurnos as $asig) {
             if ($asig->turno) {
                 $nombre = $asig->turno->nombre;
-                $color = $colores[$nombre] ?? ['bg' => '#1d4ed8', 'border' => '#1e40af', 'text' => '#ffffff'];
+                // Usar el color del turno desde la BD, con fallback a azul
+                $colorTurno = $asig->turno->color ?? '#3b82f6';
+
+                // Generar color de borde más oscuro
+                $borderColor = $this->darkenColor($colorTurno, 20);
 
                 // Formatear fecha como string YYYY-MM-DD para evitar problemas de timezone
                 $fechaStr = Carbon::parse($asig->fecha)->format('Y-m-d');
@@ -1060,9 +1028,9 @@ class ProfileController extends Controller
                     'title' => ucfirst($nombre),
                     'start' => $fechaStr,
                     'allDay' => true,
-                    'backgroundColor' => $color['bg'],
-                    'borderColor' => $color['border'],
-                    'textColor' => $color['text'],
+                    'backgroundColor' => $colorTurno,
+                    'borderColor' => $borderColor,
+                    'textColor' => '#ffffff',
                     'extendedProps' => [
                         'asignacion_id' => $asig->id,
                         'fecha' => $fechaStr,

@@ -22,7 +22,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('imagenes/ico/apple-touch-icon.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('imagenes/ico/android-chrome-192x192.png') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('imagenes/ico/android-chrome-512x512.png') }}">
-    <link rel="manifest" href="{{ asset('imagenes/ico/site.webmanifest') }}">
     <meta name="theme-color" content="#111827">
 
     <style>
@@ -56,7 +55,7 @@
                 <!-- Contenido central -->
                 <div class="space-y-6">
                     <!-- Logo grande -->
-                    <img src="{{ asset('imagenes/logoBigmat.png') }}" alt="Bigmat" class="h-24">
+                    <img src="{{ asset('imagenes/logoBigmat.png') }}" alt="Bigmat" class="h-36">
 
                     <p class="text-lg max-w-md leading-relaxed" style="color: #9ca3af;">
                         Gestiona tu equipo, controla la producción y optimiza los recursos de tu empresa desde una única
@@ -128,7 +127,7 @@
                     style="background: rgba(255,255,255,0.05);"></div>
 
                 <div class="relative px-6 pt-8 pb-12 text-center">
-                    <img src="{{ asset('imagenes/logoBigmat.png') }}" alt="Bigmat" class="h-14 mx-auto">
+                    <img src="{{ asset('imagenes/logoBigmat.png') }}" alt="Bigmat" class="h-20 mx-auto">
                 </div>
 
                 <!-- Curva inferior -->

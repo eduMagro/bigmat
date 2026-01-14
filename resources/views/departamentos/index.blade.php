@@ -440,12 +440,7 @@
                         }
                     })
                     .catch(error => {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error de conexión",
-                            text: error.message || "No se pudo actualizar el departamento.",
-                            confirmButtonText: "OK"
-                        });
+                        mostrarError(error.message || "No se pudo actualizar el departamento.", "Error de conexión");
                     });
             }
         </script>
@@ -640,12 +635,7 @@
                     })
                     .catch(error => {
                         console.error('❌ Error completo:', error);
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: error.message || "No se pudo actualizar la sección.",
-                            confirmButtonText: "OK"
-                        });
+                        mostrarError(error.message || "No se pudo actualizar la sección.");
                     });
             }
 
@@ -676,12 +666,7 @@
                         }
                     })
                     .catch(error => {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error de conexión",
-                            text: error.message || "No se pudo actualizar la sección.",
-                            confirmButtonText: "OK"
-                        });
+                        mostrarError(error.message || "No se pudo actualizar la sección.", "Error de conexión");
                     });
             }
         </script>
@@ -758,7 +743,7 @@
                     </div>
 
                     <!-- Body del modal -->
-                    <form method="POST" :action="'/departamentos/' + departamentoId + '/asignar-usuarios'"
+                    <form method="POST" :action="'{{ url('departamentos') }}/' + departamentoId + '/asignar-usuarios'"
                         class="flex flex-col flex-1 overflow-hidden">
                         @csrf
 
@@ -909,7 +894,7 @@
                     </div>
 
                     <!-- Body del modal -->
-                    <form method="POST" :action="'/departamentos/' + departamentoId + '/asignar-secciones'"
+                    <form method="POST" :action="'{{ url('departamentos') }}/' + departamentoId + '/asignar-secciones'"
                         class="flex flex-col flex-1 overflow-hidden">
                         @csrf
 

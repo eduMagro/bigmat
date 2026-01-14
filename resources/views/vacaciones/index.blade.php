@@ -149,7 +149,7 @@
         function aprobarSolicitud(solicitudId, btn) {
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
             if (!tokenMeta) {
-                Swal.fire('Error', 'No se encontró el token CSRF. Recarga la página.', 'error');
+                mostrarError('No se encontró el token CSRF. Recarga la página.');
                 return;
             }
             const token = tokenMeta.getAttribute('content');
@@ -197,14 +197,14 @@
                         showConfirmButton: false
                     });
                 } else {
-                    Swal.fire('Error', data.error || 'No se pudo aprobar la solicitud', 'error');
+                    mostrarError(data.error || 'No se pudo aprobar la solicitud');
                     btns.forEach(b => b.disabled = false);
                     btn.textContent = 'Aprobar';
                 }
             })
             .catch(error => {
                 console.error('Error aprobar:', error);
-                Swal.fire('Error', error.message || 'Error de conexion', 'error');
+                mostrarError(error.message || 'Error de conexión');
                 btns.forEach(b => b.disabled = false);
                 btn.textContent = 'Aprobar';
             });
@@ -213,7 +213,7 @@
         function denegarSolicitud(solicitudId, btn) {
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
             if (!tokenMeta) {
-                Swal.fire('Error', 'No se encontró el token CSRF. Recarga la página.', 'error');
+                mostrarError('No se encontró el token CSRF. Recarga la página.');
                 return;
             }
             const token = tokenMeta.getAttribute('content');
@@ -259,14 +259,14 @@
                         showConfirmButton: false
                     });
                 } else {
-                    Swal.fire('Error', data.error || 'No se pudo denegar la solicitud', 'error');
+                    mostrarError(data.error || 'No se pudo denegar la solicitud');
                     btns.forEach(b => b.disabled = false);
                     btn.textContent = 'Denegar';
                 }
             })
             .catch(error => {
                 console.error('Error denegar:', error);
-                Swal.fire('Error', error.message || 'Error de conexion', 'error');
+                mostrarError(error.message || 'Error de conexión');
                 btns.forEach(b => b.disabled = false);
                 btn.textContent = 'Denegar';
             });
@@ -383,7 +383,7 @@
                         usuariosCache = await response.json();
                     } catch (error) {
                         console.error('Error cargando usuarios:', error);
-                        Swal.fire('Error', 'No se pudieron cargar los usuarios', 'error');
+                        mostrarError('No se pudieron cargar los usuarios');
                         return;
                     }
                 }
@@ -501,11 +501,11 @@
                             showConfirmButton: false
                         });
                     } else {
-                        Swal.fire('Error', data.error || 'No se pudieron asignar las vacaciones', 'error');
+                        mostrarError(data.error || 'No se pudieron asignar las vacaciones');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    Swal.fire('Error', 'Error de conexion', 'error');
+                    mostrarError('Error de conexión');
                 }
             }
 
@@ -602,13 +602,13 @@
                         .then(res => res.json())
                         .then(data => {
                             if (!data.success) {
-                                Swal.fire("Error", data.error || "No se pudo reprogramar", "error");
+                                mostrarError(data.error || "No se pudo reprogramar");
                                 info.revert();
                             }
                         })
                         .catch(err => {
                             console.error(err);
-                            Swal.fire("Error", "Error de conexion", "error");
+                            mostrarError("Error de conexión");
                             info.revert();
                         });
                 },
@@ -665,12 +665,11 @@
                                                 'Vacaciones eliminadas correctamente.',
                                                 'success');
                                         } else {
-                                            Swal.fire("Error", data.error ||
-                                                "No se pudo eliminar", "error");
+                                            mostrarError(data.error || "No se pudo eliminar");
                                         }
                                     })
                                     .catch(() => {
-                                        Swal.fire("Error", "Error de conexion", "error");
+                                        mostrarError("Error de conexión");
                                     });
                             }
                         });
@@ -705,20 +704,66 @@
             bindHoverCells();
         }
 
+        function loadFullCalendarIfNeeded() {
+            return new Promise((resolve) => {
+                if (typeof FullCalendar !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                console.log('Cargando FullCalendar dinamicamente...');
+
+                // Cargar CSS
+                if (!document.querySelector('link[href*="fullcalendar"]')) {
+                    const css = document.createElement('link');
+                    css.rel = 'stylesheet';
+                    css.href = 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css';
+                    document.head.appendChild(css);
+                }
+
+                // Cargar JS principal
+                const loadScript = (src) => {
+                    return new Promise((res) => {
+                        if (document.querySelector(`script[src="${src}"]`)) {
+                            res();
+                            return;
+                        }
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.onload = res;
+                        document.head.appendChild(script);
+                    });
+                };
+
+                loadScript('https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js')
+                    .then(() => loadScript('https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.js'))
+                    .then(() => {
+                        // Esperar un momento para que se inicialice
+                        setTimeout(resolve, 50);
+                    });
+            });
+        }
+
         function initVacacionesPage() {
             // Prevenir doble inicializacion
             if (document.body.dataset.vacacionesPageInit === 'true') return;
 
+            // Verificar que el contenedor exista
+            if (!document.getElementById('calendario-vacaciones')) return;
+
             console.log('Inicializando pagina de vacaciones...');
 
-            // Ejecutar inicializacion del calendario
-            inicializarCalendario();
-
-            // Marcar como inicializado
+            // Marcar como inicializado inmediatamente para evitar duplicados
             document.body.dataset.vacacionesPageInit = 'true';
+
+            // Cargar FullCalendar si es necesario y luego inicializar
+            loadFullCalendarIfNeeded().then(() => {
+                inicializarCalendario();
+            });
         }
 
         // Registrar en el sistema global
+        window.pageInitializers = window.pageInitializers || [];
         window.pageInitializers.push(initVacacionesPage);
 
         // Configurar listeners

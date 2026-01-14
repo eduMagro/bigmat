@@ -87,11 +87,11 @@ export function openWorkerMenu(x, y, event) {
                 });
             } catch (error) {
                 console.error("Error al eliminar el turno:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error al eliminar",
-                    text: error.message || "No se pudo eliminar el turno.",
-                });
+                if (typeof mostrarError === 'function') {
+                    mostrarError(error.message || "No se pudo eliminar el turno.", "Error al eliminar");
+                } else {
+                    Swal.fire({ icon: "error", title: "Error al eliminar", text: error.message || "No se pudo eliminar el turno." });
+                }
             }
         }
     );
