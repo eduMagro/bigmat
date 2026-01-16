@@ -29,6 +29,9 @@ class RedirectOperario
         'vacaciones.eliminarDiasSolicitud',
         'vacaciones.eliminarSolicitud',
         'vacaciones.eliminarEvento',
+        // Revision de fichajes
+        'usuarios.fichajes-rango',
+        'revision-fichaje.store',
         // Alertas
         'alertas.index',
         'alertas.show',

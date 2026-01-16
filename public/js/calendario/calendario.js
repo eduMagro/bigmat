@@ -476,6 +476,163 @@
                 );
         }
 
+        // Mostrar opciones: Vacaciones o Revision de fichajes
+        async function mostrarOpcionesAccion(fechaInicio, fechaFin, calendar) {
+            const esMismoDia = fechaInicio === fechaFin;
+            const rangoTexto = esMismoDia
+                ? fechaInicio
+                : `${fechaInicio} - ${fechaFin}`;
+
+            const { value: opcion } = await Swal.fire({
+                title: 'Que deseas hacer?',
+                html: `
+                    <p class="text-gray-600 mb-4">${rangoTexto}</p>
+                    <div class="flex flex-col gap-3">
+                        <button type="button" class="swal2-option-btn px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors" data-value="vacaciones">
+                            Solicitar vacaciones
+                        </button>
+                        <button type="button" class="swal2-option-btn px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors" data-value="revision">
+                            Pedir revision de fichajes
+                        </button>
+                    </div>
+                `,
+                showCancelButton: true,
+                showConfirmButton: false,
+                cancelButtonText: 'Cancelar',
+                didOpen: () => {
+                    const buttons = document.querySelectorAll('.swal2-option-btn');
+                    buttons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            Swal.close({ value: btn.dataset.value });
+                        });
+                    });
+                },
+                preConfirm: () => null,
+            });
+
+            if (opcion === 'vacaciones') {
+                pedirVacaciones(fechaInicio, fechaFin, calendar);
+            } else if (opcion === 'revision') {
+                solicitarRevisionFichaje(fechaInicio, fechaFin, calendar);
+            }
+        }
+
+        // Solicitar revision de fichajes
+        async function solicitarRevisionFichaje(fechaInicio, fechaFin, calendar) {
+            const esMismoDia = fechaInicio === fechaFin;
+            const rangoTexto = esMismoDia
+                ? fechaInicio
+                : `Del ${fechaInicio} al ${fechaFin}`;
+
+            // Obtener datos de fichajes para mostrar resumen
+            const fichajesUrl = `/api/usuarios/${userId}/fichajes-rango?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+
+            let fichajesData = null;
+            try {
+                const response = await fetch(fichajesUrl);
+                if (!response.ok) throw new Error('Error al obtener fichajes');
+                fichajesData = await response.json();
+            } catch (error) {
+                console.error('Error obteniendo fichajes:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron obtener los datos de fichajes.',
+                    confirmButtonColor: '#1e3a5f',
+                });
+                return;
+            }
+
+            // Construir tabla resumen de fichajes
+            let tablaFichajes = '';
+            if (fichajesData.fichajes && fichajesData.fichajes.length > 0) {
+                tablaFichajes = '<div class="text-left mt-3 max-h-48 overflow-y-auto">';
+                tablaFichajes += '<table class="w-full text-xs border-collapse">';
+                tablaFichajes += '<thead><tr class="bg-gray-100"><th class="p-1 border">Fecha</th><th class="p-1 border">Turno</th><th class="p-1 border">E</th><th class="p-1 border">S</th><th class="p-1 border">E2</th><th class="p-1 border">S2</th></tr></thead>';
+                tablaFichajes += '<tbody>';
+
+                fichajesData.fichajes.forEach(f => {
+                    const icono = f.completo ? 'OK' : 'X';
+                    const fechaCorta = f.fecha.substring(5); // MM-DD
+                    tablaFichajes += `<tr class="${f.completo ? '' : 'bg-red-50'}">`;
+                    tablaFichajes += `<td class="p-1 border text-center">${icono} ${fechaCorta}</td>`;
+                    tablaFichajes += `<td class="p-1 border text-center">${f.turno || '-'}</td>`;
+                    tablaFichajes += `<td class="p-1 border text-center">${f.entrada || '-'}</td>`;
+                    tablaFichajes += `<td class="p-1 border text-center">${f.salida || '-'}</td>`;
+                    tablaFichajes += `<td class="p-1 border text-center">${f.entrada2 || '-'}</td>`;
+                    tablaFichajes += `<td class="p-1 border text-center">${f.salida2 || '-'}</td>`;
+                    tablaFichajes += '</tr>';
+                });
+
+                tablaFichajes += '</tbody></table></div>';
+            } else {
+                tablaFichajes = '<p class="text-gray-500 mt-3">No hay fichajes registrados para estas fechas.</p>';
+            }
+
+            // Mostrar modal de confirmacion con resumen
+            const { isConfirmed, value: observaciones } = await Swal.fire({
+                title: 'Solicitar revision de fichajes',
+                html: `
+                    <p class="text-gray-600 mb-2">${rangoTexto}</p>
+                    <p class="text-sm text-gray-500 mb-2">Estado actual de tus fichajes:</p>
+                    ${tablaFichajes}
+                    <div class="mt-4">
+                        <label class="block text-left text-sm font-medium text-gray-700 mb-1">Observaciones (opcional):</label>
+                        <textarea id="revision-observaciones" class="w-full p-2 border rounded text-sm" rows="2" placeholder="Indica que fichajes necesitan correccion..."></textarea>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-3">Se enviara una solicitud al equipo de programacion para revisar estos fichajes.</p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Enviar solicitud',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#1e3a5f',
+                width: 500,
+                preConfirm: () => {
+                    return document.getElementById('revision-observaciones')?.value || '';
+                }
+            });
+
+            if (!isConfirmed) return;
+
+            // Enviar solicitud
+            try {
+                const response = await fetch('/revision-fichaje/solicitar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        fecha_inicio: fechaInicio,
+                        fecha_fin: fechaFin,
+                        observaciones: observaciones,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Error al enviar la solicitud');
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Solicitud enviada',
+                    text: data.success || 'Tu solicitud de revision ha sido enviada.',
+                    confirmButtonColor: '#1e3a5f',
+                });
+
+            } catch (error) {
+                console.error('Error enviando solicitud:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'No se pudo enviar la solicitud.',
+                    confirmButtonColor: '#1e3a5f',
+                });
+            }
+        }
+
         async function registrarEventoOficina(fechaInicio, fechaFin, calendar) {
             const opcionesTurnos = (turnos || [])
                 .map((t) => `<option value="${t.nombre}">${t.nombre}</option>`)
@@ -1167,14 +1324,14 @@
                     if (permissions.canAssignStates || permissions.canAssignShifts) {
                         registrarEventoOficina(clicked, clicked, calendar);
                     } else if (permissions.canRequestVacations) {
-                        pedirVacaciones(clicked, clicked, calendar);
+                        mostrarOpcionesAccion(clicked, clicked, calendar);
                     }
                 } else {
                     // Rango
                     if (permissions.canAssignStates || permissions.canAssignShifts) {
                         registrarEventoOficina(startStr, endStr, calendar);
                     } else if (permissions.canRequestVacations) {
-                        pedirVacaciones(startStr, endStr, calendar);
+                        mostrarOpcionesAccion(startStr, endStr, calendar);
                     }
                 }
             },

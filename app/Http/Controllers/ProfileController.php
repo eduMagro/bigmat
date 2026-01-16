@@ -1478,4 +1478,58 @@ class ProfileController extends Controller
             'fecha_referencia' => $fechaReferencia->toDateString(),
         ]);
     }
+
+    /**
+     * Obtener fichajes de un usuario para un rango de fechas
+     * Usado por el sistema de solicitud de revision de fichajes
+     */
+    public function getFichajesRango(Request $request, $userId)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+        ]);
+
+        // Solo el propio usuario o usuarios con rol oficina pueden ver esto
+        $user = User::findOrFail($userId);
+        if (Auth::id() != $userId && Auth::user()->rol !== 'oficina') {
+            return response()->json(['error' => 'No tienes permisos.'], 403);
+        }
+
+        $fechaInicio = Carbon::parse($request->fecha_inicio);
+        $fechaFin = Carbon::parse($request->fecha_fin);
+        $periodo = CarbonPeriod::create($fechaInicio, $fechaFin);
+
+        $fichajes = [];
+
+        foreach ($periodo as $fecha) {
+            // Saltar fines de semana
+            if ($fecha->isWeekend()) {
+                continue;
+            }
+
+            $fechaStr = $fecha->toDateString();
+
+            $asignacion = AsignacionTurno::with('turno')
+                ->where('user_id', $userId)
+                ->whereDate('fecha', $fechaStr)
+                ->first();
+
+            $fichajes[] = [
+                'fecha' => $fechaStr,
+                'turno' => $asignacion?->turno?->nombre ?? null,
+                'entrada' => $asignacion?->entrada ? substr($asignacion->entrada, 0, 5) : null,
+                'salida' => $asignacion?->salida ? substr($asignacion->salida, 0, 5) : null,
+                'entrada2' => $asignacion?->entrada2 ? substr($asignacion->entrada2, 0, 5) : null,
+                'salida2' => $asignacion?->salida2 ? substr($asignacion->salida2, 0, 5) : null,
+                'completo' => $asignacion && $asignacion->entrada && $asignacion->salida,
+            ];
+        }
+
+        return response()->json([
+            'user_id' => $userId,
+            'user_nombre' => $user->nombre_completo,
+            'fichajes' => $fichajes,
+        ]);
+    }
 }

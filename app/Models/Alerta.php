@@ -119,4 +119,22 @@ class Alerta extends Model
 
         return $emisor->nombre_completo ?? $emisor->name ?? 'Usuario';
     }
+
+    /**
+     * Accessor para obtener el mensaje limpio (sin marcadores internos)
+     */
+    public function getMensajeCompletoAttribute(): string
+    {
+        // Quitar marcadores de revision de fichajes
+        return preg_replace('/\[REVISION_ID:\d+\]\[USER_ID:\d+\]\n?/', '', $this->mensaje ?? '');
+    }
+
+    /**
+     * Accessor para obtener version corta del mensaje limpio
+     */
+    public function getMensajeCortoAttribute(): string
+    {
+        $limpio = $this->mensaje_completo;
+        return \Illuminate\Support\Str::limit($limpio, 50);
+    }
 }

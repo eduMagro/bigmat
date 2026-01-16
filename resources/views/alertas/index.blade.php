@@ -1125,14 +1125,92 @@
                 modal.classList.add('flex');
             }
 
-            window.verMensajeCompleto = function(mensaje) {
+            window.verMensajeCompleto = function(mensaje, tipo = null) {
+                // Detectar si es una solicitud de revision de fichajes
+                const revisionMatch = mensaje.match(/\[REVISION_ID:(\d+)\]\[USER_ID:(\d+)\]/);
+
+                if (revisionMatch) {
+                    const solicitudId = revisionMatch[1];
+                    const userId = revisionMatch[2];
+                    // Limpiar los marcadores del mensaje visible
+                    const mensajeLimpio = mensaje.replace(/\[REVISION_ID:\d+\]\[USER_ID:\d+\]\n?/, '');
+
+                    Swal.fire({
+                        title: 'Solicitud de Revision de Fichajes',
+                        html: `
+                            <div class="text-left whitespace-pre-wrap text-gray-700 p-4 mb-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">${mensajeLimpio}</div>
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="corregirFichajes(${solicitudId})" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
+                                    Corregir Fichajes
+                                </button>
+                                <a href="/mi-perfil/${userId}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors inline-block">
+                                    Ver Perfil
+                                </a>
+                            </div>
+                        `,
+                        showConfirmButton: false,
+                        showCloseButton: true,
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Mensaje Completo',
+                        html: `<div class="text-left whitespace-pre-wrap text-gray-700 p-4">${mensaje}</div>`,
+                        icon: 'info',
+                        confirmButtonColor: '#3B82F6',
+                        confirmButtonText: 'Cerrar',
+                        width: '600px'
+                    });
+                }
+            }
+
+            window.corregirFichajes = function(solicitudId) {
                 Swal.fire({
-                    title: 'Mensaje Completo',
-                    html: `<div class="text-left whitespace-pre-wrap text-gray-700 p-4">${mensaje}</div>`,
-                    icon: 'info',
-                    confirmButtonColor: '#3B82F6',
-                    confirmButtonText: 'Cerrar',
-                    width: '600px'
+                    title: 'Corregir Fichajes',
+                    text: 'Esto rellenara automaticamente los fichajes faltantes segun el turno asignado. Continuar?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10B981',
+                    cancelButtonColor: '#6B7280',
+                    confirmButtonText: 'Si, corregir',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch(`/revision-fichaje/${solicitudId}/auto-rellenar`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Fichajes Corregidos',
+                                    text: data.success,
+                                    confirmButtonColor: '#10B981'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.error || 'No se pudieron corregir los fichajes'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error de conexion. Intenta de nuevo.'
+                            });
+                        });
+                    }
                 });
             }
 
@@ -1263,17 +1341,57 @@
                 const esPropio = mensaje.es_propio;
                 const bubbleClass = esPropio ? 'chat-bubble-out' : 'chat-bubble-in';
 
+                // Detectar si es una solicitud de revision de fichajes
+                const revisionMatch = mensaje.mensaje.match(/\[REVISION_ID:(\d+)\]\[USER_ID:(\d+)\]/);
+                let mensajeTexto = mensaje.mensaje;
+                let botonesRevision = '';
+
+                // Mostrar botones de revision siempre que se detecte el patron
+                if (revisionMatch) {
+                    const solicitudId = revisionMatch[1];
+                    const userId = revisionMatch[2];
+                    // Limpiar los marcadores del mensaje visible
+                    mensajeTexto = mensaje.mensaje.replace(/\[REVISION_ID:\d+\]\[USER_ID:\d+\]\n?/, '');
+
+                    botonesRevision = `
+                        <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                            <button onclick="corregirFichajes(${solicitudId})" class="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                                Corregir Fichajes
+                            </button>
+                            <a href="/mi-perfil/${userId}" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center">
+                                Ver Perfil
+                            </a>
+                        </div>
+                    `;
+                }
+
                 const mensajeDiv = document.createElement('div');
                 mensajeDiv.className = `flex ${esPropio ? 'justify-end' : 'justify-start'}`;
                 mensajeDiv.innerHTML = `
-                <div class="chat-bubble ${bubbleClass} max-w-[85%] px-4 py-2.5">
-                    ${!esPropio ? `<p class="text-xs font-semibold text-emerald-600 mb-1">${mensaje.emisor}</p>` : ''}
-                    <p class="text-[15px] text-slate-800 leading-relaxed whitespace-pre-wrap">${mensaje.mensaje}</p>
-                    <div class="flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5">
-                        <span class="text-[11px] text-slate-500">${mensaje.created_at}</span>
-                        ${esPropio ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
+                <div class="flex flex-col max-w-[85%]">
+                    <div class="chat-bubble ${bubbleClass} px-4 py-3 shadow-md">
+                        ${!esPropio ? `
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-bold text-sm">${mensaje.emisor}</span>
+                                <span class="px-2 py-0.5 bg-white bg-opacity-20 text-xs rounded-full font-medium">📌</span>
+                            </div>
+                        ` : ''}
+
+                        <p class="mensaje-mensaje text-[15px] leading-relaxed whitespace-pre-wrap">${mensajeTexto}</p>
+
+                        ${botonesRevision}
+
+                        <div class="flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5">
+                            <span class="text-[11px] text-slate-500">${mensaje.created_at}</span>
+                            ${esPropio ? `
+                                <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            ` : ''}
+                        </div>
                     </div>
-                </div>`;
+                </div>
+            </div>`;
                 hiloContenido.appendChild(mensajeDiv);
             }
 

@@ -23,6 +23,7 @@ use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\ProduccionController;
 use App\Http\Controllers\AjustesController;
 use App\Http\Controllers\PoliticasController;
+use App\Http\Controllers\RevisionFichajeController;
 
 // Ruta principal - redirige a login, dashboard o mi-perfil según el rol
 Route::get('/', function () {
@@ -188,6 +189,11 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::get('/alertas/sin-leer', [AlertaController::class, 'sinLeer'])->name('alertas.verSinLeer');
     Route::get('/alertas/{id}/hilo', [AlertaController::class, 'obtenerHilo'])->name('alertas.obtenerHilo');
     Route::resource('alertas', AlertaController::class);
+
+    // === REVISION DE FICHAJES ===
+    Route::post('/revision-fichaje/solicitar', [RevisionFichajeController::class, 'store'])->name('revision-fichaje.store');
+    Route::post('/revision-fichaje/{id}/auto-rellenar', [RevisionFichajeController::class, 'autoRellenar'])->name('revision-fichaje.autoRellenar');
+    Route::get('/api/usuarios/{id}/fichajes-rango', [ProfileController::class, 'getFichajesRango'])->name('usuarios.fichajes-rango');
 
     // === PLANIFICACION ===
     Route::get('/planificacion/trabajadores', [ProduccionController::class, 'trabajadores'])->name('planificacion.trabajadores');

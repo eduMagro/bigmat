@@ -14,13 +14,15 @@ class AsignacionTurno extends Model
     protected $fillable = [
         'user_id', 'obra_id', 'turno_id', 'estado', 'anio_cargo', 'maquina_id',
         'entrada', 'salida', 'entrada2', 'salida2', 'fecha',
-        'justificante_ruta', 'horas_justificadas', 'justificante_observaciones', 'justificante_subido_at'
+        'justificante_ruta', 'horas_justificadas', 'justificante_observaciones', 'justificante_subido_at',
+        'revisado_at', 'revisado_por'
     ];
 
     protected $casts = [
         'fecha' => 'date',
         'justificante_subido_at' => 'datetime',
         'horas_justificadas' => 'decimal:2',
+        'revisado_at' => 'datetime',
     ];
 
     /**
