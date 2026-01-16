@@ -181,6 +181,11 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::resource('seguridad-social', SeguridadSocialController::class);
 
     // === SECCIONES ===
+    // Rutas específicas ANTES del resource (evitar conflicto con {seccione})
+    Route::post('/secciones/actualizar-orden', [SeccionController::class, 'actualizarOrden'])->name('secciones.actualizarOrden');
+    Route::post('/secciones/sincronizar-todas', [SeccionController::class, 'sincronizarTodas'])->name('secciones.sincronizarTodas');
+    Route::post('/secciones/crear-para-prefijo', [SeccionController::class, 'crearParaPrefijo'])->name('secciones.crearParaPrefijo');
+    Route::get('/secciones/estado-sincronizacion', [SeccionController::class, 'estadoSincronizacion'])->name('secciones.estadoSincronizacion');
     Route::resource('secciones', SeccionController::class);
 
     // === ALERTAS ===

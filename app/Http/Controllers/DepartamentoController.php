@@ -6,11 +6,19 @@ use App\Models\Departamento;
 use App\Models\Seccion;
 use App\Models\User;
 use App\Models\PermisoAcceso;
+use App\Services\SeccionAutoDetectService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class DepartamentoController extends Controller
 {
+    protected SeccionAutoDetectService $autoDetectService;
+
+    public function __construct(SeccionAutoDetectService $autoDetectService)
+    {
+        $this->autoDetectService = $autoDetectService;
+    }
+
     public function index()
     {
         $departamentos = Departamento::with(['usuarios', 'secciones.permisosAcceso'])->get();
@@ -23,12 +31,18 @@ class DepartamentoController extends Controller
         // Secciones del dashboard ordenadas
         $seccionesDashboard = Seccion::where('mostrar_en_dashboard', true)->orderBy('orden')->get();
 
+        // Auto-detección de secciones
+        $seccionesComparacion = $this->autoDetectService->compararConSecciones();
+        $seccionesEstadisticas = $this->autoDetectService->obtenerEstadisticas();
+
         return view('departamentos.index', compact(
             'departamentos',
             'usuariosOficina',
             'todasLasSecciones',
             'departamentoOperarios',
-            'seccionesDashboard'
+            'seccionesDashboard',
+            'seccionesComparacion',
+            'seccionesEstadisticas'
         ));
     }
 

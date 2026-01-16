@@ -50,13 +50,22 @@ class VerificarAccesoSeccion
             return $next($request);
         }
 
-        // === 2) Rutas libres (desde config/acceso.php) ===
+        // === 2) Acceso total para usuarios del departamento Administrador ===
+        $esAdministrador = $usuarioAutenticado->departamentos()
+            ->whereRaw('LOWER(nombre) = ?', ['administrador'])
+            ->exists();
+
+        if ($esAdministrador) {
+            return $next($request);
+        }
+
+        // === 3) Rutas libres (desde config/acceso.php) ===
         $rutasLibres = config('acceso.rutas_libres', []);
         if (in_array($nombreRutaActual, $rutasLibres, true)) {
             return $next($request);
         }
 
-        // === 3) Roles y permisos ===
+        // === 4) Roles y permisos ===
         if ($rolUsuario === 'operario') {
             $prefijosOperario = config('acceso.prefijos_operario', []);
             $permitido = collect($prefijosOperario)->contains(
@@ -89,7 +98,7 @@ class VerificarAccesoSeccion
             return $next($request);
         }
 
-        // === 4) Usuarios de oficina - verificar secciones y departamentos ===
+        // === 5) Usuarios de oficina - verificar secciones y departamentos ===
         if ($rolUsuario === 'oficina') {
             $accionRuta = strtolower(Str::afterLast($nombreRutaActual, '.'));
             $seccionBase = Str::before($nombreRutaActual, '.');

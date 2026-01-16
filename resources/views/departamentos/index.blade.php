@@ -12,8 +12,19 @@
         openNuevoDepartamentoModal: false,
         openNuevaSeccionModal: false,
         departamentoId: null,
-        usuariosMarcados: []
-    }">
+        usuariosMarcados: [],
+        todasLasSecciones: @json($todasLasSecciones),
+        agregarSeccionAlModal(seccion) {
+            // Agregar la sección al array reactivo con estructura compatible
+            this.todasLasSecciones.push({
+                id: seccion.id,
+                nombre: seccion.nombre,
+                ruta: seccion.ruta,
+                mostrar_en_dashboard: seccion.mostrar_en_dashboard || false,
+                departamentos: []
+            });
+        }
+    }" @seccion-creada.window="agregarSeccionAlModal($event.detail)">
 
         <!-- Success/Error Messages -->
         @if (session('success'))
@@ -456,12 +467,12 @@
         </div>
 
         <div class="w-full mt-4 overflow-x-auto bg-white shadow-lg rounded-lg">
-            <table class="w-full min-w-[600px] border border-gray-300 rounded-lg">
+            <table id="tabla-secciones" class="w-full min-w-[600px] border border-gray-300 rounded-lg">
                 <thead class="bg-blue-500 text-white">
                     <tr class="text-center text-xs uppercase">
                         <th class="px-4 py-2 text-left">Nombre</th>
                         <th class="px-4 py-2 text-left">Ruta</th>
-                        
+
                         <th class="px-4 py-2 text-left">Departamentos asociados</th>
                         <th class="px-4 py-2 text-left">Pagina Principal</th>
                     </tr>
@@ -518,6 +529,181 @@
 
             </table>
         </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════
+             AUTO-DETECCIÓN DE SECCIONES - Módulos sin configurar
+        ═══════════════════════════════════════════════════════════════════════════════ -->
+        @if(count($seccionesComparacion['sin_seccion']) > 0)
+        <div class="mt-12 bg-white shadow-lg rounded-lg overflow-hidden border border-amber-300"
+             x-data="seccionesAutoDetect()"
+             x-show="seccionesFaltantes.length > 0"
+             x-transition:leave="transition ease-in duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white/20 p-2 rounded-lg">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Módulos Sin Sección</h3>
+                            <p class="text-amber-100 text-sm">
+                                <span x-text="seccionesFaltantes.length"></span> módulos detectados que los usuarios de oficina NO pueden acceder
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="sincronizarTodas()" :disabled="sincronizando || seccionesFaltantes.length === 0"
+                            class="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition disabled:opacity-50">
+                        <svg x-show="!sincronizando" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <svg x-show="sincronizando" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span x-text="sincronizando ? 'Creando...' : 'Crear Todas (' + seccionesFaltantes.length + ')'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                    <template x-for="item in seccionesFaltantes" :key="item.prefijo">
+                        <div class="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                            <div class="flex-1 min-w-0 mr-2">
+                                <div class="font-medium text-gray-900 truncate" x-text="item.nombre_sugerido"></div>
+                                <div class="text-xs text-gray-500 font-mono">
+                                    <span x-text="item.prefijo + '.*'"></span>
+                                    <span class="text-amber-600" x-text="'(' + item.total_rutas + ')'"></span>
+                                </div>
+                            </div>
+                            <button @click="crearSeccion(item.prefijo, item.nombre_sugerido)"
+                                    :disabled="creandoPrefijo === item.prefijo"
+                                    class="shrink-0 inline-flex items-center px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg x-show="creandoPrefijo === item.prefijo" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <svg x-show="creandoPrefijo !== item.prefijo" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700" x-show="seccionesFaltantes.length > 0">
+                    <strong>Siguiente paso:</strong> Después de crear las secciones, asígnalas a los departamentos correspondientes usando el botón "Secciones" de cada departamento.
+                </div>
+
+                <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center" x-show="seccionesFaltantes.length === 0" x-cloak>
+                    <svg class="w-12 h-12 mx-auto text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-green-700 font-medium">Todos los módulos tienen sección asignada</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function seccionesAutoDetect() {
+                return {
+                    sincronizando: false,
+                    creandoPrefijo: null,
+                    seccionesFaltantes: @json($seccionesComparacion['sin_seccion']),
+
+                    async sincronizarTodas() {
+                        const cantidad = this.seccionesFaltantes.length;
+                        if (!confirm(`¿Crear todas las ${cantidad} secciones faltantes?`)) return;
+
+                        this.sincronizando = true;
+                        try {
+                            const response = await fetch('{{ route("secciones.sincronizarTodas") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                }
+                            });
+                            const data = await response.json();
+
+                            if (data.success) {
+                                data.creadas.forEach(seccion => {
+                                    this.agregarSeccionATabla(seccion);
+                                });
+                                this.seccionesFaltantes = [];
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Secciones creadas',
+                                    text: data.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                            }
+                        } catch (error) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión' });
+                        } finally {
+                            this.sincronizando = false;
+                        }
+                    },
+
+                    async crearSeccion(prefijo, nombre) {
+                        this.creandoPrefijo = prefijo;
+                        try {
+                            const response = await fetch('{{ route("secciones.crearParaPrefijo") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({ prefijo, nombre })
+                            });
+                            const data = await response.json();
+
+                            if (data.success) {
+                                this.seccionesFaltantes = this.seccionesFaltantes.filter(s => s.prefijo !== prefijo);
+                                this.agregarSeccionATabla(data.seccion);
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                            }
+                        } catch (error) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión' });
+                        } finally {
+                            this.creandoPrefijo = null;
+                        }
+                    },
+
+                    agregarSeccionATabla(seccion) {
+                        const tabla = document.querySelector('#tabla-secciones tbody');
+                        if (!tabla) return;
+
+                        const tr = document.createElement('tr');
+                        tr.className = 'border-t cursor-pointer hover:bg-blue-50 focus:outline-none bg-green-50';
+                        tr.innerHTML = `
+                            <td class="px-4 py-2 border"><span>${seccion.nombre}</span></td>
+                            <td class="px-4 py-2 border"><span>${seccion.ruta}</span></td>
+                            <td class="px-4 py-2 border text-center">Ninguno</td>
+                            <td class="px-4 py-2 border text-center">
+                                <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 cursor-pointer">
+                            </td>
+                        `;
+                        tabla.insertBefore(tr, tabla.firstChild);
+                        setTimeout(() => tr.classList.remove('bg-green-50'), 2000);
+
+                        // Dispatch event to update the modal's reactive array
+                        window.dispatchEvent(new CustomEvent('seccion-creada', { detail: seccion }));
+                    }
+                }
+            }
+        </script>
+        @endif
+
         <!-- ═══════════════════════════════════════════════════════════════════════════════
              CONFIGURACIÓN DEL DASHBOARD - Orden de secciones y acceso de operarios
         ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -902,7 +1088,7 @@
                             <div class="mb-4">
                                 <div class="flex items-center justify-between mb-3">
                                     <p class="text-sm text-gray-600">
-                                        <span class="font-semibold">{{ count($todasLasSecciones) }}</span> secciones
+                                        <span class="font-semibold" x-text="todasLasSecciones.length"></span> secciones
                                         disponibles
                                     </p>
                                     <button type="button"
@@ -914,26 +1100,25 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                @forelse ($todasLasSecciones as $seccion)
+                                <template x-for="seccion in todasLasSecciones" :key="seccion.id">
                                     <label
                                         class="flex items-start space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer group">
-                                        <input type="checkbox" name="secciones[]" :value="'{{ $seccion->id }}'"
-                                            :checked="{{ $seccion->departamentos->pluck('id') }}.includes(departamentoId)"
+                                        <input type="checkbox" name="secciones[]" :value="seccion.id"
+                                            :checked="(seccion.departamentos || []).map(d => d.id).includes(departamentoId)"
                                             class="mt-1 w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 focus:ring-2 cursor-pointer">
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-start gap-2">
                                                 <div
-                                                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-semibold text-xs">
-                                                        {{ strtoupper(substr($seccion->nombre, 0, 2)) }}
+                                                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-semibold text-xs"
+                                                        x-text="seccion.nombre.substring(0, 2).toUpperCase()">
                                                     </div>
                                                 <div class="flex-1 min-w-0">
                                                     <p
-                                                        class="font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
-                                                        {{ $seccion->nombre }}
+                                                        class="font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition-colors"
+                                                        x-text="seccion.nombre">
                                                     </p>
-                                                    <p class="text-xs text-gray-500 truncate">{{ $seccion->ruta }}</p>
-                                                    @if ($seccion->mostrar_en_dashboard)
-                                                        <span
+                                                    <p class="text-xs text-gray-500 truncate" x-text="seccion.ruta"></p>
+                                                    <span x-show="seccion.mostrar_en_dashboard"
                                                             class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
                                                             <svg class="w-3 h-3 mr-1" fill="currentColor"
                                                                 viewBox="0 0 20 20">
@@ -943,26 +1128,25 @@
                                                             </svg>
                                                             En dashboard
                                                         </span>
-                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
                                     </label>
-                                @empty
-                                    <div class="col-span-3 text-center py-12">
-                                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <p class="text-gray-500 font-medium">No hay secciones registradas</p>
-                                        <button type="button"
-                                            @click="openModalSecciones = false; openNuevaSeccionModal = true"
-                                            class="mt-3 text-indigo-600 hover:text-indigo-700 font-medium text-sm">
-                                            + Crear primera sección
-                                        </button>
-                                    </div>
-                                @endforelse
+                                </template>
+                                <!-- Empty state -->
+                                <div x-show="todasLasSecciones.length === 0" class="col-span-3 text-center py-12">
+                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <p class="text-gray-500 font-medium">No hay secciones registradas</p>
+                                    <button type="button"
+                                        @click="openModalSecciones = false; openNuevaSeccionModal = true"
+                                        class="mt-3 text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+                                        + Crear primera sección
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

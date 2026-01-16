@@ -3,18 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Seccion;
+use App\Services\SeccionAutoDetectService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 
 class SeccionController extends Controller
 {
+    protected SeccionAutoDetectService $autoDetectService;
+
+    public function __construct(SeccionAutoDetectService $autoDetectService)
+    {
+        $this->autoDetectService = $autoDetectService;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
+        $secciones = Seccion::orderBy('orden')->orderBy('nombre')->get();
+        $comparacion = $this->autoDetectService->compararConSecciones();
+        $estadisticas = $this->autoDetectService->obtenerEstadisticas();
+
+        return view('secciones.index', compact('secciones', 'comparacion', 'estadisticas'));
     }
 
     /**
@@ -135,7 +147,109 @@ class SeccionController extends Controller
      */
     public function destroy(Seccion $seccion)
     {
-        //
+        try {
+            $nombre = $seccion->nombre;
+            $seccion->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sección '{$nombre}' eliminada correctamente."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la sección.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Sincroniza todas las secciones faltantes automáticamente
+     */
+    public function sincronizarTodas()
+    {
+        try {
+            $creadas = $this->autoDetectService->crearSeccionesFaltantes();
+
+            if (count($creadas) === 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No hay secciones faltantes por crear.',
+                    'creadas' => []
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Se crearon ' . count($creadas) . ' secciones nuevas.',
+                'creadas' => $creadas
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al sincronizar secciones: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al sincronizar secciones.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crea una sección específica para un prefijo
+     */
+    public function crearParaPrefijo(Request $request)
+    {
+        try {
+            $request->validate([
+                'prefijo' => 'required|string|max:100',
+                'nombre' => 'required|string|max:100',
+            ]);
+
+            $ruta = rtrim($request->prefijo, '.') . '.';
+
+            // Verificar que no exista
+            if (Seccion::where('ruta', $ruta)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya existe una sección para este prefijo.'
+                ], 422);
+            }
+
+            $seccion = Seccion::create([
+                'nombre' => $request->nombre,
+                'ruta' => $ruta,
+                'mostrar_en_dashboard' => false,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sección '{$seccion->nombre}' creada correctamente.",
+                'seccion' => $seccion
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear sección para prefijo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la sección.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtiene el estado actual de sincronización (para AJAX)
+     */
+    public function estadoSincronizacion()
+    {
+        $comparacion = $this->autoDetectService->compararConSecciones();
+        $estadisticas = $this->autoDetectService->obtenerEstadisticas();
+
+        return response()->json([
+            'success' => true,
+            'comparacion' => $comparacion,
+            'estadisticas' => $estadisticas
+        ]);
     }
 
     /**
