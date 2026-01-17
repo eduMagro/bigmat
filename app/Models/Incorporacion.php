@@ -33,12 +33,6 @@ class Incorporacion extends Model
         'created_by',
         'updated_by',
         'user_id',
-        'aprobado_rrhh',
-        'aprobado_rrhh_at',
-        'aprobado_rrhh_by',
-        'aprobado_ceo',
-        'aprobado_ceo_at',
-        'aprobado_ceo_by',
         'fecha_incorporacion',
     ];
 
@@ -51,10 +45,6 @@ class Incorporacion extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'requiere_aprobacion' => 'boolean',
-        'aprobado_rrhh' => 'boolean',
-        'aprobado_rrhh_at' => 'datetime',
-        'aprobado_ceo' => 'boolean',
-        'aprobado_ceo_at' => 'datetime',
         'fecha_incorporacion' => 'date',
     ];
 
@@ -119,16 +109,6 @@ class Incorporacion extends Model
     public function creador()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function aprobadorRrhh()
-    {
-        return $this->belongsTo(User::class, 'aprobado_rrhh_by');
-    }
-
-    public function aprobadorCeo()
-    {
-        return $this->belongsTo(User::class, 'aprobado_ceo_by');
     }
 
     public function actualizador()

@@ -252,10 +252,6 @@ class IncorporacionPublicaController extends Controller
                 $usuario = $this->crearUsuario($incorporacion, $validated);
                 $incorporacion->update([
                     'user_id' => $usuario->id,
-                    'aprobado_rrhh' => true,
-                    'aprobado_rrhh_at' => now(),
-                    'aprobado_ceo' => true,
-                    'aprobado_ceo_at' => now(),
                 ]);
 
                 Log::info('Usuario creado automáticamente (sin aprobación requerida)', [
@@ -320,8 +316,8 @@ class IncorporacionPublicaController extends Controller
     {
         $dni = strtoupper($datos['dni']);
 
-        // Verificar si ya existe un usuario con este DNI (sin el scope de activos)
-        $usuarioExistente = User::withoutGlobalScopes()->where('dni', $dni)->first();
+        // Verificar si ya existe un usuario con este DNI (ignorando eliminados)
+        $usuarioExistente = User::where('dni', $dni)->first();
         if ($usuarioExistente) {
             // Si existe pero está inactivo, reactivarlo
             if ($usuarioExistente->estado !== 'activo') {

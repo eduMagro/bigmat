@@ -132,10 +132,6 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::get('/incorporaciones/{incorporacion}/archivo/{archivo}', [IncorporacionController::class, 'verArchivo'])->name('incorporaciones.verArchivo');
     Route::get('/incorporaciones/{incorporacion}/descargar/{archivo}', [IncorporacionController::class, 'descargarArchivo'])->name('incorporaciones.verDescargarArchivo');
     Route::get('/incorporaciones/{incorporacion}/descargar-zip', [IncorporacionController::class, 'descargarZip'])->name('incorporaciones.verDescargarZip');
-    Route::post('/incorporaciones/{incorporacion}/aprobar-rrhh', [IncorporacionController::class, 'aprobarRrhh'])->name('incorporaciones.editarAprobarRrhh');
-    Route::post('/incorporaciones/{incorporacion}/revocar-rrhh', [IncorporacionController::class, 'revocarRrhh'])->name('incorporaciones.editarRevocarRrhh');
-    Route::post('/incorporaciones/{incorporacion}/aprobar-ceo', [IncorporacionController::class, 'aprobarCeo'])->name('incorporaciones.editarAprobarCeo');
-    Route::post('/incorporaciones/{incorporacion}/revocar-ceo', [IncorporacionController::class, 'revocarCeo'])->name('incorporaciones.editarRevocarCeo');
     Route::delete('/incorporaciones/{incorporacion}/eliminar-archivo', [IncorporacionController::class, 'eliminarArchivo'])->name('incorporaciones.eliminarArchivo');
     Route::post('/incorporaciones/{incorporacion}/resubir-archivo', [IncorporacionController::class, 'resubirArchivo'])->name('incorporaciones.editarResubirArchivo');
     Route::post('/incorporaciones/{incorporacion}/actualizar-campo', [IncorporacionController::class, 'actualizarCampo'])->name('incorporaciones.editarActualizarCampo');
@@ -153,6 +149,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::post('/departamentos/{departamento}/asignar-usuarios', [DepartamentoController::class, 'asignarUsuarios'])->name('departamentos.asignar.usuarios');
     Route::post('/departamentos/{departamento}/asignar-secciones', [DepartamentoController::class, 'asignarSecciones'])->name('departamentos.asignarSecciones');
     Route::post('/departamentos/{departamento}/permisos', [DepartamentoController::class, 'actualizarPermiso']);
+    Route::post('/departamentos/{departamento}/responsable', [DepartamentoController::class, 'cambiarResponsable'])->name('departamentos.cambiarResponsable');
 
     // === FESTIVOS ===
     Route::resource('festivos', FestivoController::class);

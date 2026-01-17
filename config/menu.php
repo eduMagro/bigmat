@@ -80,7 +80,7 @@ return [
             'id' => 'configuracion',
             'label' => 'Configuración',
             'icon' => '⚙️',
-            'route' => 'empresas.index',
+            'route' => 'ajustes.index',
             'color' => 'gray',
             'submenu' => [
                 [
@@ -98,14 +98,6 @@ return [
                     'actions' => [
                         ['label' => 'Ver todos', 'route' => 'departamentos.index', 'permission' => 'ver'],
                         ['label' => 'Nuevo departamento', 'route' => 'departamentos.create', 'permission' => 'crear'],
-                    ]
-                ],
-                [
-                    'label' => 'Empresa',
-                    'route' => 'empresas.index',
-                    'icon' => '🏢',
-                    'actions' => [
-                        ['label' => 'Ver configuración', 'route' => 'empresas.index', 'permission' => 'ver'],
                     ]
                 ],
             ]
@@ -206,17 +198,6 @@ return [
                 'colorBase' => 'indigo',
                 'style' => 'tabs',
                 'mobileLabel' => 'EPIs',
-            ]
-        ],
-
-        'empresas' => [
-            'items' => [
-                ['label' => 'Configuración', 'route' => 'empresas.index', 'icon' => '🏢'],
-            ],
-            'config' => [
-                'colorBase' => 'gray',
-                'style' => 'tabs',
-                'mobileLabel' => 'Empresa',
             ]
         ],
 

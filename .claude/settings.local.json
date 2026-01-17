@@ -25,7 +25,8 @@
       "Bash(git stash:*)",
       "Bash(copy \"C:\\\\xampp\\\\htdocs\\\\manager\\\\public\\\\js\\\\calendario\\\\calendario.js\" \"C:\\\\xampp\\\\htdocs\\\\manager\\\\resources\\\\js\\\\calendario\\\\calendario.js\" /Y)",
       "Bash(find:*)",
-      "Bash(more:*)"
+      "Bash(more:*)",
+      "Bash(del \"C:\\\\xampp\\\\htdocs\\\\bigmat\\\\database\\\\migrations\\\\2026_01_16_224924_add_numero_empresa_personal_to_users_table.php\")"
     ]
   }
 }

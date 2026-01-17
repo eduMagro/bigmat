@@ -21,8 +21,8 @@ class DepartamentoController extends Controller
 
     public function index()
     {
-        $departamentos = Departamento::with(['usuarios', 'secciones.permisosAcceso'])->get();
-        $usuariosOficina = User::where('rol', 'oficina')->orderBy('name')->get();
+        $departamentos = Departamento::with(['usuarios', 'secciones.permisosAcceso', 'responsable'])->get();
+        $usuariosOficina = User::whereIn('rol', ['oficina', 'operario'])->orderBy('name')->get();
         $todasLasSecciones = Seccion::with('departamentos')->orderBy('orden')->get();
 
         // Obtener el departamento "Operarios" para la configuración del dashboard
@@ -191,5 +191,21 @@ class DepartamentoController extends Controller
         $departamento->delete();
 
         return redirect()->route('departamentos.index')->with('success', 'Departamento eliminado correctamente.');
+    }
+
+    public function cambiarResponsable(Request $request, Departamento $departamento)
+    {
+        $validated = $request->validate([
+            'responsable_id' => 'nullable|exists:users,id',
+        ]);
+
+        $departamento->update([
+            'responsable_id' => $validated['responsable_id'] ?: null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Responsable actualizado correctamente.',
+        ]);
     }
 }

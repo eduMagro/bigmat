@@ -85,8 +85,6 @@ return [
     // 📌 Correos con acceso total
     'correos_acceso_total' => [
         'eduardo.magro@pacoreyes.com',
-        'edumagrolemus@hotmail.com',
-
     ],
 
 ];

@@ -6,25 +6,39 @@
         </h2>
     </x-slot>
 
-    <div class="px-2 sm:px-6 py-4 relative" x-data="{
-        openModal: false,
-        openModalSecciones: false,
-        openNuevoDepartamentoModal: false,
-        openNuevaSeccionModal: false,
-        departamentoId: null,
-        usuariosMarcados: [],
-        todasLasSecciones: @json($todasLasSecciones),
-        agregarSeccionAlModal(seccion) {
-            // Agregar la sección al array reactivo con estructura compatible
-            this.todasLasSecciones.push({
-                id: seccion.id,
-                nombre: seccion.nombre,
-                ruta: seccion.ruta,
-                mostrar_en_dashboard: seccion.mostrar_en_dashboard || false,
-                departamentos: []
-            });
+    @php
+        $seccionesParaJs = $todasLasSecciones->map(fn($s) => [
+            'id' => $s->id,
+            'nombre' => $s->nombre,
+            'ruta' => $s->ruta,
+            'mostrar_en_dashboard' => $s->mostrar_en_dashboard,
+            'departamentos' => $s->departamentos->map(fn($d) => ['id' => $d->id, 'nombre' => $d->nombre])->toArray()
+        ])->toArray();
+    @endphp
+    <script>
+        window.seccionesData = @json($seccionesParaJs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        function departamentosApp() {
+            return {
+                openModal: false,
+                openModalSecciones: false,
+                openNuevoDepartamentoModal: false,
+                openNuevaSeccionModal: false,
+                departamentoId: null,
+                usuariosMarcados: [],
+                todasLasSecciones: window.seccionesData || [],
+                agregarSeccionAlModal(seccion) {
+                    this.todasLasSecciones.push({
+                        id: seccion.id,
+                        nombre: seccion.nombre,
+                        ruta: seccion.ruta,
+                        mostrar_en_dashboard: seccion.mostrar_en_dashboard || false,
+                        departamentos: []
+                    });
+                }
+            }
         }
-    }" @seccion-creada.window="agregarSeccionAlModal($event.detail)">
+    </script>
+    <div class="px-2 sm:px-6 py-4 relative" x-data="departamentosApp()" @seccion-creada.window="agregarSeccionAlModal($event.detail)">
 
         <!-- Success/Error Messages -->
         @if (session('success'))
@@ -329,6 +343,7 @@
                     <tr class="text-center text-xs uppercase">
                         <th class="px-4 py-2 text-left">Nombre</th>
                         <th class="px-4 py-2 text-left">Descripción</th>
+                        <th class="px-4 py-2 text-left">Responsable</th>
                         <th class="px-4 py-2 text-left">Usuarios asignados</th>
                         <th class="px-4 py-2 text-left">Secciones visibles</th>
                     </tr>
@@ -364,6 +379,20 @@
                                     class="form-control form-control-sm">
                             </td>
 
+                            <!-- Responsable -->
+                            <td class="px-4 py-2 border">
+                                <select
+                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 w-full"
+                                    onchange="cambiarResponsable({{ $dep->id }}, this.value)">
+                                    <option value="">Sin responsable</option>
+                                    @foreach ($dep->usuarios as $usuario)
+                                        <option value="{{ $usuario->id }}" {{ $dep->responsable_id == $usuario->id ? 'selected' : '' }}>
+                                            {{ $usuario->nombre_completo }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </td>
+
                             <!-- Usuarios asignados -->
                             <td class="px-4 py-2 border text-center">
                                 {{ $dep->usuarios->count() }} usuario{{ $dep->usuarios->count() === 1 ? '' : 's' }}
@@ -381,6 +410,39 @@
             </table>
         </div>
         <script>
+            function cambiarResponsable(departamentoId, responsableId) {
+                fetch(`{{ url('/departamentos') }}/${departamentoId}/responsable`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            responsable_id: responsableId || null
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Opcional: mostrar notificación de éxito
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'No se pudo actualizar el responsable'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error de conexión',
+                            text: 'No se pudo conectar con el servidor'
+                        });
+                    });
+            }
+
             function actualizarPermisos(departamentoId, userId, tipo, valor) {
                 fetch(`{{ url("departamentos") }}/${departamentoId}/permisos`, {
                         method: 'POST',
@@ -979,7 +1041,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        <p class="text-gray-500 font-medium">No hay usuarios con rol oficina</p>
+                                        <p class="text-gray-500 font-medium">No hay usuarios disponibles</p>
                                     </div>
                                 @endforelse
                             </div>

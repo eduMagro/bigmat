@@ -9,9 +9,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\IncorporacionPendienteCeoMail;
-use App\Mail\IncorporacionAprobadaCeoMail;
 use App\Models\Empresa;
 use App\Models\Categoria;
 use Illuminate\Support\Facades\Hash;
@@ -91,6 +88,15 @@ class IncorporacionController extends Controller
         $validated['token'] = Str::random(64);
         $validated['requiere_aprobacion'] = $request->boolean('requiere_aprobacion', true);
 
+        // Normalizar nombres a formato "Nombre Apellido"
+        $validated['name'] = ucwords(strtolower($validated['name']));
+        if (!empty($validated['primer_apellido'])) {
+            $validated['primer_apellido'] = ucwords(strtolower($validated['primer_apellido']));
+        }
+        if (!empty($validated['segundo_apellido'])) {
+            $validated['segundo_apellido'] = ucwords(strtolower($validated['segundo_apellido']));
+        }
+
         $incorporacion = Incorporacion::create($validated);
 
         // Registrar log
@@ -168,6 +174,15 @@ class IncorporacionController extends Controller
         ]);
 
         $validated['updated_by'] = auth()->id();
+
+        // Normalizar nombres a formato "Nombre Apellido"
+        $validated['name'] = ucwords(strtolower($validated['name']));
+        if (!empty($validated['primer_apellido'])) {
+            $validated['primer_apellido'] = ucwords(strtolower($validated['primer_apellido']));
+        }
+        if (!empty($validated['segundo_apellido'])) {
+            $validated['segundo_apellido'] = ucwords(strtolower($validated['segundo_apellido']));
+        }
 
         $incorporacion->update($validated);
 
@@ -371,142 +386,16 @@ class IncorporacionController extends Controller
     }
 
     /**
-     * Aprobar incorporación por RRHH (entrevista realizada, se propone al CEO)
-     */
-    public function aprobarRrhh(Incorporacion $incorporacion)
-    {
-        // Verificar que existan usuarios CEO antes de aprobar
-        $ceos = User::withoutGlobalScopes()
-            ->whereHas('categoria', function ($query) {
-                $query->whereRaw('LOWER(nombre) LIKE ?', ['%ceo%']);
-            })
-            ->where('estado', 'activo')
-            ->whereNotNull('email')
-            ->get();
-
-        if ($ceos->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontró ningún usuario con categoría CEO para notificar. Configure un usuario con categoría CEO antes de aprobar.',
-            ], 422);
-        }
-
-        $incorporacion->update([
-            'aprobado_rrhh' => true,
-            'aprobado_rrhh_at' => now(),
-            'aprobado_rrhh_by' => auth()->id(),
-        ]);
-
-        $incorporacion->registrarLog(
-            'aprobacion_rrhh',
-            'Incorporación aprobada por RRHH. Entrevista realizada y propuesto al CEO.'
-        );
-
-        // Enviar email al CEO
-        $this->enviarEmailACeo($incorporacion, $ceos);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Incorporación aprobada. Se ha notificado al CEO para su validación.',
-        ]);
-    }
-
-    /**
-     * Revocar aprobación de RRHH
-     */
-    public function revocarRrhh(Incorporacion $incorporacion)
-    {
-        $incorporacion->update([
-            'aprobado_rrhh' => false,
-            'aprobado_rrhh_at' => null,
-            'aprobado_rrhh_by' => null,
-        ]);
-
-        $incorporacion->registrarLog(
-            'revocacion_rrhh',
-            'Aprobación de RRHH revocada.'
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Aprobación revocada.',
-        ]);
-    }
-
-    /**
-     * Aprobar incorporación por CEO
-     */
-    public function aprobarCeo(Incorporacion $incorporacion)
-    {
-        // Verificar que existan usuarios en el departamento RRHH antes de aprobar
-        $usuariosRrhh = User::withoutGlobalScopes()
-            ->where('estado', 'activo')
-            ->whereNotNull('email')
-            ->whereHas('departamentos', function ($q) {
-                $q->whereRaw('LOWER(nombre) LIKE ?', ['%rrhh%'])
-                    ->orWhereRaw('LOWER(nombre) LIKE ?', ['%recursos humanos%'])
-                    ->orWhereRaw('LOWER(nombre) LIKE ?', ['%human%']);
-            })
-            ->get();
-
-        if ($usuariosRrhh->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontró ningún usuario en el departamento de RRHH para notificar. Configure usuarios en el departamento RRHH antes de aprobar.',
-            ], 422);
-        }
-
-        // Verificar que la incorporación tenga los datos necesarios para crear el usuario
-        if (!$incorporacion->dni || !$incorporacion->email) {
-            return response()->json([
-                'success' => false,
-                'message' => 'La incorporación no tiene los datos completos (DNI o email). El candidato debe completar el formulario primero.',
-            ], 422);
-        }
-
-        // Crear el usuario si no existe aún
-        $usuario = null;
-        if (!$incorporacion->user_id) {
-            $usuario = $this->crearUsuarioDesdeIncorporacion($incorporacion);
-            $incorporacion->update(['user_id' => $usuario->id]);
-            $incorporacion->registrarLog('usuario_creado', "Usuario creado: {$usuario->nombre_completo} (ID: {$usuario->id})");
-        }
-
-        $incorporacion->update([
-            'aprobado_ceo' => true,
-            'aprobado_ceo_at' => now(),
-            'aprobado_ceo_by' => auth()->id(),
-        ]);
-
-        $incorporacion->registrarLog(
-            'aprobacion_ceo',
-            'Incorporación aprobada por CEO. Trabajador autorizado para incorporarse.'
-        );
-
-        // Enviar email a usuarios de RRHH
-        $this->enviarEmailARrhh($incorporacion, $usuariosRrhh);
-
-        $mensaje = 'Incorporación aprobada. Se ha notificado a RRHH.';
-        if ($usuario) {
-            $mensaje .= " Usuario creado: {$usuario->nombre_completo}";
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => $mensaje,
-        ]);
-    }
-
-    /**
      * Crear usuario a partir de los datos de la incorporación
      */
     private function crearUsuarioDesdeIncorporacion(Incorporacion $incorporacion): User
     {
         $dni = strtoupper($incorporacion->dni);
 
-        // Verificar si ya existe un usuario con este DNI
-        $usuarioExistente = User::withoutGlobalScopes()->where('dni', $dni)->first();
+        // Verificar si ya existe un usuario con este DNI (ignorando eliminados)
+        $usuarioExistente = User::where('dni', $dni)->first();
         if ($usuarioExistente) {
+            // Reactivar si no está activo
             if ($usuarioExistente->estado !== 'activo') {
                 $usuarioExistente->update(['estado' => 'activo']);
             }
@@ -529,9 +418,9 @@ class IncorporacionController extends Controller
         ]);
 
         return User::create([
-            'name' => $incorporacion->name,
-            'primer_apellido' => $incorporacion->primer_apellido,
-            'segundo_apellido' => $incorporacion->segundo_apellido,
+            'name' => ucwords(strtolower($incorporacion->name)),
+            'primer_apellido' => ucwords(strtolower($incorporacion->primer_apellido)),
+            'segundo_apellido' => $incorporacion->segundo_apellido ? ucwords(strtolower($incorporacion->segundo_apellido)) : null,
             'dni' => $dni,
             'email' => strtolower($incorporacion->email),
             'movil_personal' => $incorporacion->telefono,
@@ -539,28 +428,6 @@ class IncorporacionController extends Controller
             'empresa_id' => $empresaId,
             'categoria_id' => $categoriaId,
             'estado' => 'activo',
-        ]);
-    }
-
-    /**
-     * Revocar aprobación de CEO
-     */
-    public function revocarCeo(Incorporacion $incorporacion)
-    {
-        $incorporacion->update([
-            'aprobado_ceo' => false,
-            'aprobado_ceo_at' => null,
-            'aprobado_ceo_by' => null,
-        ]);
-
-        $incorporacion->registrarLog(
-            'revocacion_ceo',
-            'Aprobación de CEO revocada.'
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Aprobación de CEO revocada.',
         ]);
     }
 
@@ -579,25 +446,29 @@ class IncorporacionController extends Controller
 
         // Ya tiene usuario asignado?
         if ($incorporacion->user_id) {
-            $usuario = User::withoutGlobalScopes()->find($incorporacion->user_id);
-            return response()->json([
-                'success' => true,
-                'message' => "Ya existe un usuario vinculado: {$usuario->nombre_completo}",
-                'usuario' => [
-                    'id' => $usuario->id,
-                    'nombre_completo' => $usuario->nombre_completo,
-                    'email' => $usuario->email,
-                    'dni' => $usuario->dni,
-                    'imagen_url' => $usuario->ruta_imagen,
-                ],
-                'accion' => 'ya_vinculado',
-            ]);
+            $usuario = User::find($incorporacion->user_id);
+            if ($usuario) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Ya existe un usuario vinculado: {$usuario->nombre_completo}",
+                    'usuario' => [
+                        'id' => $usuario->id,
+                        'nombre_completo' => $usuario->nombre_completo,
+                        'email' => $usuario->email,
+                        'dni' => $usuario->dni,
+                        'imagen_url' => $usuario->ruta_imagen,
+                    ],
+                    'accion' => 'ya_vinculado',
+                ]);
+            }
+            // El usuario vinculado fue eliminado, limpiar la referencia
+            $incorporacion->update(['user_id' => null]);
         }
 
         $dni = strtoupper($incorporacion->dni);
 
-        // Buscar usuario existente por DNI
-        $usuarioExistente = User::withoutGlobalScopes()->where('dni', $dni)->first();
+        // Buscar usuario existente por DNI (ignorando eliminados)
+        $usuarioExistente = User::where('dni', $dni)->first();
 
         if ($usuarioExistente) {
             // Vincular usuario existente a la incorporación
@@ -854,6 +725,7 @@ class IncorporacionController extends Controller
                         'message' => 'Debes introducir el nombre',
                     ], 422);
                 }
+                $valor = ucwords(strtolower($valor));
             }
 
             if ($campo === 'primer_apellido') {
@@ -863,6 +735,11 @@ class IncorporacionController extends Controller
                         'message' => 'Debes introducir el primer apellido',
                     ], 422);
                 }
+                $valor = ucwords(strtolower($valor));
+            }
+
+            if ($campo === 'segundo_apellido' && $valor) {
+                $valor = ucwords(strtolower($valor));
             }
 
             $incorporacion->update([$campo => $valor]);
@@ -1286,73 +1163,6 @@ class IncorporacionController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error generando Excel: ' . $e->getMessage());
             return null;
-        }
-    }
-
-    /**
-     * Enviar email al CEO cuando RRHH aprueba una incorporación
-     */
-    private function enviarEmailACeo(Incorporacion $incorporacion, $ceos): void
-    {
-        try {
-            // Obtener todas las incorporaciones pendientes de aprobación CEO
-            $incorporacionesPendientes = Incorporacion::where('aprobado_rrhh', true)
-                ->where(function ($query) {
-                    $query->where('aprobado_ceo', false)
-                        ->orWhereNull('aprobado_ceo');
-                })
-                ->whereNotIn('estado', ['cancelada', 'completada'])
-                ->orderBy('aprobado_rrhh_at', 'desc')
-                ->get();
-
-            $aprobadoPor = auth()->user()->nombre_completo ?? 'RRHH';
-
-            foreach ($ceos as $ceo) {
-                Mail::to($ceo->email)
-                    ->send(new IncorporacionPendienteCeoMail(
-                        $incorporacion,
-                        $incorporacionesPendientes,
-                        $aprobadoPor
-                    ));
-            }
-
-            \Log::info('Email de incorporación pendiente enviado al CEO', [
-                'incorporacion_id' => $incorporacion->id,
-                'ceos_notificados' => $ceos->pluck('email')->toArray(),
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Error enviando email al CEO: ' . $e->getMessage(), [
-                'incorporacion_id' => $incorporacion->id,
-            ]);
-        }
-    }
-
-    /**
-     * Enviar email a usuarios de RRHH cuando el CEO aprueba una incorporación
-     */
-    private function enviarEmailARrhh(Incorporacion $incorporacion, $usuariosRrhh): void
-    {
-        try {
-            $aprobadoPor = auth()->user()->nombre_completo ?? 'CEO';
-
-            // Cargar relaciones necesarias
-            $incorporacion->load(['aprobadorRrhh']);
-
-            foreach ($usuariosRrhh as $usuario) {
-                Mail::to($usuario->email)
-                    ->send(new IncorporacionAprobadaCeoMail($incorporacion, $aprobadoPor));
-            }
-
-            \Log::info('Email de incorporación aprobada enviado a RRHH', [
-                'incorporacion_id' => $incorporacion->id,
-                'rrhh_notificados' => $usuariosRrhh->pluck('email')->toArray(),
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Error enviando email a RRHH: ' . $e->getMessage(), [
-                'incorporacion_id' => $incorporacion->id,
-            ]);
         }
     }
 }

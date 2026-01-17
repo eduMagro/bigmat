@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Departamento extends Model
@@ -16,7 +17,14 @@ class Departamento extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
+        'responsable_id',
     ];
+
+    // Relación con el responsable del departamento
+    public function responsable(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsable_id');
+    }
 
     // Relación muchos a muchos con usuarios
     public function usuarios(): BelongsToMany

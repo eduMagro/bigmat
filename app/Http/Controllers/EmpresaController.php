@@ -15,14 +15,7 @@ class EmpresaController extends Controller
 {
     public function index()
     {
-        $empresas = Empresa::all();
-        $obras = Obra::all();
-        $porcentajes_ss = TasaSeguridadSocial::all();
-        $tramos = TasaIrpf::all();
-        $convenio = Convenio::all();
-        $turnos = Turno::all();
-        $categorias = Categoria::withCount('users')->get();
-        return view('empresas.index', compact('empresas', 'obras', 'porcentajes_ss', 'tramos', 'convenio', 'turnos', 'categorias'));
+        return redirect()->route('ajustes.index');
     }
 
 
@@ -42,7 +35,7 @@ class EmpresaController extends Controller
 
         Empresa::create($validated);
 
-        return redirect()->route('empresas.index')->with('success', 'Empresa creada correctamente.');
+        return redirect()->route('ajustes.index')->with('success', 'Empresa creada correctamente.');
     }
 
     public function update(Request $request, Empresa $empresa)
@@ -61,13 +54,13 @@ class EmpresaController extends Controller
 
         $empresa->update($validated);
 
-        return redirect()->route('empresas.index')->with('success', 'Empresa actualizada correctamente.');
+        return redirect()->route('ajustes.index')->with('success', 'Empresa actualizada correctamente.');
     }
 
     public function destroy(Empresa $empresa)
     {
         $empresa->delete();
-        return redirect()->route('empresas.index')->with('success', 'Empresa eliminada correctamente.');
+        return redirect()->route('ajustes.index')->with('success', 'Empresa eliminada correctamente.');
     }
 
     /**
@@ -641,6 +634,16 @@ class EmpresaController extends Controller
     public function storeObra(Request $request)
     {
         try {
+            // Normalizar coordenadas: reemplazar coma por punto
+            $input = $request->all();
+            if (!empty($input['latitud'])) {
+                $input['latitud'] = str_replace(',', '.', $input['latitud']);
+            }
+            if (!empty($input['longitud'])) {
+                $input['longitud'] = str_replace(',', '.', $input['longitud']);
+            }
+            $request->merge($input);
+
             $validated = $request->validate([
                 'obra' => 'required|string|max:255',
                 'direccion' => 'nullable|string|max:255',
@@ -694,6 +697,11 @@ class EmpresaController extends Controller
             $value = $validated['value'];
             if (in_array($validated['field'], ['latitud', 'longitud', 'distancia']) && $value === '') {
                 $value = null;
+            }
+
+            // Normalizar coordenadas: reemplazar coma por punto
+            if (in_array($validated['field'], ['latitud', 'longitud']) && $value !== null) {
+                $value = str_replace(',', '.', $value);
             }
 
             $obra->{$validated['field']} = $value;
