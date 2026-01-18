@@ -211,9 +211,19 @@ class SubirJustificante extends Component
         $ocr = new \thiagoalessio\TesseractOCR\TesseractOCR($imagePath);
         $ocr->executable($tesseractPath);
 
+        // Detectar sistema operativo para tessdata
+        $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        if ($esWindows) {
+            $tessdataPath = 'C:\Program Files\Tesseract-OCR\tessdata';
+            $spaFile = $tessdataPath . '\spa.traineddata';
+        } else {
+            $tessdataPath = '/usr/share/tesseract-ocr/4.00/tessdata';
+            $spaFile = $tessdataPath . '/spa.traineddata';
+        }
+
         // Intentar con español, si no está disponible usar inglés
-        $tessdataPath = 'C:\Program Files\Tesseract-OCR\tessdata';
-        if (file_exists($tessdataPath . '\spa.traineddata')) {
+        if (file_exists($spaFile)) {
             $ocr->lang('spa');
         } else {
             $ocr->lang('eng');
@@ -224,26 +234,63 @@ class SubirJustificante extends Component
 
     protected function detectarTesseract()
     {
-        // Rutas comunes de Tesseract en Windows
-        $posiblesRutas = [
-            'C:\Program Files\Tesseract-OCR\tesseract.exe',
-            'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
-            'C:\Tesseract-OCR\tesseract.exe',
-            'tesseract', // Si está en el PATH
-        ];
+        // Verificar si shell_exec está disponible
+        if (!function_exists('shell_exec') || $this->shellExecDeshabilitado()) {
+            return null;
+        }
+
+        // Detectar sistema operativo
+        $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        if ($esWindows) {
+            // Rutas comunes de Tesseract en Windows
+            $posiblesRutas = [
+                'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+                'C:\Tesseract-OCR\tesseract.exe',
+            ];
+        } else {
+            // Rutas comunes de Tesseract en Linux
+            $posiblesRutas = [
+                '/usr/bin/tesseract',
+                '/usr/local/bin/tesseract',
+            ];
+        }
 
         foreach ($posiblesRutas as $ruta) {
-            if (file_exists($ruta) || $this->comandoExiste($ruta)) {
+            if (file_exists($ruta)) {
                 return $ruta;
             }
+        }
+
+        // Intentar encontrar en PATH
+        if ($this->comandoExiste('tesseract')) {
+            return 'tesseract';
         }
 
         return null;
     }
 
+    protected function shellExecDeshabilitado()
+    {
+        $disabled = ini_get('disable_functions');
+        return stripos($disabled, 'shell_exec') !== false;
+    }
+
     protected function comandoExiste($comando)
     {
-        $return = shell_exec(sprintf("where %s 2>nul", escapeshellarg($comando)));
+        if (!function_exists('shell_exec') || $this->shellExecDeshabilitado()) {
+            return false;
+        }
+
+        $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        if ($esWindows) {
+            $return = @shell_exec(sprintf("where %s 2>nul", escapeshellarg($comando)));
+        } else {
+            $return = @shell_exec(sprintf("which %s 2>/dev/null", escapeshellarg($comando)));
+        }
+
         return !empty($return);
     }
 
