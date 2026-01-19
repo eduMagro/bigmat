@@ -46,8 +46,8 @@ class RevisionFichajeController extends Controller
         // Construir mensaje de alerta
         $mensaje = $this->construirMensajeAlerta($user, $solicitud, $detallesFichajes);
 
-        // Enviar alerta a todos los programadores
-        $this->enviarAlertaProgramadores($user, $solicitud, $mensaje);
+        // Enviar alerta al responsable del departamento del usuario
+        $this->enviarAlertaResponsable($user, $solicitud, $mensaje);
 
         return response()->json([
             'success' => 'Solicitud de revision enviada correctamente.',
@@ -60,10 +60,14 @@ class RevisionFichajeController extends Controller
      */
     public function autoRellenar($id)
     {
-        $solicitud = RevisionFichajeSolicitud::findOrFail($id);
+        $solicitud = RevisionFichajeSolicitud::with('user.departamentos')->findOrFail($id);
 
-        // Solo programadores pueden ejecutar esto
-        if (!in_array(Auth::user()->rol, ['oficina', 'programador'])) {
+        // Verificar permisos: oficina, programador o responsable del departamento del usuario
+        $esResponsable = $solicitud->user->departamentos()
+            ->where('responsable_id', Auth::id())
+            ->exists();
+
+        if (!in_array(Auth::user()->rol, ['oficina', 'programador']) && !$esResponsable) {
             return response()->json(['error' => 'No tienes permisos para esta accion.'], 403);
         }
 
@@ -238,16 +242,52 @@ class RevisionFichajeController extends Controller
     }
 
     /**
-     * Enviar alerta a todos los usuarios del departamento Programador
+     * Enviar alerta al responsable del departamento del usuario
      */
-    private function enviarAlertaProgramadores($user, $solicitud, $mensaje)
+    private function enviarAlertaResponsable($user, $solicitud, $mensaje)
+    {
+        // Obtener el primer departamento del usuario y su responsable
+        $departamento = $user->departamentos()->first();
+        $responsable = $departamento?->responsable;
+
+        // Fallback a Administracion si no hay responsable
+        if (!$responsable) {
+            $this->enviarAlertaAdministraciones($user, $solicitud, $mensaje);
+            return;
+        }
+
+        // Crear alerta para el responsable
+        $alerta = Alerta::create([
+            'user_id_1' => $user->id,
+            'user_id_2' => null,
+            'destino' => 'responsable',
+            'destinatario' => $responsable->nombre_completo,
+            'destinatario_id' => $responsable->id,
+            'mensaje' => $mensaje,
+            'tipo' => 'revision_fichaje',
+        ]);
+
+        // Crear registro de lectura para el responsable
+        AlertaLeida::create([
+            'alerta_id' => $alerta->id,
+            'user_id' => $responsable->id,
+            'leida_en' => null,
+        ]);
+
+        Log::info("Alerta de revision de fichajes enviada al responsable: {$responsable->nombre_completo}");
+    }
+
+    /**
+     * Enviar alerta a todos los usuarios del departamento Administracion (fallback)
+     */
+    private function enviarAlertaAdministraciones($user, $solicitud, $mensaje)
     {
         $programadores = User::whereHas('departamentos', function ($q) {
-            $q->where('nombre', 'Programador');
+            $q->where('nombre', 'Administracion');
         })->get();
 
         if ($programadores->isEmpty()) {
-            Log::warning('No se encontraron usuarios en el departamento Programador para enviar alerta de revision.');
+            Log::warning('No se encontraron usuarios en el departamento Administracion para enviar alerta de revision.');
             return;
         }
 
@@ -256,7 +296,7 @@ class RevisionFichajeController extends Controller
             'user_id_1' => $user->id,
             'user_id_2' => null,
             'destino' => 'programador',
-            'destinatario' => 'Programador',
+            'destinatario' => 'Administracion',
             'destinatario_id' => $programadores->first()->id,
             'mensaje' => $mensaje,
             'tipo' => 'revision_fichaje',
@@ -272,6 +312,66 @@ class RevisionFichajeController extends Controller
         }
 
         Log::info("Alerta de revision de fichajes enviada a {$programadores->count()} programador(es).");
+    }
+
+    /**
+     * Denegar solicitud de revision de fichajes
+     */
+    public function denegar(Request $request, $id)
+    {
+        $solicitud = RevisionFichajeSolicitud::with('user.departamentos')->findOrFail($id);
+
+        // Verificar permisos: oficina, programador o responsable del departamento del usuario
+        $esResponsable = $solicitud->user->departamentos()
+            ->where('responsable_id', Auth::id())
+            ->exists();
+
+        if (!in_array(Auth::user()->rol, ['oficina', 'programador']) && !$esResponsable) {
+            return response()->json(['error' => 'No tienes permisos para esta accion.'], 403);
+        }
+
+        if ($solicitud->estado !== 'pendiente') {
+            return response()->json(['error' => 'Esta solicitud ya fue procesada.'], 400);
+        }
+
+        $request->validate([
+            'motivo' => 'required|string|max:500',
+        ]);
+
+        // Marcar solicitud como denegada
+        $solicitud->update([
+            'estado' => 'denegada',
+            'resuelta_por' => Auth::id(),
+            'resuelta_en' => now(),
+            'motivo_denegacion' => $request->motivo,
+        ]);
+
+        // Notificar al usuario que su solicitud fue denegada
+        $this->notificarUsuarioDenegacion($solicitud, $request->motivo);
+
+        return response()->json([
+            'success' => 'Solicitud denegada correctamente.',
+        ]);
+    }
+
+    /**
+     * Notificar al usuario que su solicitud fue denegada
+     */
+    private function notificarUsuarioDenegacion($solicitud, $motivo)
+    {
+        $alertaService = app(AlertaService::class);
+
+        $mensaje = "Tu solicitud de revision de fichajes ha sido DENEGADA.\n\n";
+        $mensaje .= "Fechas: {$solicitud->fecha_inicio->format('d/m/Y')} - {$solicitud->fecha_fin->format('d/m/Y')}\n";
+        $mensaje .= "Motivo: {$motivo}\n";
+        $mensaje .= "Procesado por: " . Auth::user()->nombre_completo;
+
+        $alertaService->crearAlerta(
+            emisorId: Auth::id(),
+            destinatarioId: $solicitud->user_id,
+            mensaje: $mensaje,
+            tipo: 'revision_fichaje'
+        );
     }
 
     /**

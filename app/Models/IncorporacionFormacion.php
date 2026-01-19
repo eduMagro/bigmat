@@ -23,8 +23,6 @@ class IncorporacionFormacion extends Model
 
     // Tipos de formación para HPR Servicios
     const TIPOS_HPR = [
-        'curso_20h_generico' => 'Curso 20H modalidad genérica',
-        'curso_6h_ferralla' => 'Curso 6H específico (Ferralla)',
         'otros_cursos' => 'Otros cursos',
     ];
 

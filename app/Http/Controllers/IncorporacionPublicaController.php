@@ -45,8 +45,6 @@ class IncorporacionPublicaController extends Controller
             'dni_frontal' => session()->get("{$sessionKey}.dni_frontal"),
             'dni_trasero' => session()->get("{$sessionKey}.dni_trasero"),
             'certificado_bancario' => session()->get("{$sessionKey}.certificado_bancario"),
-            'formacion_curso_20h' => session()->get("{$sessionKey}.formacion_curso_20h"),
-            'formacion_curso_6h' => session()->get("{$sessionKey}.formacion_curso_6h"),
             'formacion_generica' => session()->get("{$sessionKey}.formacion_generica"),
             'formacion_especifica' => session()->get("{$sessionKey}.formacion_especifica"),
             'formacion_otros' => session()->get("{$sessionKey}.formacion_otros", []),
@@ -95,8 +93,6 @@ class IncorporacionPublicaController extends Controller
 
         // Validación de formación según empresa (todos opcionales)
         if ($incorporacion->empresa_destino === Incorporacion::EMPRESA_HPR) {
-            $rules['formacion_curso_20h'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:15360';
-            $rules['formacion_curso_6h'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:15360';
             $rules['formacion_otros'] = 'nullable|array';
             $rules['formacion_otros.*'] = 'file|mimes:pdf,jpg,jpeg,png|max:15360';
             $rules['formacion_otros_nombres'] = 'nullable|array';
@@ -134,10 +130,6 @@ class IncorporacionPublicaController extends Controller
             'certificado_bancario.file' => 'El certificado bancario debe ser un archivo.',
             'certificado_bancario.mimes' => 'El certificado bancario debe ser PDF, JPG o PNG.',
             'certificado_bancario.max' => 'El certificado bancario no puede superar 15MB.',
-            'formacion_curso_20h.mimes' => 'El curso de 20H debe ser PDF, JPG o PNG.',
-            'formacion_curso_20h.max' => 'El curso de 20H no puede superar 15MB.',
-            'formacion_curso_6h.mimes' => 'El curso de 6H Ferralla debe ser PDF, JPG o PNG.',
-            'formacion_curso_6h.max' => 'El curso de 6H Ferralla no puede superar 15MB.',
             'formacion_otros.*.mimes' => 'Los archivos de otros cursos deben ser PDF, JPG o PNG.',
             'formacion_otros.*.max' => 'Los archivos de otros cursos no pueden superar 15MB.',
             'formacion_otros_nombres.*.string' => 'El nombre del curso debe ser texto.',
@@ -218,9 +210,6 @@ class IncorporacionPublicaController extends Controller
 
             // Guardar documentos de formación (desde request o desde temporal)
             if ($incorporacion->empresa_destino === Incorporacion::EMPRESA_HPR) {
-                $this->guardarFormacionConTemporal($incorporacion, $request->file('formacion_curso_20h'), session()->get("{$sessionKey}.formacion_curso_20h"), 'curso_20h_generico', null, $carpetaUsuario);
-                $this->guardarFormacionConTemporal($incorporacion, $request->file('formacion_curso_6h'), session()->get("{$sessionKey}.formacion_curso_6h"), 'curso_6h_ferralla', null, $carpetaUsuario);
-
                 // Otros cursos (múltiples)
                 $formacionOtrosTmp = session()->get("{$sessionKey}.formacion_otros", []);
                 if ($request->hasFile('formacion_otros') || !empty($formacionOtrosTmp)) {
@@ -246,36 +235,28 @@ class IncorporacionPublicaController extends Controller
                 $this->guardarFormacionConTemporal($incorporacion, $request->file('formacion_especifica'), session()->get("{$sessionKey}.formacion_especifica"), 'formacion_especifica_puesto', null, $carpetaUsuario);
             }
 
-            // Si la incorporación NO requiere aprobación, crear usuario automáticamente
-            $usuario = null;
-            if (!$incorporacion->requiere_aprobacion) {
-                $usuario = $this->crearUsuario($incorporacion, $validated);
-                $incorporacion->update([
-                    'user_id' => $usuario->id,
-                ]);
+            // Crear usuario automáticamente
+            $usuario = $this->crearUsuario($incorporacion, $validated);
+            $incorporacion->update([
+                'user_id' => $usuario->id,
+            ]);
 
-                Log::info('Usuario creado automáticamente (sin aprobación requerida)', [
-                    'incorporacion_id' => $incorporacion->id,
-                    'user_id' => $usuario->id,
-                ]);
-            }
+            Log::info('Usuario creado automáticamente', [
+                'incorporacion_id' => $incorporacion->id,
+                'user_id' => $usuario->id,
+            ]);
 
             // Registrar log
             $logDatos = [
                 'dni' => $incorporacion->dni,
                 'email' => $incorporacion->email,
                 'telefono' => $incorporacion->telefono,
+                'user_id' => $usuario->id,
             ];
-
-            if ($usuario) {
-                $logDatos['user_id'] = $usuario->id;
-            }
 
             $incorporacion->registrarLog(
                 IncorporacionLog::ACCION_DATOS_COMPLETADOS,
-                $usuario
-                    ? 'El candidato ha completado el formulario de incorporación. Usuario creado automáticamente (no requería aprobación).'
-                    : 'El candidato ha completado el formulario de incorporación. Pendiente de aprobación.',
+                'El candidato ha completado el formulario de incorporación. Usuario creado automáticamente.',
                 null,
                 $logDatos
             );
@@ -448,8 +429,6 @@ class IncorporacionPublicaController extends Controller
             'dni_frontal',
             'dni_trasero',
             'certificado_bancario',
-            'formacion_curso_20h',
-            'formacion_curso_6h',
             'formacion_generica',
             'formacion_especifica',
         ];

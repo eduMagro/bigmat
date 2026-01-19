@@ -273,8 +273,24 @@ class SubirJustificante extends Component
 
     protected function shellExecDeshabilitado()
     {
+        // Verificar si shell_exec está en la lista de funciones deshabilitadas
         $disabled = ini_get('disable_functions');
-        return stripos($disabled, 'shell_exec') !== false;
+        if (stripos($disabled, 'shell_exec') !== false) {
+            return true;
+        }
+
+        // Verificar si es callable (más fiable que function_exists)
+        if (!is_callable('shell_exec')) {
+            return true;
+        }
+
+        // Intentar ejecutar un comando simple para verificar
+        try {
+            $result = @shell_exec('echo test');
+            return $result === null;
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
     protected function comandoExiste($comando)
@@ -283,12 +299,16 @@ class SubirJustificante extends Component
             return false;
         }
 
-        $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        try {
+            $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
 
-        if ($esWindows) {
-            $return = @shell_exec(sprintf("where %s 2>nul", escapeshellarg($comando)));
-        } else {
-            $return = @shell_exec(sprintf("which %s 2>/dev/null", escapeshellarg($comando)));
+            if ($esWindows) {
+                $return = @shell_exec(sprintf("where %s 2>nul", escapeshellarg($comando)));
+            } else {
+                $return = @shell_exec(sprintf("which %s 2>/dev/null", escapeshellarg($comando)));
+            }
+        } catch (\Throwable $e) {
+            return false;
         }
 
         return !empty($return);

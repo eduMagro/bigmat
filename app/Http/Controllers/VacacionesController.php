@@ -64,6 +64,31 @@ class VacacionesController extends Controller
         // Unir eventos con festivos
         $eventos = array_merge($eventos, $festivos);
 
+        // Eventos de solicitudes pendientes (mismo estilo que mi-perfil)
+        $eventosSolicitudes = $solicitudesPendientes->flatMap(function ($solicitud) {
+            return collect(CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin)->toArray())
+                ->map(function ($fecha) use ($solicitud) {
+                    $fechaStr = $fecha->format('Y-m-d');
+                    return [
+                        'id' => 'sol-' . $solicitud->id . '-' . $fechaStr,
+                        'title' => $solicitud->user->nombre_completo . ' (pendiente)',
+                        'start' => $fechaStr,
+                        'allDay' => true,
+                        'backgroundColor' => '#fcdde8',
+                        'borderColor' => '#f9a8d4',
+                        'textColor' => '#000000',
+                        'extendedProps' => [
+                            'solicitud_id' => $solicitud->id,
+                            'user_id' => $solicitud->user_id,
+                            'estado' => 'pendiente',
+                            'es_solicitud_vacaciones' => true,
+                        ],
+                    ];
+                });
+        })->values()->toArray();
+
+        $eventos = array_merge($eventos, $eventosSolicitudes);
+
         return view('vacaciones.index', [
             'eventos' => $eventos,
             'solicitudesPendientes' => $solicitudesPendientes,
@@ -101,28 +126,20 @@ class VacacionesController extends Controller
                 ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
                 ->toArray();
 
-            $diasLaborablesSolicitables = [];
+            $diasSolicitables = [];
             foreach ($rango as $fecha) {
                 $fechaStr = $fecha->format('Y-m-d');
 
-                // Saltar fines de semana
-                if (in_array($fecha->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
-                    continue;
-                }
-                // Saltar festivos
-                if (in_array($fechaStr, $festivos)) {
-                    continue;
-                }
                 // Saltar días que ya tienen vacaciones aprobadas
                 if (in_array($fechaStr, $diasYaConVacaciones)) {
                     continue;
                 }
-                $diasLaborablesSolicitables[] = $fechaStr;
+                $diasSolicitables[] = $fechaStr;
             }
 
-            if (empty($diasLaborablesSolicitables)) {
+            if (empty($diasSolicitables)) {
                 return response()->json([
-                    'error' => 'El rango seleccionado no contiene días disponibles (ya tienes vacaciones aprobadas, son fines de semana o festivos).',
+                    'error' => 'El rango seleccionado no contiene días disponibles (ya tienes vacaciones aprobadas en esas fechas).',
                 ], 400);
             }
 
@@ -145,19 +162,13 @@ class VacacionesController extends Controller
             foreach ($solicitudesPendientes as $sol) {
                 $rangoPendiente = CarbonPeriod::create($sol->fecha_inicio, $sol->fecha_fin);
                 foreach ($rangoPendiente as $fechaPend) {
-                    if (in_array($fechaPend->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
-                        continue;
-                    }
-                    if (in_array($fechaPend->format('Y-m-d'), $festivos)) {
-                        continue;
-                    }
                     $diasEnPendientes++;
                 }
             }
 
-            $tope = $user->vacaciones_correspondientes ?? 22;
+            $tope = $user->vacaciones_correspondientes ?? 30;
             $diasDisponibles = $tope - $diasYaAsignados - $diasEnPendientes;
-            $diasSolicitados = count($diasLaborablesSolicitables);
+            $diasSolicitados = count($diasSolicitables);
 
             if ($diasSolicitados > $diasDisponibles) {
                 return response()->json([
@@ -166,43 +177,15 @@ class VacacionesController extends Controller
             }
 
             // Ajustar el rango a los días realmente solicitables
-            sort($diasLaborablesSolicitables);
-            $nuevaInicio = Carbon::parse($diasLaborablesSolicitables[0]);
-            $nuevaFin = Carbon::parse($diasLaborablesSolicitables[count($diasLaborablesSolicitables) - 1]);
+            sort($diasSolicitables);
+            $nuevaInicio = Carbon::parse($diasSolicitables[0]);
+            $nuevaFin = Carbon::parse($diasSolicitables[count($diasSolicitables) - 1]);
             $validated['fecha_inicio'] = $nuevaInicio->format('Y-m-d');
             $validated['fecha_fin'] = $nuevaFin->format('Y-m-d');
 
             // 4) Buscar solicitudes pendientes adyacentes o solapadas para fusionar
-            $solicitud = DB::transaction(function () use ($validated, $nuevaInicio, $nuevaFin, $festivos) {
+            $solicitud = DB::transaction(function () use ($validated, $nuevaInicio, $nuevaFin) {
                 $userId = auth()->id();
-
-                // Función para encontrar el siguiente día laborable
-                $siguienteLaborable = function ($fecha) use ($festivos) {
-                    $f = $fecha->copy()->addDay();
-                    $maxIteraciones = 10;
-                    while ($maxIteraciones-- > 0) {
-                        if (!in_array($f->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]) &&
-                            !in_array($f->format('Y-m-d'), $festivos)) {
-                            return $f;
-                        }
-                        $f->addDay();
-                    }
-                    return $fecha->copy()->addDay();
-                };
-
-                // Función para encontrar el día laborable anterior
-                $anteriorLaborable = function ($fecha) use ($festivos) {
-                    $f = $fecha->copy()->subDay();
-                    $maxIteraciones = 10;
-                    while ($maxIteraciones-- > 0) {
-                        if (!in_array($f->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]) &&
-                            !in_array($f->format('Y-m-d'), $festivos)) {
-                            return $f;
-                        }
-                        $f->subDay();
-                    }
-                    return $fecha->copy()->subDay();
-                };
 
                 // Obtener todas las solicitudes pendientes del usuario
                 $todasSolicitudes = VacacionesSolicitud::where('user_id', $userId)
@@ -221,21 +204,15 @@ class VacacionesController extends Controller
                         continue;
                     }
 
-                    // Verificar si son laboralmente adyacentes
-                    if ($solFin < $nuevaInicio) {
-                        $sigLaborable = $siguienteLaborable($solFin);
-                        if ($sigLaborable->format('Y-m-d') === $nuevaInicio->format('Y-m-d')) {
-                            $solicitudesAdyacentes->push($sol);
-                            continue;
-                        }
+                    // Verificar si son adyacentes (día siguiente)
+                    if ($solFin->copy()->addDay()->format('Y-m-d') === $nuevaInicio->format('Y-m-d')) {
+                        $solicitudesAdyacentes->push($sol);
+                        continue;
                     }
 
-                    if ($solInicio > $nuevaFin) {
-                        $antLaborable = $anteriorLaborable($solInicio);
-                        if ($antLaborable->format('Y-m-d') === $nuevaFin->format('Y-m-d')) {
-                            $solicitudesAdyacentes->push($sol);
-                            continue;
-                        }
+                    if ($solInicio->copy()->subDay()->format('Y-m-d') === $nuevaFin->format('Y-m-d')) {
+                        $solicitudesAdyacentes->push($sol);
+                        continue;
                     }
                 }
 
@@ -341,12 +318,6 @@ class VacacionesController extends Controller
             $diasNuevos = 0;
             $fechasAsignables = [];
 
-            // Obtener festivos del rango de la solicitud
-            $festivos = Festivo::whereBetween('fecha', [$solicitud->fecha_inicio, $solicitud->fecha_fin])
-                ->pluck('fecha')
-                ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
-                ->toArray();
-
             // Contar días ya asignados para el año de cargo seleccionado
             $diasYaAsignados = $user->asignacionesTurnos()
                 ->where('estado', 'vacaciones')
@@ -355,16 +326,6 @@ class VacacionesController extends Controller
 
             foreach ($rango as $fecha) {
                 $fechaStr = $fecha->format('Y-m-d');
-
-                // Saltar fines de semana
-                if (in_array($fecha->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
-                    continue;
-                }
-
-                // Saltar festivos
-                if (in_array($fechaStr, $festivos)) {
-                    continue;
-                }
 
                 $asignacionExistente = AsignacionTurno::where('user_id', $user->id)
                     ->where('fecha', $fechaStr)
@@ -377,7 +338,7 @@ class VacacionesController extends Controller
                 }
             }
 
-            $tope = $user->vacaciones_correspondientes ?? 22;
+            $tope = $user->vacaciones_correspondientes ?? 30;
 
             if (($diasYaAsignados + $diasNuevos) > $tope) {
                 $errorMsg = "No se puede aprobar. El usuario ya tiene {$diasYaAsignados} días asignados en {$anioCargo} y esta solicitud añade {$diasNuevos}, superando el tope de {$tope} días.";
@@ -387,7 +348,7 @@ class VacacionesController extends Controller
                 return redirect()->back()->with('error', $errorMsg);
             }
 
-            // Asignación real (solo días laborables)
+            // Asignación real (todos los días del rango)
             foreach ($fechasAsignables as $fechaStr) {
                 $asignacion = AsignacionTurno::firstOrNew([
                     'user_id' => $user->id,
@@ -727,7 +688,7 @@ class VacacionesController extends Controller
             ];
         })->toArray();
 
-        // Todas las vacaciones
+        // Todas las vacaciones aprobadas
         $vacaciones = AsignacionTurno::with(['user', 'turno'])
             ->where('estado', 'vacaciones')
             ->get();
@@ -746,7 +707,34 @@ class VacacionesController extends Controller
             ];
         })->toArray();
 
-        return response()->json(array_merge($eventos, $festivos));
+        // Solicitudes pendientes
+        $solicitudesPendientes = VacacionesSolicitud::with('user')
+            ->where('estado', 'pendiente')
+            ->get();
+
+        $eventosSolicitudes = $solicitudesPendientes->flatMap(function ($solicitud) {
+            return collect(CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin)->toArray())
+                ->map(function ($fecha) use ($solicitud) {
+                    $fechaStr = $fecha->format('Y-m-d');
+                    return [
+                        'id' => 'sol-' . $solicitud->id . '-' . $fechaStr,
+                        'title' => $solicitud->user->nombre_completo . ' (pendiente)',
+                        'start' => $fechaStr,
+                        'allDay' => true,
+                        'backgroundColor' => '#fcdde8',
+                        'borderColor' => '#f9a8d4',
+                        'textColor' => '#000000',
+                        'extendedProps' => [
+                            'solicitud_id' => $solicitud->id,
+                            'user_id' => $solicitud->user_id,
+                            'estado' => 'pendiente',
+                            'es_solicitud_vacaciones' => true,
+                        ],
+                    ];
+                });
+        })->values()->toArray();
+
+        return response()->json(array_merge($eventos, $festivos, $eventosSolicitudes));
     }
 
     /**
@@ -809,24 +797,8 @@ class VacacionesController extends Controller
             $diasNuevos = 0;
             $fechasAsignables = [];
 
-            // Obtener festivos
-            $festivos = Festivo::whereBetween('fecha', [$validated['fecha_inicio'], $validated['fecha_fin']])
-                ->pluck('fecha')
-                ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
-                ->toArray();
-
             foreach ($rango as $fecha) {
                 $fechaStr = $fecha->format('Y-m-d');
-
-                // Saltar fines de semana
-                if (in_array($fecha->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
-                    continue;
-                }
-
-                // Saltar festivos
-                if (in_array($fechaStr, $festivos)) {
-                    continue;
-                }
 
                 // Verificar si ya tiene vacaciones ese día
                 $asignacionExistente = AsignacionTurno::where('user_id', $user->id)
@@ -842,11 +814,11 @@ class VacacionesController extends Controller
 
             if ($diasNuevos === 0) {
                 return response()->json([
-                    'error' => 'No hay días nuevos para asignar (ya tiene vacaciones en esas fechas, son fines de semana o festivos).'
+                    'error' => 'No hay días nuevos para asignar (ya tiene vacaciones en esas fechas).'
                 ], 400);
             }
 
-            $tope = $user->vacaciones_correspondientes ?? 22;
+            $tope = $user->vacaciones_correspondientes ?? 30;
             if (($diasYaAsignados + $diasNuevos) > $tope) {
                 return response()->json([
                     'error' => "El usuario ya tiene {$diasYaAsignados} días asignados. Añadir {$diasNuevos} días supera el tope de {$tope}."

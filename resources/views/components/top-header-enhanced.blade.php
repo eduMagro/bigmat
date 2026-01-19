@@ -61,6 +61,17 @@
 
             <!-- Right Side - User Actions -->
             <div class="flex items-center space-x-2 sm:space-x-4">
+                <!-- Botón Volver Atrás -->
+                <button onclick="history.back()"
+                    class="relative p-2 text-gray-300 dark:text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-lg transition"
+                    title="Volver atrás">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                        </path>
+                    </svg>
+                </button>
+
                 <!-- Botón Refrescar Página -->
                 <button onclick="window.location.reload()"
                     class="relative p-2 text-gray-300 dark:text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-lg transition"

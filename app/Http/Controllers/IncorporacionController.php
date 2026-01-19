@@ -81,12 +81,10 @@ class IncorporacionController extends Controller
             'primer_apellido' => 'nullable|string|max:255',
             'segundo_apellido' => 'nullable|string|max:255',
             'telefono_provisional' => 'required|string|max:20',
-            'requiere_aprobacion' => 'nullable|boolean',
         ]);
 
         $validated['created_by'] = auth()->id();
         $validated['token'] = Str::random(64);
-        $validated['requiere_aprobacion'] = $request->boolean('requiere_aprobacion', true);
 
         // Normalizar nombres a formato "Nombre Apellido"
         $validated['name'] = ucwords(strtolower($validated['name']));
@@ -116,7 +114,7 @@ class IncorporacionController extends Controller
         $incorporacion->load(['formaciones', 'documentos.subidoPor', 'logs.usuario', 'creador']);
 
         // Tipos de formación que pueden venir del formulario público
-        $tiposFormacion = ['curso_20h_generico', 'curso_6h_ferralla', 'formacion_puesto'];
+        $tiposFormacion = ['formacion_puesto'];
 
         // Preparar checklist de documentos
         $documentosPost = [];

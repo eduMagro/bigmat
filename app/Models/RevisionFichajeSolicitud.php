@@ -19,6 +19,7 @@ class RevisionFichajeSolicitud extends Model
         'observaciones',
         'resuelta_por',
         'resuelta_en',
+        'motivo_denegacion',
     ];
 
     protected $casts = [

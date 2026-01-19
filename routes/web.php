@@ -195,6 +195,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     // === REVISION DE FICHAJES ===
     Route::post('/revision-fichaje/solicitar', [RevisionFichajeController::class, 'store'])->name('revision-fichaje.store');
     Route::post('/revision-fichaje/{id}/auto-rellenar', [RevisionFichajeController::class, 'autoRellenar'])->name('revision-fichaje.autoRellenar');
+    Route::post('/revision-fichaje/{id}/denegar', [RevisionFichajeController::class, 'denegar'])->name('revision-fichaje.denegar');
     Route::get('/api/usuarios/{id}/fichajes-rango', [ProfileController::class, 'getFichajesRango'])->name('usuarios.fichajes-rango');
 
     // === PLANIFICACION ===

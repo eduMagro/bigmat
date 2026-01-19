@@ -137,7 +137,7 @@ class User extends Authenticatable
             return $this->vacaciones_totales;
         }
 
-        $diasPorAnio = 22; // Base estándar
+        $diasPorAnio = 30; // Base estándar (días naturales)
 
         // 2. Determinar la fecha de incorporación efectiva
         $inicio = $this->fecha_incorporacion_efectiva;

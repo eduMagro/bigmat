@@ -364,38 +364,6 @@
                     </p>
 
                     <div class="space-y-4">
-                        <!-- Curso 20H -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Curso 20H modalidad genérica <span class="text-gray-400 text-xs">(opcional)</span>
-                            </label>
-                            <p class="text-xs text-gray-500 mb-2">Albañilería, ferralla, encofrador, etc.</p>
-                            <div class="file-input-wrapper">
-                                <div
-                                    class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition cursor-pointer">
-                                    <p class="text-sm text-gray-600" id="text-20h">Seleccionar archivo...</p>
-                                </div>
-                                <input type="file" name="formacion_curso_20h" accept=".pdf,.jpg,.jpeg,.png"
-                                    onchange="updateFileName(this, 'text-20h')">
-                            </div>
-                        </div>
-
-                        <!-- Curso 6H -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Curso 6H modalidad específica (FERRALLA) <span
-                                    class="text-gray-400 text-xs">(opcional)</span>
-                            </label>
-                            <div class="file-input-wrapper">
-                                <div
-                                    class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition cursor-pointer">
-                                    <p class="text-sm text-gray-600" id="text-6h">Seleccionar archivo...</p>
-                                </div>
-                                <input type="file" name="formacion_curso_6h" accept=".pdf,.jpg,.jpeg,.png"
-                                    onchange="updateFileName(this, 'text-6h')">
-                            </div>
-                        </div>
-
                         <!-- Otros cursos -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">

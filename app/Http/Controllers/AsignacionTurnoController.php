@@ -1096,7 +1096,7 @@ class AsignacionTurnoController extends Controller
                         $tempDate->addDay();
                     }
 
-                    $totalPermitido = $user->vacaciones_totales ?? 22;
+                    $totalPermitido = $user->vacaciones_totales ?? 30;
 
                     // Validar según si se divide entre años o no
                     if ($usarAnteriorPrimero) {

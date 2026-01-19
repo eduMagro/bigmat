@@ -362,6 +362,12 @@ class ProfileController extends Controller
                 'storeUrl' => route('asignaciones-turnos.store'),
                 'destroyUrl' => route('asignaciones-turnos.destroyByPost'),
                 'vacationDataUrl' => route('usuarios.getVacationData', ['user' => $user->id]),
+                'fichajesRangoUrl' => route('usuarios.fichajes-rango', ['id' => $user->id]),
+                'revisionFichajeStoreUrl' => route('revision-fichaje.store'),
+                'misSolicitudesPendientesUrl' => route('vacaciones.misSolicitudesPendientes'),
+                'eliminarSolicitudUrl' => url('/vacaciones/solicitud'),
+                'eliminarDiasSolicitudUrl' => route('vacaciones.eliminarDiasSolicitud'),
+                'eliminarEstadoVacacionesUrl' => route('vacaciones.eliminarEvento'),
             ],
             'enableListMonth' => true,
             'mobileBreakpoint' => 768,
@@ -1050,29 +1056,16 @@ class ProfileController extends Controller
         // 4. Festivos
         $eventos = $eventos->merge(Festivo::eventosCalendario());
 
-        // 5. Vacaciones pendientes/denegadas (excluyendo fines de semana y festivos)
-        $festivosFechas = Festivo::pluck('fecha')->map(fn($f) => $f->format('Y-m-d'))->toArray();
-
+        // 5. Vacaciones pendientes/denegadas (incluyendo fines de semana y festivos)
         $vacaciones = VacacionesSolicitud::where('user_id', $user->id)
             ->whereIn('estado', ['pendiente', 'denegada'])
             ->get()
-            ->flatMap(function ($solicitud) use ($festivosFechas) {
+            ->flatMap(function ($solicitud) {
                 $title = $solicitud->estado === 'pendiente' ? 'V. pendiente' : 'V. denegadas';
                 $color = $solicitud->estado === 'pendiente' ? '#fcdde8' : '#000000';
                 $textColor = $solicitud->estado === 'pendiente' ? 'black' : 'white';
 
                 return collect(CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin)->toArray())
-                    ->filter(function ($fecha) use ($festivosFechas) {
-                        // Excluir fines de semana (sábado=6, domingo=0)
-                        if ($fecha->isWeekend()) {
-                            return false;
-                        }
-                        // Excluir festivos
-                        if (in_array($fecha->format('Y-m-d'), $festivosFechas)) {
-                            return false;
-                        }
-                        return true;
-                    })
                     ->map(function ($fecha) use ($title, $color, $textColor, $solicitud) {
                         $fechaStr = $fecha->format('Y-m-d');
                         return [
@@ -1490,9 +1483,13 @@ class ProfileController extends Controller
             'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
-        // Solo el propio usuario o usuarios con rol oficina pueden ver esto
+        // Solo el propio usuario, oficina, programador o responsable del departamento pueden ver esto
         $user = User::findOrFail($userId);
-        if (Auth::id() != $userId && Auth::user()->rol !== 'oficina') {
+        $tienePermiso = Auth::id() == $userId
+            || in_array(Auth::user()->rol, ['oficina', 'programador'])
+            || $user->departamentos()->where('responsable_id', Auth::id())->exists();
+
+        if (!$tienePermiso) {
             return response()->json(['error' => 'No tienes permisos.'], 403);
         }
 

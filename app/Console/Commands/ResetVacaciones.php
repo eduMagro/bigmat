@@ -20,7 +20,7 @@ class ResetVacaciones extends Command
      */
     public function handle()
     {
-        $totalDiasVacaciones = 28; // Días de vacaciones por año
+        $totalDiasVacaciones = 30; // Días de vacaciones por año (días naturales)
 
         // Actualiza todos los usuarios con los días completos de vacaciones
         User::query()->update(['dias_vacaciones' => $totalDiasVacaciones]);

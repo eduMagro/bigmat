@@ -12,7 +12,6 @@ class Incorporacion extends Model
     protected $fillable = [
         'token',
         'estado',
-        'requiere_aprobacion',
         'empresa_destino',
         'puesto',
         'name',
@@ -44,7 +43,6 @@ class Incorporacion extends Model
         'recordatorio_enviado_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'requiere_aprobacion' => 'boolean',
         'fecha_incorporacion' => 'date',
     ];
 
@@ -61,8 +59,6 @@ class Incorporacion extends Model
         // Documentos personales
         'cv' => 'Currículum Vitae',
         // Documentos de formación
-        'curso_20h_generico' => 'Curso 20H modalidad genérica',
-        'curso_6h_ferralla' => 'Curso 6H Ferralla',
         'formacion_puesto' => 'Formación del puesto', // Permite múltiples archivos (hasta 5)
         // Documentos administrativos
         'info_preventiva' => 'Información materia preventiva',
@@ -181,7 +177,7 @@ class Incorporacion extends Model
         $documentosPost = $this->documentos()->where('completado', true)->pluck('tipo')->unique()->toArray();
 
         // Contar formaciones del formulario público que coinciden con tipos de DOCUMENTOS_POST
-        $tiposFormacion = ['curso_20h_generico', 'curso_6h_ferralla', 'formacion_puesto'];
+        $tiposFormacion = ['formacion_puesto'];
         $formacionesPublicas = $this->formaciones()->whereIn('tipo', $tiposFormacion)->pluck('tipo')->unique()->toArray();
 
         // Unir ambos arrays y eliminar duplicados
@@ -196,7 +192,7 @@ class Incorporacion extends Model
         $documentosPost = $this->documentos()->pluck('tipo')->unique()->toArray();
 
         // Formaciones del formulario público
-        $tiposFormacion = ['curso_20h_generico', 'curso_6h_ferralla', 'formacion_puesto'];
+        $tiposFormacion = ['formacion_puesto'];
         $formacionesPublicas = $this->formaciones()->whereIn('tipo', $tiposFormacion)->pluck('tipo')->unique()->toArray();
 
         // Unir ambos

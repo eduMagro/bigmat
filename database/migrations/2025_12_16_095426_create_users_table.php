@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `rol` varchar(50) DEFAULT NULL,
   `maquina_id` bigint(20) UNSIGNED DEFAULT NULL,
   `turno` varchar(50) DEFAULT NULL,
-  `vacaciones_totales` tinyint(3) UNSIGNED NOT NULL DEFAULT 22,
+  `vacaciones_totales` tinyint(3) UNSIGNED NOT NULL DEFAULT 30,
   `password` varchar(255) DEFAULT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
   `email_verified_at` datetime DEFAULT NULL,

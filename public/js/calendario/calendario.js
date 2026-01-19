@@ -213,18 +213,17 @@
             return days;
         }
 
-        // Cuenta días laborables (excluye fines de semana, festivos y vacaciones)
+        // Cuenta días naturales (incluye fines de semana y festivos, excluye solo vacaciones ya asignadas)
         function contarDiasLaborables(aStr, bStr, calendar) {
             const days = eachDayStr(aStr, bStr);
             const eventos = calendar.getEvents();
 
-            // Crear set de fechas a excluir (festivos y vacaciones)
+            // Crear set de fechas a excluir (solo vacaciones ya asignadas)
             const fechasExcluidas = new Set();
             eventos.forEach(ev => {
-                const id = ev.id || '';
                 const estado = ev.extendedProps?.estado || '';
-                // Excluir festivos y vacaciones ya asignadas
-                if (id.startsWith('festivo-') || estado === 'vacaciones') {
+                // Solo excluir vacaciones ya asignadas
+                if (estado === 'vacaciones') {
                     const fechaEvento = ev.startStr?.split('T')[0] || ev.start?.toISOString().split('T')[0];
                     if (fechaEvento) fechasExcluidas.add(fechaEvento);
                 }
@@ -232,13 +231,7 @@
 
             let count = 0;
             days.forEach(dayStr => {
-                const date = new Date(dayStr);
-                const diaSemana = date.getDay(); // 0=domingo, 6=sábado
-
-                // Excluir fines de semana
-                if (diaSemana === 0 || diaSemana === 6) return;
-
-                // Excluir festivos y vacaciones
+                // Solo excluir días que ya tienen vacaciones asignadas
                 if (fechasExcluidas.has(dayStr)) return;
 
                 count++;
@@ -365,17 +358,17 @@
                     const diasUsadosPeriodoGracia = (data.dias_usados_periodo_gracia || 0) + diasSolicitadosPeriodoGracia;
                     const diasUsadosPostGracia = (data.dias_usados_post_gracia || 0) + diasSolicitadosPostGracia;
 
-                    const generadasAnterior = 22;
+                    const generadasAnterior = 30;
                     const saldoAnterior = Math.max(0, generadasAnterior - diasUsadosAnterior);
 
                     if (isGracePeriod) {
                         disponiblesAnterior = Math.max(0, saldoAnterior - diasUsadosPeriodoGracia);
                         const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
-                        disponiblesActual = 22 - excesoSobreAnterior - diasUsadosPostGracia;
+                        disponiblesActual = 30 - excesoSobreAnterior - diasUsadosPostGracia;
                         disponiblesTotal = disponiblesAnterior + disponiblesActual;
                     } else {
                         const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
-                        disponiblesTotal = 22 - excesoSobreAnterior - diasUsadosPostGracia;
+                        disponiblesTotal = 30 - excesoSobreAnterior - diasUsadosPostGracia;
                     }
                 } else {
                     // Usuario incorporado este año - cálculo proporcional PROGRESIVO
@@ -391,7 +384,7 @@
                         const diasHastaFechaSolicitada = Math.max(0, Math.ceil((clickDate - fechaInc) / (1000 * 60 * 60 * 24)) + 1);
                         // Días que le corresponderían en todo el año
                         const diasDesdeIncorporacionHastaFinAnio = Math.ceil((finDeAnio - fechaInc) / (1000 * 60 * 60 * 24)) + 1;
-                        const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 22);
+                        const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 30);
 
                         // Días activados hasta la fecha solicitada (proporcional)
                         const proporcionTrabajada = Math.min(1, diasHastaFechaSolicitada / diasDesdeIncorporacionHastaFinAnio);
@@ -399,7 +392,7 @@
 
                         disponiblesTotal = generadasHastaFecha - diasUsadosEsteAnio;
                     } else {
-                        disponiblesTotal = 22 - diasUsadosEsteAnio;
+                        disponiblesTotal = 30 - diasUsadosEsteAnio;
                     }
                     disponiblesActual = Math.max(0, disponiblesTotal);
                 }
@@ -525,7 +518,7 @@
                 : `Del ${fechaInicio} al ${fechaFin}`;
 
             // Obtener datos de fichajes para mostrar resumen
-            const fichajesUrl = `/api/usuarios/${userId}/fichajes-rango?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+            const fichajesUrl = `${routes.fichajesRangoUrl}?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
 
             let fichajesData = null;
             try {
@@ -596,7 +589,7 @@
 
             // Enviar solicitud
             try {
-                const response = await fetch('/revision-fichaje/solicitar', {
+                const response = await fetch(routes.revisionFichajeStoreUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1176,8 +1169,8 @@
                                             // Si usó más que las del año anterior, el exceso viene del año actual
                                             const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - saldoAnteriorPositivo);
 
-                                            // Si entró antes de este año, tiene los 22 días completos
-                                            const generadasActual = 22;
+                                            // Si entró antes de este año, tiene los 30 días completos
+                                            const generadasActual = 30;
 
                                             // Disponibles del año actual = generadas - exceso - post gracia ya usadas
                                             const disponiblesActual = generadasActual - excesoSobreAnterior - usadasPostGracia;
@@ -1223,8 +1216,8 @@
                                             // Vacaciones perdidas del año anterior (las que no se usaron y caducaron)
                                             const perdidas = Math.max(0, saldoAnteriorAlFinalizar - usadasPeriodoGracia);
 
-                                            // Si entró antes de este año, tiene los 22 días completos
-                                            const generadasActual = 22;
+                                            // Si entró antes de este año, tiene los 30 días completos
+                                            const generadasActual = 30;
 
                                             // Total usadas del año actual = exceso del periodo gracia + usadas post gracia
                                             const usadasTotalActual = excesoSobreAnterior + usadasPostGracia;
@@ -1263,7 +1256,7 @@
                                             const diasHastaFechaClickeada = Math.max(0, Math.ceil((clickDate - incorpDate) / (1000 * 60 * 60 * 24)) + 1);
                                             // Días que le corresponderían en todo el año
                                             const diasDesdeIncorporacionHastaFinAnio = Math.ceil((finDeAnio - incorpDate) / (1000 * 60 * 60 * 24)) + 1;
-                                            const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 22);
+                                            const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 30);
 
                                             // Días activados hasta la fecha clickeada (proporcional)
                                             const proporcionTrabajada = Math.min(1, diasHastaFechaClickeada / diasDesdeIncorporacionHastaFinAnio);
@@ -1429,35 +1422,18 @@
                     const fechaFin = props.fecha_fin;
                     const fechaActual = event.startStr?.split('T')[0] || props.fecha;
 
-                    // Obtener festivos del calendario
-                    const eventosCal = calendar.getEvents();
-                    const festivosCal = new Set();
-                    eventosCal.forEach(ev => {
-                        if (ev.id?.startsWith('festivo-')) {
-                            const fechaFestivo = ev.startStr?.split('T')[0] || ev.start?.toISOString().split('T')[0];
-                            if (fechaFestivo) festivosCal.add(fechaFestivo);
-                        }
-                    });
-
-                    // Calcular solo los días LABORABLES del rango (sin fines de semana ni festivos)
+                    // Calcular todos los días del rango (días naturales)
                     const dias = [];
                     const inicio = new Date(fechaInicio);
                     const fin = new Date(fechaFin);
                     for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
-                        const diaSemana = d.getDay(); // 0=domingo, 6=sábado
-                        // Saltar fines de semana
-                        if (diaSemana === 0 || diaSemana === 6) continue;
-
                         const fechaStr = d.toISOString().split('T')[0];
-                        // Saltar festivos
-                        if (festivosCal.has(fechaStr)) continue;
-
                         dias.push(fechaStr);
                     }
 
                     const esMismoDia = dias.length === 1;
 
-                    // Generar checkboxes para cada día laborable
+                    // Generar checkboxes para cada día
                     const checkboxesHtml = dias.map(dia => {
                         const esActual = dia === fechaActual;
                         return `
@@ -1715,7 +1691,7 @@
                     const day = cell.getAttribute("data-date");
                     if (day) {
                         updateTempHighlight(calendar, startClick, day, true);
-                        // Calcular días laborables (sin fines de semana, festivos ni vacaciones)
+                        // Calcular días naturales (excluye solo vacaciones ya asignadas)
                         const diasSeleccionados = contarDiasLaborables(startClick, day, calendar);
                         updateVacationModal(diasSeleccionados);
                     }
@@ -1728,7 +1704,7 @@
                 table.addEventListener('mouseleave', () => {
                     if (startClick) {
                         updateTempHighlight(calendar, startClick, startClick, true);
-                        // Calcular si el día inicial es laborable
+                        // Calcular días seleccionados
                         const diasSeleccionados = contarDiasLaborables(startClick, startClick, calendar);
                         updateVacationModal(diasSeleccionados);
                     }

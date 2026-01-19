@@ -1139,11 +1139,14 @@
                         title: 'Solicitud de Revision de Fichajes',
                         html: `
                             <div class="text-left whitespace-pre-wrap text-gray-700 p-4 mb-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">${mensajeLimpio}</div>
-                            <div class="flex gap-2 justify-center">
+                            <div class="flex gap-2 justify-center flex-wrap">
                                 <button onclick="corregirFichajes(${solicitudId})" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
                                     Corregir Fichajes
                                 </button>
-                                <a href="/mi-perfil/${userId}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors inline-block">
+                                <button onclick="denegarRevision(${solicitudId})" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors">
+                                    Denegar
+                                </button>
+                                <a href="{{ url('/mi-perfil') }}/${userId}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors inline-block">
                                     Ver Perfil
                                 </a>
                             </div>
@@ -1176,7 +1179,7 @@
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        fetch(`/revision-fichaje/${solicitudId}/auto-rellenar`, {
+                        fetch(`{{ url('/revision-fichaje') }}/${solicitudId}/auto-rellenar`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1199,6 +1202,66 @@
                                     icon: 'error',
                                     title: 'Error',
                                     text: data.error || 'No se pudieron corregir los fichajes'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error de conexion. Intenta de nuevo.'
+                            });
+                        });
+                    }
+                });
+            }
+
+            window.denegarRevision = function(solicitudId) {
+                Swal.fire({
+                    title: 'Denegar Solicitud',
+                    input: 'textarea',
+                    inputLabel: 'Motivo de la denegacion',
+                    inputPlaceholder: 'Escribe el motivo por el que se deniega la solicitud...',
+                    inputAttributes: {
+                        'aria-label': 'Motivo de la denegacion'
+                    },
+                    showCancelButton: true,
+                    confirmButtonColor: '#DC2626',
+                    cancelButtonColor: '#6B7280',
+                    confirmButtonText: 'Denegar',
+                    cancelButtonText: 'Cancelar',
+                    inputValidator: (value) => {
+                        if (!value || value.trim() === '') {
+                            return 'Debes indicar un motivo para denegar la solicitud';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch(`{{ url('/revision-fichaje') }}/${solicitudId}/denegar`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ motivo: result.value })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Solicitud Denegada',
+                                    text: data.success,
+                                    confirmButtonColor: '#DC2626'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.error || 'No se pudo denegar la solicitud'
                                 });
                             }
                         })
@@ -1354,11 +1417,14 @@
                     mensajeTexto = mensaje.mensaje.replace(/\[REVISION_ID:\d+\]\[USER_ID:\d+\]\n?/, '');
 
                     botonesRevision = `
-                        <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200 flex-wrap">
                             <button onclick="corregirFichajes(${solicitudId})" class="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors">
                                 Corregir Fichajes
                             </button>
-                            <a href="/mi-perfil/${userId}" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center">
+                            <button onclick="denegarRevision(${solicitudId})" class="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                                Denegar
+                            </button>
+                            <a href="{{ url('/mi-perfil') }}/${userId}" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center">
                                 Ver Perfil
                             </a>
                         </div>
