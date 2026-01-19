@@ -40,6 +40,7 @@ class TurnoController extends Controller
             'activo' => 'boolean',
             'orden' => 'integer|min:0',
             'color' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
+            'color_texto' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
             'es_partido' => 'boolean',
         ];
 
@@ -68,6 +69,7 @@ class TurnoController extends Controller
             'activo' => $request->has('activo') ? 1 : 0,
             'orden' => $request->orden ?? 999,
             'color' => $request->color,
+            'color_texto' => $request->color_texto ?? '#ffffff',
             'es_partido' => $request->has('es_partido') ? 1 : 0,
         ];
 
@@ -112,6 +114,7 @@ class TurnoController extends Controller
             'activo' => 'boolean',
             'orden' => 'integer|min:0',
             'color' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
+            'color_texto' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
             'es_partido' => 'boolean',
         ];
 
@@ -140,6 +143,7 @@ class TurnoController extends Controller
             'activo' => $request->has('activo') ? 1 : 0,
             'orden' => $request->orden ?? 999,
             'color' => $request->color,
+            'color_texto' => $request->color_texto ?? '#ffffff',
             'es_partido' => $request->has('es_partido') ? 1 : 0,
         ];
 

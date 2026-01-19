@@ -21,6 +21,7 @@ class Turno extends Model
         'activo',
         'orden',
         'color',
+        'color_texto',
         // Campos para turno partido
         'es_partido',
         'hora_inicio2',

@@ -174,37 +174,62 @@
         </div>
     </div>
 
-    <!-- Orden y Color -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Orden -->
-        <div>
-            <label for="orden" class="block text-sm font-medium text-gray-700">Orden de visualización</label>
-            <input type="number" name="orden" id="orden" min="0"
-                value="{{ old('orden', $turno->orden ?? 999) }}"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="1, 2, 3...">
-            <p class="mt-1 text-xs text-gray-500">Números más bajos aparecen primero</p>
-            @error('orden')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
+    <!-- Orden -->
+    <div>
+        <label for="orden" class="block text-sm font-medium text-gray-700">Orden de visualización</label>
+        <input type="number" name="orden" id="orden" min="0"
+            value="{{ old('orden', $turno->orden ?? 999) }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="1, 2, 3...">
+        <p class="mt-1 text-xs text-gray-500">Números más bajos aparecen primero</p>
+        @error('orden')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
 
-        <!-- Color -->
+    <!-- Colores -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Color de fondo -->
         <div>
-            <label for="color" class="block text-sm font-medium text-gray-700">Color (opcional)</label>
+            <label for="color" class="block text-sm font-medium text-gray-700">Color de fondo</label>
             <div class="flex gap-2 mt-1">
                 <input type="color" name="color" id="color"
                     value="{{ old('color', $turno->color ?? '#3b82f6') }}"
                     class="h-10 w-20 rounded border-gray-300 cursor-pointer">
-                <input type="text" name="color_text" id="color_text"
+                <input type="text" id="color_input"
                     value="{{ old('color', $turno->color ?? '#3b82f6') }}"
                     class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     placeholder="#3b82f6" pattern="^#[0-9A-Fa-f]{6}$" maxlength="7">
             </div>
-            <p class="mt-1 text-xs text-gray-500">Color para identificar el turno visualmente</p>
             @error('color')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
+        </div>
+
+        <!-- Color de texto -->
+        <div>
+            <label for="color_texto" class="block text-sm font-medium text-gray-700">Color de texto</label>
+            <div class="flex gap-2 mt-1">
+                <input type="color" name="color_texto" id="color_texto"
+                    value="{{ old('color_texto', $turno->color_texto ?? '#ffffff') }}"
+                    class="h-10 w-20 rounded border-gray-300 cursor-pointer">
+                <input type="text" id="color_texto_input"
+                    value="{{ old('color_texto', $turno->color_texto ?? '#ffffff') }}"
+                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="#ffffff" pattern="^#[0-9A-Fa-f]{6}$" maxlength="7">
+            </div>
+            @error('color_texto')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+    </div>
+
+    <!-- Vista previa -->
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Vista previa</label>
+        <div id="color_preview" class="inline-block px-4 py-2 rounded-md font-medium text-sm"
+            style="background-color: {{ old('color', $turno->color ?? '#3b82f6') }}; color: {{ old('color_texto', $turno->color_texto ?? '#ffffff') }};">
+            {{ old('nombre', $turno->nombre ?? 'Nombre del turno') }}
         </div>
     </div>
 
@@ -229,32 +254,58 @@
         }
     }
 
+    function updatePreview() {
+        const preview = document.getElementById('color_preview');
+        const colorPicker = document.getElementById('color');
+        const colorTextoPicker = document.getElementById('color_texto');
+        const nombreInput = document.getElementById('nombre');
+
+        if (preview && colorPicker && colorTextoPicker) {
+            preview.style.backgroundColor = colorPicker.value;
+            preview.style.color = colorTextoPicker.value;
+        }
+        if (preview && nombreInput) {
+            preview.textContent = nombreInput.value || 'Nombre del turno';
+        }
+    }
+
+    function syncColorInputs(pickerId, textId) {
+        const picker = document.getElementById(pickerId);
+        const text = document.getElementById(textId);
+
+        if (picker && text) {
+            picker.addEventListener('input', function() {
+                text.value = this.value;
+                updatePreview();
+            });
+
+            text.addEventListener('input', function() {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    picker.value = this.value;
+                    updatePreview();
+                }
+            });
+        }
+    }
+
     function initTurnoForm() {
         // Mostrar/ocultar segundo segmento al cargar
         toggleSegundo();
 
-        // Sincronizar color picker con input text
-        const colorPicker = document.getElementById('color');
-        const colorText = document.getElementById('color_text');
+        // Sincronizar color de fondo
+        syncColorInputs('color', 'color_input');
 
-        if (colorPicker && colorText) {
-            // Remover listeners previos para evitar duplicados
-            colorPicker.replaceWith(colorPicker.cloneNode(true));
-            colorText.replaceWith(colorText.cloneNode(true));
+        // Sincronizar color de texto
+        syncColorInputs('color_texto', 'color_texto_input');
 
-            const newColorPicker = document.getElementById('color');
-            const newColorText = document.getElementById('color_text');
-
-            newColorPicker.addEventListener('input', function() {
-                newColorText.value = this.value;
-            });
-
-            newColorText.addEventListener('input', function() {
-                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
-                    newColorPicker.value = this.value;
-                }
-            });
+        // Actualizar preview cuando cambia el nombre
+        const nombreInput = document.getElementById('nombre');
+        if (nombreInput) {
+            nombreInput.addEventListener('input', updatePreview);
         }
+
+        // Actualizar preview inicial
+        updatePreview();
     }
 
     // Ejecutar en carga inicial

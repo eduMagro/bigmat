@@ -1022,6 +1022,7 @@ class ProfileController extends Controller
                 $nombre = $asig->turno->nombre;
                 // Usar el color del turno desde la BD, con fallback a azul
                 $colorTurno = $asig->turno->color ?? '#3b82f6';
+                $colorTexto = $asig->turno->color_texto ?? '#ffffff';
 
                 // Generar color de borde más oscuro
                 $borderColor = $this->darkenColor($colorTurno, 20);
@@ -1036,7 +1037,7 @@ class ProfileController extends Controller
                     'allDay' => true,
                     'backgroundColor' => $colorTurno,
                     'borderColor' => $borderColor,
-                    'textColor' => '#ffffff',
+                    'textColor' => $colorTexto,
                     'extendedProps' => [
                         'asignacion_id' => $asig->id,
                         'fecha' => $fechaStr,
