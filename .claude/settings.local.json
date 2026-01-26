@@ -29,7 +29,9 @@
       "Bash(del \"C:\\\\xampp\\\\htdocs\\\\bigmat\\\\database\\\\migrations\\\\2026_01_16_224924_add_numero_empresa_personal_to_users_table.php\")",
       "Bash(ls -la \"C:\\\\xampp\\\\htdocs\\\\bigmat\\\\public\"\" 2>/dev/null || dir \"C:xampphtdocsbigmatpublic \")",
       "Bash(npm run build:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(xargs ls:*)",
+      "Bash(xxd:*)"
     ]
   }
 }

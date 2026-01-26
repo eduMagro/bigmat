@@ -24,6 +24,7 @@ use App\Http\Controllers\ProduccionController;
 use App\Http\Controllers\AjustesController;
 use App\Http\Controllers\PoliticasController;
 use App\Http\Controllers\RevisionFichajeController;
+use App\Http\Controllers\AgrupacionTurnoController;
 
 // Ruta principal - redirige a login, dashboard o mi-perfil según el rol
 Route::get('/', function () {
@@ -107,6 +108,15 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::resource('turnos', TurnoController::class);
     Route::patch('turnos/{turno}/toggle', [TurnoController::class, 'toggleActivo'])->name('turnos.toggle');
     Route::resource('asignaciones-turnos', AsignacionTurnoController::class);
+
+    // === AGRUPACIONES DE TURNOS (Plantillas) ===
+    Route::get('/agrupaciones-turnos', [AgrupacionTurnoController::class, 'index'])->name('agrupaciones-turnos.index');
+    Route::post('/agrupaciones-turnos', [AgrupacionTurnoController::class, 'store'])->name('agrupaciones-turnos.store');
+    Route::get('/agrupaciones-turnos/{agrupacionesTurno}', [AgrupacionTurnoController::class, 'show'])->name('agrupaciones-turnos.show');
+    Route::put('/agrupaciones-turnos/{agrupacionesTurno}', [AgrupacionTurnoController::class, 'update'])->name('agrupaciones-turnos.update');
+    Route::delete('/agrupaciones-turnos/{agrupacionesTurno}', [AgrupacionTurnoController::class, 'destroy'])->name('agrupaciones-turnos.destroy');
+    Route::patch('/agrupaciones-turnos/{agrupacionesTurno}/toggle', [AgrupacionTurnoController::class, 'toggleActivo'])->name('agrupaciones-turnos.toggle');
+    Route::post('/agrupaciones-turnos/asignar-usuario', [AgrupacionTurnoController::class, 'asignarUsuario'])->name('agrupaciones-turnos.asignarUsuario');
     Route::post('/fichar', [AsignacionTurnoController::class, 'fichar'])->name('users.fichar');
     Route::post('/asignaciones-turno/asignar-obra', [AsignacionTurnoController::class, 'asignarObra'])->name('asignaciones-turnos.asignarObra');
     Route::post('/asignaciones-turno/asignar-multiple', [AsignacionTurnoController::class, 'asignarObraMultiple'])->name('asignaciones-turnos.asignarObraMultiple');

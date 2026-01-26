@@ -51,6 +51,136 @@
                     distancia: ''
                 };
             },
+            // Agrupaciones de Turnos (Plantillas)
+            openAgrupacionModal: false,
+            editingAgrupacionId: null,
+            agrupacionForm: {
+                nombre: '',
+                descripcion: '',
+                activo: true,
+                dias: {
+                    1: null, // Lunes
+                    2: null, // Martes
+                    3: null, // Miercoles
+                    4: null, // Jueves
+                    5: null, // Viernes
+                    6: null, // Sabado
+                    0: null  // Domingo
+                }
+            },
+            isAgrupacionSubmitting: false,
+            resetAgrupacionForm() {
+                this.agrupacionForm = {
+                    nombre: '',
+                    descripcion: '',
+                    activo: true,
+                    dias: {
+                        1: null,
+                        2: null,
+                        3: null,
+                        4: null,
+                        5: null,
+                        6: null,
+                        0: null
+                    }
+                };
+            },
+            async submitAgrupacion() {
+                this.isAgrupacionSubmitting = true;
+                try {
+                    const diasArray = Object.entries(this.agrupacionForm.dias).map(([dia, turnoId]) => ({
+                        dia_semana: parseInt(dia),
+                        turno_id: turnoId ? parseInt(turnoId) : null
+                    }));
+
+                    const payload = {
+                        nombre: this.agrupacionForm.nombre,
+                        descripcion: this.agrupacionForm.descripcion,
+                        activo: this.agrupacionForm.activo,
+                        dias: diasArray
+                    };
+
+                    const url = this.editingAgrupacionId
+                        ? '{{ url("agrupaciones-turnos") }}/' + this.editingAgrupacionId
+                        : '{{ route("agrupaciones-turnos.store") }}';
+
+                    const response = await fetch(url, {
+                        method: this.editingAgrupacionId ? 'PUT' : 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Error al guardar');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('Error al guardar la plantilla de turno');
+                } finally {
+                    this.isAgrupacionSubmitting = false;
+                }
+            },
+            async deleteAgrupacion(id) {
+                if (!confirm('¿Eliminar esta plantilla de turno?')) return;
+                try {
+                    const response = await fetch('{{ url("agrupaciones-turnos") }}/' + id, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Error al eliminar');
+                    }
+                } catch (error) {
+                    alert('Error al eliminar');
+                }
+            },
+            async toggleAgrupacion(id) {
+                try {
+                    const response = await fetch('{{ url("agrupaciones-turnos") }}/' + id + '/toggle', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    alert('Error al cambiar estado');
+                }
+            },
+            editAgrupacion(agrupacion) {
+                this.editingAgrupacionId = agrupacion.id;
+                this.agrupacionForm.nombre = agrupacion.nombre;
+                this.agrupacionForm.descripcion = agrupacion.descripcion || '';
+                this.agrupacionForm.activo = agrupacion.activo;
+                // Resetear dias
+                this.agrupacionForm.dias = {1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 0: null};
+                // Llenar con los dias existentes
+                if (agrupacion.dias) {
+                    agrupacion.dias.forEach(dia => {
+                        this.agrupacionForm.dias[dia.dia_semana] = dia.turno_id;
+                    });
+                }
+                this.openAgrupacionModal = true;
+            },
             async submitObra() {
                 this.isObraSubmitting = true;
                 try {
@@ -647,6 +777,188 @@
                                 class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors">
                                 <span x-show="!isCategoriaSubmitting" x-text="editingCategoriaId ? 'Actualizar' : 'Guardar'"></span>
                                 <span x-show="isCategoriaSubmitting">Guardando...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ===== SECCION PLANTILLAS DE TURNOS ===== -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700">Plantillas de Turnos</h3>
+                    <button @click="openAgrupacionModal = true; editingAgrupacionId = null; resetAgrupacionForm();"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Nueva Plantilla
+                    </button>
+                </div>
+
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-auto border-collapse">
+                            <thead class="bg-indigo-500 text-white">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Dias</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Empleados</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Estado</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @forelse ($agrupaciones as $agrupacion)
+                                    <tr class="hover:bg-indigo-50 transition-colors duration-150 {{ $agrupacion->activo ? '' : 'opacity-60' }}">
+                                        <td class="px-4 py-3">
+                                            <span class="font-medium text-gray-900">{{ $agrupacion->nombre }}</span>
+                                            @if($agrupacion->descripcion)
+                                                <p class="text-xs text-gray-500">{{ $agrupacion->descripcion }}</p>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex flex-wrap gap-1">
+                                                @php
+                                                    $diasAbrev = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+                                                    $diasConfig = $agrupacion->dias->keyBy('dia_semana');
+                                                @endphp
+                                                @foreach([1, 2, 3, 4, 5, 6, 0] as $dia)
+                                                    @php
+                                                        $diaConfig = $diasConfig->get($dia);
+                                                        $tieneTurno = $diaConfig && $diaConfig->turno_id;
+                                                        $turnoColor = $tieneTurno && $diaConfig->turno ? $diaConfig->turno->color : null;
+                                                    @endphp
+                                                    <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-medium rounded
+                                                        {{ $tieneTurno ? 'text-white' : 'bg-gray-200 text-gray-500' }}"
+                                                        @if($tieneTurno && $turnoColor) style="background-color: {{ $turnoColor }}" @endif
+                                                        @if($tieneTurno && !$turnoColor) class="bg-indigo-500 text-white" @endif
+                                                        title="{{ $tieneTurno && $diaConfig->turno ? $diaConfig->turno->nombre : 'No trabaja' }}">
+                                                        {{ $diasAbrev[$dia] }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $agrupacion->usuarios_count > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                                {{ $agrupacion->usuarios_count }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <button @click="toggleAgrupacion({{ $agrupacion->id }})"
+                                                class="px-2 py-1 rounded-full text-xs font-semibold {{ $agrupacion->activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                                {{ $agrupacion->activo ? 'Activo' : 'Inactivo' }}
+                                            </button>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div class="flex items-center justify-center space-x-2">
+                                                <button
+                                                    @click="editAgrupacion({{ $agrupacion->toJson() }})"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    Editar
+                                                </button>
+                                                <button @click="deleteAgrupacion({{ $agrupacion->id }})"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors {{ $agrupacion->usuarios_count > 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                                    {{ $agrupacion->usuarios_count > 0 ? 'disabled' : '' }}
+                                                    title="{{ $agrupacion->usuarios_count > 0 ? 'Tiene empleados asignados' : 'Eliminar plantilla' }}">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                            No hay plantillas de turnos registradas
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Crear/Editar Plantilla de Turno -->
+            <div x-show="openAgrupacionModal" x-cloak
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div @click.away="openAgrupacionModal = false"
+                    class="bg-white w-full max-w-4xl rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4" x-text="editingAgrupacionId ? 'Editar Plantilla de Turno' : 'Nueva Plantilla de Turno'"></h3>
+
+                    <form @submit.prevent="submitAgrupacion()">
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de la plantilla *</label>
+                                    <input type="text" x-model="agrupacionForm.nombre" required
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Ej: TURNO 1, Jornada Completa...">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
+                                    <input type="text" x-model="agrupacionForm.descripcion"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Descripcion opcional...">
+                                </div>
+                            </div>
+
+                            <div class="border-t pt-5">
+                                <p class="text-sm font-medium text-gray-700 mb-1">Turno por dia de la semana</p>
+                                <p class="text-xs text-gray-400 mb-5">Deja vacio los dias que no se trabaja</p>
+
+                                <div class="bg-gray-50 rounded-xl p-4">
+                                    <div class="grid grid-cols-7 gap-3">
+                                        @php
+                                            $diasAbrevModal = [1 => 'L', 2 => 'M', 3 => 'X', 4 => 'J', 5 => 'V', 6 => 'S', 0 => 'D'];
+                                            $diasNombres = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miercoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sabado', 0 => 'Domingo'];
+                                        @endphp
+                                        @foreach([1, 2, 3, 4, 5, 6, 0] as $dia)
+                                            <div class="text-center">
+                                                <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-semibold text-sm mb-2">
+                                                    {{ $diasAbrevModal[$dia] }}
+                                                </div>
+                                                <select x-model="agrupacionForm.dias[{{ $dia }}]"
+                                                    class="w-full bg-white border-0 rounded-lg px-2 py-2 text-sm text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                                    <option value="">-</option>
+                                                    @foreach($turnos as $turno)
+                                                        @if($turno->activo)
+                                                            <option value="{{ $turno->id }}">{{ $turno->nombre }}</option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-2 pt-2">
+                                <input type="checkbox" x-model="agrupacionForm.activo" id="agrupacionActivo"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <label for="agrupacionActivo" class="text-sm text-gray-700">Plantilla activa</label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <button type="button" @click="openAgrupacionModal = false"
+                                class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" :disabled="isAgrupacionSubmitting"
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                                <span x-show="!isAgrupacionSubmitting" x-text="editingAgrupacionId ? 'Actualizar' : 'Guardar'"></span>
+                                <span x-show="isAgrupacionSubmitting">Guardando...</span>
                             </button>
                         </div>
                     </form>

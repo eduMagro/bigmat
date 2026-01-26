@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use App\Models\User;
 use App\Models\Turno;
+use App\Models\AgrupacionTurno;
 use App\Models\Festivo;
 use App\Models\VacacionesSolicitud;
 use App\Models\Categoria;
@@ -909,16 +910,22 @@ class ProfileController extends Controller
 
     public function generarTurnos(User $user)
     {
-        // Obtener ID del turno desde el request
-        $turnoId = request()->input('tipo_turno');
+        // Obtener ID de la agrupacion de turno (plantilla)
+        $agrupacionId = request()->input('agrupacion_turno_id');
 
-        // Verificar que el turno existe y está activo
-        $turno = Turno::where('id', $turnoId)->where('activo', true)->first();
-        if (!$turno) {
-            return redirect()->back()->with('error', 'Debe seleccionar un turno válido.');
+        // Verificar que la agrupacion existe y esta activa
+        $agrupacion = AgrupacionTurno::where('id', $agrupacionId)->where('activo', true)->first();
+        if (!$agrupacion) {
+            return redirect()->back()->with('error', 'Debe seleccionar una plantilla de turno valida.');
         }
 
+        // Asignar la agrupacion al usuario
+        $user->update(['agrupacion_turno_id' => $agrupacion->id]);
+
         $obraId = request()->input('obra_id');
+
+        // Cargar los dias de la agrupacion
+        $diasConfig = $agrupacion->dias()->with('turno')->get()->keyBy('dia_semana');
 
         // Rango: desde mañana hasta fin de año
         $inicio = Carbon::now()->addDay()->startOfDay();
@@ -931,23 +938,33 @@ class ProfileController extends Controller
             ->map(fn($f) => Carbon::parse($f)->toDateString())
             ->all();
 
-        // Días ya marcados como vacaciones
+        // Dias ya marcados como vacaciones
+        $turnoVacacionesId = Turno::where('nombre', 'vacaciones')->value('id');
         $diasVacaciones = AsignacionTurno::where('user_id', $user->id)
-            ->where('estado', 'vacaciones')
+            ->where(function($q) use ($turnoVacacionesId) {
+                $q->where('estado', 'vacaciones')
+                  ->orWhere('turno_id', $turnoVacacionesId);
+            })
             ->pluck('fecha')
             ->map(fn($f) => Carbon::parse($f)->toDateString())
             ->all();
 
+        $asignacionesCreadas = 0;
+
         for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
             $fechaStr = $fecha->toDateString();
+            $diaSemana = $fecha->dayOfWeek;
 
-            // Saltar sábados, domingos, festivos y vacaciones
-            $esNoLaborable =
-                in_array($fecha->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])
-                || in_array($fechaStr, $festivosArray, true)
-                || in_array($fechaStr, $diasVacaciones ?? [], true);
+            // Saltar festivos y vacaciones
+            if (in_array($fechaStr, $festivosArray, true) || in_array($fechaStr, $diasVacaciones, true)) {
+                continue;
+            }
 
-            if ($esNoLaborable) {
+            // Obtener configuracion del dia de la semana desde la plantilla
+            $diaConfig = $diasConfig->get($diaSemana);
+
+            // Si no hay turno configurado para este dia, no se trabaja
+            if (!$diaConfig || !$diaConfig->turno_id) {
                 continue;
             }
 
@@ -955,28 +972,29 @@ class ProfileController extends Controller
                 ->whereDate('fecha', $fechaStr)
                 ->first();
 
-            // No sobrescribir si ese día se marcó con turno 'festivo'
+            // No sobrescribir si ese dia se marco con turno 'festivo'
             if ($asignacion && optional($asignacion->turno)->nombre === 'festivo') {
                 continue;
             }
 
             if ($asignacion) {
                 $asignacion->update([
-                    'turno_id' => $turno->id,
+                    'turno_id' => $diaConfig->turno_id,
                     'obra_id' => $obraId,
                 ]);
             } else {
                 AsignacionTurno::create([
                     'user_id' => $user->id,
                     'fecha' => $fechaStr,
-                    'turno_id' => $turno->id,
+                    'turno_id' => $diaConfig->turno_id,
                     'obra_id' => $obraId,
                     'estado' => 'activo',
                 ]);
             }
+            $asignacionesCreadas++;
         }
 
-        return redirect()->back()->with('success', "Turnos de tipo '{$turno->nombre}' generados correctamente para {$user->name}, excluyendo festivos y vacaciones.");
+        return redirect()->back()->with('success', "Plantilla '{$agrupacion->nombre}' asignada a {$user->name}. Se generaron {$asignacionesCreadas} turnos hasta fin de año.");
     }
 
     public function eventosTurnos(User $user)

@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\Categoria;
 use App\Models\Obra;
 use App\Models\Turno;
+use App\Models\AgrupacionTurno;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Url;
@@ -311,6 +312,27 @@ class UsersTable extends Component
         $categorias = Categoria::orderBy('nombre')->get();
         $roles = ['operario', 'oficina', 'transportista', 'visitante'];
         $turnos = Turno::where('activo', true)->ordenados()->get();
+        $agrupacionesTurnos = AgrupacionTurno::activas()->ordenadas()->with('dias.turno')->get();
+
+        // Preparar datos de plantillas para el modal JS
+        $diasAbrev = [0 => 'D', 1 => 'L', 2 => 'M', 3 => 'X', 4 => 'J', 5 => 'V', 6 => 'S'];
+        $plantillasParaModal = $agrupacionesTurnos->map(function($a) use ($diasAbrev) {
+            $dias = [];
+            foreach ([1, 2, 3, 4, 5, 6, 0] as $d) {
+                $diaConfig = $a->dias->firstWhere('dia_semana', $d);
+                $dias[$d] = [
+                    'abrev' => $diasAbrev[$d],
+                    'turno' => $diaConfig && $diaConfig->turno ? $diaConfig->turno->nombre : null,
+                    'color' => $diaConfig && $diaConfig->turno ? $diaConfig->turno->color : null
+                ];
+            }
+            return [
+                'id' => $a->id,
+                'nombre' => $a->nombre,
+                'descripcion' => $a->descripcion,
+                'dias' => $dias
+            ];
+        });
         $contactosAgenda = User::with(['empresa', 'categoria'])
             ->orderBy('name')
             ->orderBy('primer_apellido')
@@ -346,6 +368,8 @@ class UsersTable extends Component
             'categorias' => $categorias,
             'roles' => $roles,
             'turnos' => $turnos,
+            'agrupacionesTurnos' => $agrupacionesTurnos,
+            'plantillasParaModal' => $plantillasParaModal,
             'filtrosActivos' => $this->getFiltrosActivos(),
             'contactosAgenda' => $contactosAgenda,
             'obras' => $obras,

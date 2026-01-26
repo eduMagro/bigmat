@@ -7,10 +7,6 @@
 
     <x-tabla.filtros-aplicados :filtros="$filtrosActivos" />
 
-    <script>
-        const obrasHierrosPacoReyes = @json($obras ?? []);
-    </script>
-
     <div class="w-full max-w-full overflow-x-auto bg-white shadow-lg rounded-lg mt-4">
         <table class="w-full border border-gray-300 rounded-lg">
             <thead class="bg-blue-500 text-white">
@@ -271,8 +267,10 @@
                             <input type="hidden" name="turno_inicio" id="turno_inicio_{{ $user->id }}">
                             <input type="hidden" id="obra_id_input_{{ $user->id }}" name="obra_id">
 
+                            <input type="hidden" name="agrupacion_turno_id" id="agrupacion_turno_id_{{ $user->id }}">
+
                             <button type="button"
-                                class="w-full bg-gray-500 hover:bg-gray-600 text-white text-xs px-2 py-1 rounded"
+                                class="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-2 py-1 rounded"
                                 onclick="confirmarGenerarTurnos({{ $user->id }}, obrasHierrosPacoReyes)">
                                 Turnos
                             </button>
@@ -343,71 +341,101 @@
     <x-tabla.paginacion-livewire :paginador="$registrosUsuarios" />
 
     <script>
-        // Turnos desde la base de datos
-        const turnosDisponibles = @json($turnos->pluck('nombre', 'id'));
+        const obrasHierrosPacoReyes = @json($obras ?? []);
+        const plantillasDetalle = @json($plantillasParaModal);
+
+        function generarHtmlPlantillas() {
+            const diasOrden = [1, 2, 3, 4, 5, 6, 0];
+            let html = '';
+
+            plantillasDetalle.forEach(function(p) {
+                let diasHtml = '';
+                diasOrden.forEach(function(d) {
+                    const dia = p.dias[d];
+                    const tieneTurno = dia.turno !== null;
+                    const bg = tieneTurno ? (dia.color || '#6366f1') : '#e5e7eb';
+                    const txt = tieneTurno ? '#fff' : '#9ca3af';
+                    const turnoNombre = tieneTurno ? dia.turno : '-';
+                    diasHtml += '<div style="display:inline-flex;flex-direction:column;align-items:center;min-width:32px;margin:0 2px;">';
+                    diasHtml += '<span style="font-size:9px;color:#6b7280;">' + dia.abrev + '</span>';
+                    diasHtml += '<span style="background:' + bg + ';color:' + txt + ';border-radius:3px;padding:1px 4px;font-size:10px;">' + turnoNombre + '</span>';
+                    diasHtml += '</div>';
+                });
+
+                html += '<div class="plantilla-opcion" data-id="' + p.id + '" style="border:2px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;background:#fff;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+                html += '<strong style="color:#1f2937;">' + p.nombre + '</strong>';
+                html += '</div>';
+                if (p.descripcion) {
+                    html += '<p style="font-size:11px;color:#6b7280;margin-bottom:6px;">' + p.descripcion + '</p>';
+                }
+                html += '<div style="display:flex;justify-content:center;">' + diasHtml + '</div>';
+                html += '</div>';
+            });
+
+            return html;
+        }
 
         function confirmarGenerarTurnos(userId, obras) {
-            // Paso 1: Seleccionar tipo de turno
+            let plantillaSeleccionada = null;
+            const plantillasHtml = generarHtmlPlantillas();
+
             Swal.fire({
-                title: "Generar turnos",
-                html: `<p class="mb-3">¿Qué tipo de turno desea generar para el resto del año?</p>`,
-                input: 'select',
-                inputOptions: turnosDisponibles,
-                inputPlaceholder: 'Seleccione un tipo de turno',
+                title: "Seleccionar plantilla",
+                html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Elige la plantilla para generar turnos:</p><div id="plantillas-box" style="max-height:300px;overflow-y:auto;text-align:left;">' + plantillasHtml + '</div>',
+                width: 480,
                 showCancelButton: true,
                 confirmButtonText: 'Siguiente',
                 cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                inputValidator: (value) => {
-                    if (!value) {
-                        return 'Debe seleccionar un tipo de turno';
+                confirmButtonColor: '#6366f1',
+                didOpen: function() {
+                    document.querySelectorAll('.plantilla-opcion').forEach(function(card) {
+                        card.onclick = function() {
+                            plantillaSeleccionada = this.dataset.id;
+                            document.querySelectorAll('.plantilla-opcion').forEach(function(c) {
+                                c.style.borderColor = '#e5e7eb';
+                                c.style.background = '#fff';
+                            });
+                            this.style.borderColor = '#6366f1';
+                            this.style.background = '#eef2ff';
+                        };
+                    });
+                },
+                preConfirm: function() {
+                    if (!plantillaSeleccionada) {
+                        Swal.showValidationMessage('Selecciona una plantilla');
+                        return false;
                     }
+                    return plantillaSeleccionada;
                 }
-            }).then((resultTipo) => {
-                if (!resultTipo.isConfirmed) return;
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
 
-                const tipoTurno = resultTipo.value;
-                document.getElementById("tipo_turno_" + userId).value = tipoTurno;
+                document.getElementById("agrupacion_turno_id_" + userId).value = result.value;
 
-                // Paso 2: Seleccionar obra
-                let opcionesObra = obras.map(
-                    (obra) => `<option value="${obra.id}">${obra.obra}</option>`
-                ).join("");
-
-                let selectHtml = `
-                    <label for="select-obra">Selecciona la obra asignada:</label>
-                    <select id="select-obra" class="swal2-select" style="margin-top: 1em;">
-                        ${opcionesObra}
-                    </select>
-                `;
+                let opcionesObra = '';
+                obras.forEach(function(obra) {
+                    opcionesObra += '<option value="' + obra.id + '">' + obra.obra + '</option>';
+                });
 
                 Swal.fire({
                     title: "Seleccionar obra",
-                    html: `
-                        <p class="mb-2">Esta acción generará turnos hasta final de año y reemplazará los actuales (excepto vacaciones y festivos).</p>
-                        ${selectHtml}
-                    `,
-                    icon: "warning",
+                    html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Obra asignada para los turnos:</p><select id="select-obra" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">' + opcionesObra + '</select>',
+                    icon: "info",
                     showCancelButton: true,
                     confirmButtonText: "Generar turnos",
                     cancelButtonText: "Cancelar",
-                    confirmButtonColor: "#3085d6",
-                    cancelButtonColor: "#d33",
-                    preConfirm: () => {
+                    confirmButtonColor: "#6366f1",
+                    preConfirm: function() {
                         const obraId = document.getElementById("select-obra").value;
                         if (!obraId) {
-                            Swal.showValidationMessage("Debes seleccionar una obra");
+                            Swal.showValidationMessage("Selecciona una obra");
                         }
                         return obraId;
                     }
-                }).then((respuestaObra) => {
-                    if (!respuestaObra.isConfirmed) return;
-
-                    const obraId = respuestaObra.value;
-                    document.getElementById("obra_id_input_" + userId).value = obraId;
-
-                    // Enviar formulario
+                }).then(function(resp) {
+                    if (!resp.isConfirmed) return;
+                    document.getElementById("obra_id_input_" + userId).value = resp.value;
                     document.getElementById("form-generar-turnos-" + userId).submit();
                 });
             });
