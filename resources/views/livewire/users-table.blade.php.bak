@@ -1,4 +1,10 @@
-<div class="max-md:hidden" x-data="usersTableData()">
+<div class="max-md:hidden" x-data="{ editandoUserId: null }">
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+
     <x-tabla.filtros-aplicados :filtros="$filtrosActivos" />
 
     <div class="w-full max-w-full overflow-x-auto bg-white shadow-lg rounded-lg mt-4">
@@ -131,103 +137,118 @@
                 @forelse ($registrosUsuarios as $user)
                 <tr tabindex="0"
                     wire:key="user-{{ $user->id }}"
-                    x-data="{ usuario: {{ Js::from($user) }}, original: {{ Js::from($user) }} }"
-                    x-on:dblclick="if(!$event.target.closest('input, select, button, a')) { editandoUserId === {{ $user->id }} ? (editandoUserId = null, usuario = JSON.parse(JSON.stringify(original))) : editandoUserId = {{ $user->id }} }"
-                    x-on:keydown.enter.stop="if(editandoUserId === {{ $user->id }}) { guardarUsuario(usuario); editandoUserId = null; }"
-                    x-bind:class="{ 'bg-yellow-100': editandoUserId === {{ $user->id }}, 'hover:bg-blue-50': editandoUserId !== {{ $user->id }} }"
+                    x-data="{
+                        id: {{ $user->id }},
+                        usuario: @js($user),
+                        original: JSON.parse(JSON.stringify(@js($user))),
+                        get editando() { return editandoUserId === this.id },
+                        abrirEdicion() {
+                            editandoUserId = this.id;
+                        },
+                        cerrarEdicion() {
+                            if (editandoUserId === this.id) {
+                                editandoUserId = null;
+                            }
+                        },
+                        cancelarEdicion() {
+                            this.usuario = JSON.parse(JSON.stringify(this.original));
+                            this.cerrarEdicion();
+                        }
+                    }"
+                    @dblclick="if(!$event.target.closest('input, select, button, a')) {
+                        if(!editando) {
+                            abrirEdicion();
+                        } else {
+                            cancelarEdicion();
+                        }
+                    }"
+                    @keydown.enter.stop="if(editando) { guardarCambios(usuario); cerrarEdicion(); }"
+                    :class="{
+                        'bg-yellow-100': editando,
+                        'hover:bg-blue-50': !editando
+                    }"
                     class="border-b odd:bg-gray-100 even:bg-gray-50 cursor-pointer text-xs uppercase transition-colors">
 
                     <td class="px-2 py-3 text-center border">{{ $user->id }}</td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->name }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.name" placeholder="Nombre"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->name }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.name" placeholder="Nombre"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->primer_apellido }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.primer_apellido" placeholder="Apellido 1"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->primer_apellido }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.primer_apellido" placeholder="Apellido 1"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->segundo_apellido ?? '-' }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.segundo_apellido" placeholder="Apellido 2"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->segundo_apellido ?? '-' }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.segundo_apellido" placeholder="Apellido 2"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->email }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.email"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->email }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.email"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->movil_personal }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.movil_personal"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->movil_personal }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.movil_personal"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->movil_empresa }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.movil_empresa"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->movil_empresa }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.movil_empresa"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->numero_corto ?? '-' }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.numero_corto" maxlength="4"
-                            placeholder="0000" x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->numero_corto ?? '-' }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.numero_corto" maxlength="4"
+                            placeholder="0000" @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->dni }}</span>
-                        <input x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.dni"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900" />
+                        <span x-show="!editando">{{ $user->dni }}</span>
+                        <x-tabla.input x-cloak x-show="editando" x-model="usuario.dni"
+                            @keydown.enter.stop="guardarCambios(usuario)" />
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->empresa->nombre ?? 'Sin empresa' }}</span>
-                        <select x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.empresa_id"
-                            x-on:keydown.enter.stop="guardarUsuario(usuario); editandoUserId = null"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900">
+                        <span x-show="!editando">{{ $user->empresa->nombre ?? 'Sin empresa' }}</span>
+                        <x-tabla.select-edicion x-cloak x-show="editando" x-model="usuario.empresa_id"
+                            @keydown.enter.stop="guardarCambios(usuario)">
                             <option value="">Selecciona empresa</option>
                             @foreach ($empresas as $empresa)
                             <option value="{{ $empresa->id }}">{{ $empresa->nombre }}</option>
                             @endforeach
-                        </select>
+                        </x-tabla.select-edicion>
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->rol }}</span>
-                        <select x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.rol"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900">
+                        <span x-show="!editando">{{ $user->rol }}</span>
+                        <x-tabla.select-edicion x-cloak x-show="editando" x-model="usuario.rol">
                             <option value="">Selecciona rol</option>
                             <option value="oficina">Oficina</option>
                             <option value="operario">Operario</option>
                             <option value="transportista">Transportista</option>
                             <option value="visitante">Visitante</option>
-                        </select>
+                        </x-tabla.select-edicion>
                     </td>
 
                     <td class="px-2 py-3 text-center border">
-                        <span x-show="editandoUserId !== {{ $user->id }}">{{ $user->categoria->nombre ?? 'Sin asignar' }}</span>
-                        <select x-cloak x-show="editandoUserId === {{ $user->id }}" x-model="usuario.categoria_id"
-                            class="w-full text-xs px-2 py-1 border rounded text-blue-900">
+                        <span x-show="!editando">{{ $user->categoria->nombre ?? 'Sin asignar' }}</span>
+                        <x-tabla.select-edicion x-cloak x-show="editando" x-model="usuario.categoria_id">
                             <option value="">Selecciona cat.</option>
                             @foreach ($categorias as $categoria)
                             <option value="{{ $categoria->id }}">{{ ucfirst($categoria->nombre) }}</option>
                             @endforeach
-                        </select>
+                        </x-tabla.select-edicion>
                     </td>
 
                     <td class="px-2 py-3 text-center border">
@@ -245,11 +266,12 @@
                             <input type="hidden" name="tipo_turno" id="tipo_turno_{{ $user->id }}">
                             <input type="hidden" name="turno_inicio" id="turno_inicio_{{ $user->id }}">
                             <input type="hidden" id="obra_id_input_{{ $user->id }}" name="obra_id">
+
                             <input type="hidden" name="agrupacion_turno_id" id="agrupacion_turno_id_{{ $user->id }}">
 
                             <button type="button"
                                 class="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-2 py-1 rounded"
-                                x-on:click="confirmarGenerarTurnos({{ $user->id }})">
+                                onclick="confirmarGenerarTurnos({{ $user->id }}, obrasHierrosPacoReyes)">
                                 Turnos
                             </button>
                         </form>
@@ -257,8 +279,9 @@
 
                     <td class="px-1 py-2 border text-xs font-bold">
                         <div class="flex items-center space-x-2 justify-center">
-                            <button x-show="editandoUserId === {{ $user->id }}" x-cloak
-                                x-on:click="guardarUsuario(usuario); editandoUserId = null"
+                            <!-- Mostrar solo en modo edición -->
+                            <button x-show="editando" style="display: none;"
+                                @click="guardarCambios(usuario); cerrarEdicion()"
                                 class="w-6 h-6 bg-green-100 text-green-600 rounded hover:bg-green-200 flex items-center justify-center"
                                 title="Guardar cambios">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -267,8 +290,8 @@
                                         d="M5 13l4 4L19 7" />
                                 </svg>
                             </button>
-                            <button x-show="editandoUserId === {{ $user->id }}" x-cloak
-                                x-on:click="usuario = JSON.parse(JSON.stringify(original)); editandoUserId = null"
+                            <button x-show="editando" style="display: none;"
+                                @click="cancelarEdicion()"
                                 class="w-6 h-6 bg-red-100 text-red-600 rounded hover:bg-red-200 flex items-center justify-center"
                                 title="Cancelar edición">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -278,9 +301,10 @@
                                 </svg>
                             </button>
 
-                            <template x-if="editandoUserId !== {{ $user->id }}">
+                            <!-- Mostrar solo cuando NO está en modo edición -->
+                            <template x-if="!editando">
                                 <div class="flex items-center space-x-2">
-                                    <button x-on:click="editandoUserId = {{ $user->id }}"
+                                    <button @click="abrirEdicion()"
                                         class="w-6 h-6 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 flex items-center justify-center"
                                         title="Editar">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
@@ -315,32 +339,114 @@
     </div>
 
     <x-tabla.paginacion-livewire :paginador="$registrosUsuarios" />
-</div>
 
-@push('styles')
-<style>
-    [x-cloak] {
-        display: none !important;
-    }
-</style>
-@endpush
+    <script>
+        const obrasHierrosPacoReyes = @json($obras ?? []);
+        const plantillasDetalle = @json($plantillasParaModal);
 
-@push('scripts')
-<script>
-    window.obrasHierrosPacoReyes = @json($obras ?? []);
-    window.plantillasDetalle = @json($plantillasParaModal);
-    window.usersBaseUrl = '{{ url("/users") }}';
-    window.csrfToken = '{{ csrf_token() }}';
+        function generarHtmlPlantillas() {
+            const diasOrden = [1, 2, 3, 4, 5, 6, 0];
+            let html = '';
 
-    function usersTableData() {
-        return {
-            editandoUserId: null,
-            guardarUsuario(usuario) {
-                fetch(window.usersBaseUrl + '/' + usuario.id, {
+            plantillasDetalle.forEach(function(p) {
+                let diasHtml = '';
+                diasOrden.forEach(function(d) {
+                    const dia = p.dias[d];
+                    const tieneTurno = dia.turno !== null;
+                    const bg = tieneTurno ? (dia.color || '#6366f1') : '#e5e7eb';
+                    const txt = tieneTurno ? '#fff' : '#9ca3af';
+                    const turnoNombre = tieneTurno ? dia.turno : '-';
+                    diasHtml += '<div style="display:inline-flex;flex-direction:column;align-items:center;min-width:32px;margin:0 2px;">';
+                    diasHtml += '<span style="font-size:9px;color:#6b7280;">' + dia.abrev + '</span>';
+                    diasHtml += '<span style="background:' + bg + ';color:' + txt + ';border-radius:3px;padding:1px 4px;font-size:10px;">' + turnoNombre + '</span>';
+                    diasHtml += '</div>';
+                });
+
+                html += '<div class="plantilla-opcion" data-id="' + p.id + '" style="border:2px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;background:#fff;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+                html += '<strong style="color:#1f2937;">' + p.nombre + '</strong>';
+                html += '</div>';
+                if (p.descripcion) {
+                    html += '<p style="font-size:11px;color:#6b7280;margin-bottom:6px;">' + p.descripcion + '</p>';
+                }
+                html += '<div style="display:flex;justify-content:center;">' + diasHtml + '</div>';
+                html += '</div>';
+            });
+
+            return html;
+        }
+
+        function confirmarGenerarTurnos(userId, obras) {
+            let plantillaSeleccionada = null;
+            const plantillasHtml = generarHtmlPlantillas();
+
+            Swal.fire({
+                title: "Seleccionar plantilla",
+                html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Elige la plantilla para generar turnos:</p><div id="plantillas-box" style="max-height:300px;overflow-y:auto;text-align:left;">' + plantillasHtml + '</div>',
+                width: 480,
+                showCancelButton: true,
+                confirmButtonText: 'Siguiente',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#6366f1',
+                didOpen: function() {
+                    document.querySelectorAll('.plantilla-opcion').forEach(function(card) {
+                        card.onclick = function() {
+                            plantillaSeleccionada = this.dataset.id;
+                            document.querySelectorAll('.plantilla-opcion').forEach(function(c) {
+                                c.style.borderColor = '#e5e7eb';
+                                c.style.background = '#fff';
+                            });
+                            this.style.borderColor = '#6366f1';
+                            this.style.background = '#eef2ff';
+                        };
+                    });
+                },
+                preConfirm: function() {
+                    if (!plantillaSeleccionada) {
+                        Swal.showValidationMessage('Selecciona una plantilla');
+                        return false;
+                    }
+                    return plantillaSeleccionada;
+                }
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                document.getElementById("agrupacion_turno_id_" + userId).value = result.value;
+
+                let opcionesObra = '';
+                obras.forEach(function(obra) {
+                    opcionesObra += '<option value="' + obra.id + '">' + obra.obra + '</option>';
+                });
+
+                Swal.fire({
+                    title: "Seleccionar obra",
+                    html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Obra asignada para los turnos:</p><select id="select-obra" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">' + opcionesObra + '</select>',
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonText: "Generar turnos",
+                    cancelButtonText: "Cancelar",
+                    confirmButtonColor: "#6366f1",
+                    preConfirm: function() {
+                        const obraId = document.getElementById("select-obra").value;
+                        if (!obraId) {
+                            Swal.showValidationMessage("Selecciona una obra");
+                        }
+                        return obraId;
+                    }
+                }).then(function(resp) {
+                    if (!resp.isConfirmed) return;
+                    document.getElementById("obra_id_input_" + userId).value = resp.value;
+                    document.getElementById("form-generar-turnos-" + userId).submit();
+                });
+            });
+        }
+
+        function guardarCambios(usuario) {
+            fetch(`{{ url('/users') }}/${usuario.id}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': window.csrfToken,
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({
@@ -391,105 +497,6 @@
                     console.error("Error en la solicitud fetch:", err);
                     mostrarError(err.message || "No se pudo actualizar el usuario. Inténtalo nuevamente.", "Error de conexión");
                 });
-            }
-        };
-    }
-
-    function generarHtmlPlantillas() {
-        const diasOrden = [1, 2, 3, 4, 5, 6, 0];
-        let html = '';
-
-        window.plantillasDetalle.forEach(function(p) {
-            let diasHtml = '';
-            diasOrden.forEach(function(d) {
-                const dia = p.dias[d];
-                const tieneTurno = dia.turno !== null;
-                const bg = tieneTurno ? (dia.color || '#6366f1') : '#e5e7eb';
-                const txt = tieneTurno ? '#fff' : '#9ca3af';
-                const turnoNombre = tieneTurno ? dia.turno : '-';
-                diasHtml += '<div style="display:inline-flex;flex-direction:column;align-items:center;min-width:32px;margin:0 2px;">';
-                diasHtml += '<span style="font-size:9px;color:#6b7280;">' + dia.abrev + '</span>';
-                diasHtml += '<span style="background:' + bg + ';color:' + txt + ';border-radius:3px;padding:1px 4px;font-size:10px;">' + turnoNombre + '</span>';
-                diasHtml += '</div>';
-            });
-
-            html += '<div class="plantilla-opcion" data-id="' + p.id + '" style="border:2px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;background:#fff;">';
-            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-            html += '<strong style="color:#1f2937;">' + p.nombre + '</strong>';
-            html += '</div>';
-            if (p.descripcion) {
-                html += '<p style="font-size:11px;color:#6b7280;margin-bottom:6px;">' + p.descripcion + '</p>';
-            }
-            html += '<div style="display:flex;justify-content:center;">' + diasHtml + '</div>';
-            html += '</div>';
-        });
-
-        return html;
-    }
-
-    function confirmarGenerarTurnos(userId) {
-        let plantillaSeleccionada = null;
-        const plantillasHtml = generarHtmlPlantillas();
-
-        Swal.fire({
-            title: "Seleccionar plantilla",
-            html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Elige la plantilla para generar turnos:</p><div id="plantillas-box" style="max-height:300px;overflow-y:auto;text-align:left;">' + plantillasHtml + '</div>',
-            width: 480,
-            showCancelButton: true,
-            confirmButtonText: 'Siguiente',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#6366f1',
-            didOpen: function() {
-                document.querySelectorAll('.plantilla-opcion').forEach(function(card) {
-                    card.onclick = function() {
-                        plantillaSeleccionada = this.dataset.id;
-                        document.querySelectorAll('.plantilla-opcion').forEach(function(c) {
-                            c.style.borderColor = '#e5e7eb';
-                            c.style.background = '#fff';
-                        });
-                        this.style.borderColor = '#6366f1';
-                        this.style.background = '#eef2ff';
-                    };
-                });
-            },
-            preConfirm: function() {
-                if (!plantillaSeleccionada) {
-                    Swal.showValidationMessage('Selecciona una plantilla');
-                    return false;
-                }
-                return plantillaSeleccionada;
-            }
-        }).then(function(result) {
-            if (!result.isConfirmed) return;
-
-            document.getElementById("agrupacion_turno_id_" + userId).value = result.value;
-
-            let opcionesObra = '';
-            window.obrasHierrosPacoReyes.forEach(function(obra) {
-                opcionesObra += '<option value="' + obra.id + '">' + obra.obra + '</option>';
-            });
-
-            Swal.fire({
-                title: "Seleccionar obra",
-                html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Obra asignada para los turnos:</p><select id="select-obra" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">' + opcionesObra + '</select>',
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonText: "Generar turnos",
-                cancelButtonText: "Cancelar",
-                confirmButtonColor: "#6366f1",
-                preConfirm: function() {
-                    const obraId = document.getElementById("select-obra").value;
-                    if (!obraId) {
-                        Swal.showValidationMessage("Selecciona una obra");
-                    }
-                    return obraId;
-                }
-            }).then(function(resp) {
-                if (!resp.isConfirmed) return;
-                document.getElementById("obra_id_input_" + userId).value = resp.value;
-                document.getElementById("form-generar-turnos-" + userId).submit();
-            });
-        });
-    }
-</script>
-@endpush
+        }
+    </script>
+</div>

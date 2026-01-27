@@ -1,13 +1,4 @@
-<div x-data="agendaUsuarios(@js($contactosAgenda ?? collect()))" class="users-mobile md:hidden mt-4 space-y-3">
-    <style>
-        /* Evitar zoom en iOS al enfocar inputs en la vista móvil */
-        .users-mobile input,
-        .users-mobile textarea,
-        .users-mobile select,
-        .users-mobile button {
-            font-size: 16px;
-        }
-    </style>
+<div x-data="agendaUsuarios()" class="users-mobile md:hidden mt-4 space-y-3">
     <div class="sticky top-0 z-20 bg-white border border-gray-200 shadow-sm rounded-lg">
         <div class="flex items-center gap-2 px-4 py-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -249,11 +240,29 @@
         </div>
     </div>
 
-    <script>
-        function agendaUsuarios(contactos) {
+</div>
+
+@push('styles')
+<style>
+    /* Evitar zoom en iOS al enfocar inputs en la vista móvil */
+    .users-mobile input,
+    .users-mobile textarea,
+    .users-mobile select,
+    .users-mobile button {
+        font-size: 16px;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+    window.contactosAgendaData = @json($contactosAgenda ?? []);
+    window.usersBaseUrlMobile = '{{ url("/users") }}';
+
+    function agendaUsuarios() {
         return {
             filtro: '',
-            contactos,
+            contactos: window.contactosAgendaData,
             modalAbierto: false,
             seleccionado: {},
             editando: false,
@@ -295,11 +304,8 @@
             },
             onTouchEnd() {
                 if (this.offsetY > 80) {
-                    // Cerrar el modal sin animación de Alpine.js
                     this.modalAbierto = false;
-                    // Activar animación CSS desde la posición actual
                     this.cerrandoPorDrag = true;
-                    // Después de la animación, limpiar el estado
                     setTimeout(() => {
                         this.cerrandoPorDrag = false;
                         this.offsetY = 0;
@@ -309,7 +315,6 @@
                         document.body.classList.remove('overflow-hidden');
                     }, 150);
                 } else {
-                    // Volver a la posición original
                     this.offsetY = 0;
                     this.touchStartY = null;
                 }
@@ -317,7 +322,7 @@
             async guardarSeleccionado() {
                 if (!this.seleccionado?.id) return;
                 try {
-                    const resp = await fetch(`{{ url('/users') }}/${this.seleccionado.id}`, {
+                    const resp = await fetch(window.usersBaseUrlMobile + '/' + this.seleccionado.id, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -361,5 +366,5 @@
             },
         };
     }
-    </script>
-</div>
+</script>
+@endpush

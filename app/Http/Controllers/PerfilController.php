@@ -11,10 +11,12 @@ use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class PerfilController extends Controller
 {
-
+    // Cache TTL en segundos
+    private const CACHE_TTL = 300; // 5 minutos
 
     public function show(User $user)
     {
@@ -23,7 +25,7 @@ class PerfilController extends Controller
             return back()->with('error', 'No tienes permiso para ver este perfil.');
         }
 
-        // Recarga el usuario con todas sus relaciones necesarias (solo RRHH)
+        // Recarga el usuario con todas sus relaciones necesarias
         $user = User::with([
             'empresa',
             'categoria',
@@ -32,16 +34,16 @@ class PerfilController extends Controller
             'alertasLeidas',
             'asignacionesTurnos.turno',
             'permisosAcceso',
-            'incorporacion',
+            'incorporacion.documentos', // Añadir eager loading de documentos
         ])->findOrFail($user->id);
 
-        // Turnos disponibles para mostrarlos si hace falta
-        $turnos = Turno::all();
+        // Turnos disponibles cacheados
+        $turnos = $this->getTurnosCached();
 
-        // Resumen de asistencias
+        // Resumen de asistencias (optimizado)
         $resumen = $this->getResumenAsistencia($user);
 
-        // Horas trabajadas del mes
+        // Horas trabajadas del mes (optimizado)
         $horasMensuales = $this->getHorasMensuales($user);
 
         // Solicitudes de vacaciones pendientes del usuario
@@ -50,8 +52,12 @@ class PerfilController extends Controller
             ->orderBy('fecha_inicio')
             ->get();
 
-        // Configuración del calendario (para fichajes y visualización)
-        $esOficina = Auth::user()->rol === 'oficina';
+        // Contar días de vacaciones asignados (usar datos ya cargados)
+        $diasVacacionesAsignados = $user->asignacionesTurnos
+            ->where('estado', 'vacaciones')
+            ->count();
+
+        // Configuración del calendario
         $config = [
             'userId' => $user->id,
             'locale' => 'es',
@@ -74,7 +80,6 @@ class PerfilController extends Controller
             'enableListMonth' => true,
             'mobileBreakpoint' => 768,
             'permissions' => [
-                // Todos pueden solicitar vacaciones desde su perfil
                 'canRequestVacations' => true,
                 'canEditHours' => false,
                 'canAssignShifts' => false,
@@ -82,9 +87,7 @@ class PerfilController extends Controller
             ],
             'turnos' => $turnos->map(fn($t) => ['nombre' => $t->nombre])->values()->toArray(),
             'fechaIncorporacion' => $user->fecha_incorporacion_efectiva ? $user->fecha_incorporacion_efectiva->format('Y-m-d') : null,
-            'diasVacacionesAsignados' => $user->asignacionesTurnos()
-                ->where('estado', 'vacaciones')
-                ->count(),
+            'diasVacacionesAsignados' => $diasVacacionesAsignados,
         ];
 
         return view('perfil.show', compact(
@@ -96,6 +99,20 @@ class PerfilController extends Controller
             'solicitudesVacaciones'
         ));
     }
+
+    /**
+     * Obtener turnos cacheados
+     */
+    private function getTurnosCached()
+    {
+        return Cache::remember('perfil_turnos', self::CACHE_TTL, function () {
+            return Turno::all();
+        });
+    }
+
+    /**
+     * Resumen de asistencia optimizado con una sola query
+     */
     private function getResumenAsistencia(User $user): array
     {
         $inicioAño = Carbon::now()->startOfYear();
@@ -113,66 +130,50 @@ class PerfilController extends Controller
             'diasBaja' => $conteos['baja'] ?? 0,
         ];
     }
+
+    /**
+     * Horas mensuales optimizado - usa cálculo en base de datos cuando es posible
+     */
     private function getHorasMensuales(User $user): array
     {
         $inicioMes = Carbon::now()->startOfMonth();
         $hoy = Carbon::now()->toDateString();
         $finMes = Carbon::now()->endOfMonth();
 
-        // Todas las asignaciones activas del mes
-        $asignacionesMes = $user->asignacionesTurnos()
+        // Obtener estadísticas agregadas directamente de la base de datos
+        $stats = AsignacionTurno::where('user_id', $user->id)
             ->whereBetween('fecha', [$inicioMes->toDateString(), $finMes->toDateString()])
             ->where('estado', 'activo')
-            ->get();
+            ->selectRaw('
+                COUNT(*) as total_asignaciones,
+                SUM(CASE WHEN fecha <= ? THEN 1 ELSE 0 END) as dias_hasta_hoy,
+                SUM(CASE
+                    WHEN entrada IS NOT NULL AND salida IS NOT NULL
+                    THEN TIMESTAMPDIFF(MINUTE, entrada, salida) / 60.0
+                    ELSE 0
+                END) as horas_jornada1,
+                SUM(CASE
+                    WHEN entrada2 IS NOT NULL AND salida2 IS NOT NULL
+                    THEN TIMESTAMPDIFF(MINUTE, entrada2, salida2) / 60.0
+                    ELSE 0
+                END) as horas_jornada2,
+                SUM(CASE
+                    WHEN fecha < ? AND (
+                        (entrada IS NOT NULL AND salida IS NULL) OR
+                        (entrada2 IS NOT NULL AND salida2 IS NULL)
+                    )
+                    THEN 1 ELSE 0
+                END) as dias_con_errores
+            ', [$hoy, $hoy])
+            ->first();
 
-        $horasTrabajadas = 0;
-        $diasConErrores = 0;
-        $diasHastaHoy = 0;
-        $totalAsignacionesMes = $asignacionesMes->count();
-
-        foreach ($asignacionesMes as $asignacion) {
-            if ($asignacion->fecha <= $hoy) {
-                $diasHastaHoy++;
-            }
-
-            $horasDia = 0;
-            $tieneError = false;
-
-            // Primera jornada
-            $horaEntrada = $asignacion->entrada ? Carbon::parse($asignacion->entrada) : null;
-            $horaSalida = $asignacion->salida ? Carbon::parse($asignacion->salida) : null;
-
-            if ($horaEntrada && $horaSalida) {
-                $horasDia += $horaSalida->diffInMinutes($horaEntrada) / 60;
-            } elseif ($asignacion->fecha < $hoy) {
-                $tieneError = true;
-            }
-
-            // Segunda jornada (turno partido)
-            $horaEntrada2 = $asignacion->entrada2 ? Carbon::parse($asignacion->entrada2) : null;
-            $horaSalida2 = $asignacion->salida2 ? Carbon::parse($asignacion->salida2) : null;
-
-            if ($horaEntrada2 && $horaSalida2) {
-                $horasDia += $horaSalida2->diffInMinutes($horaEntrada2) / 60;
-            } elseif ($horaEntrada2 && !$horaSalida2 && $asignacion->fecha < $hoy) {
-                // Tiene entrada2 pero no salida2 y ya pasó el día
-                $tieneError = true;
-            }
-
-            // Si no tiene horas registradas, usar 8 horas por defecto
-            if ($horasDia == 0 && $horaEntrada && $horaSalida) {
-                $horasDia = 8;
-            }
-
-            $horasTrabajadas += $horasDia;
-
-            if ($tieneError) {
-                $diasConErrores++;
-            }
-        }
+        $horasTrabajadas = ($stats->horas_jornada1 ?? 0) + ($stats->horas_jornada2 ?? 0);
+        $diasHastaHoy = $stats->dias_hasta_hoy ?? 0;
+        $totalAsignacionesMes = $stats->total_asignaciones ?? 0;
+        $diasConErrores = $stats->dias_con_errores ?? 0;
 
         // Horas que debería llevar hasta hoy
-        $horasDeberiaLlevar = ($diasHastaHoy) * 8;
+        $horasDeberiaLlevar = $diasHastaHoy * 8;
 
         // Horas planificadas en el mes completo
         $horasPlanificadasMes = $totalAsignacionesMes * 8;

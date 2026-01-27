@@ -12,6 +12,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Url;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class UsersTable extends Component
 {
@@ -70,6 +71,9 @@ class UsersTable extends Component
 
     public $perPage = 15;
 
+    // Cache keys
+    private const CACHE_TTL = 300; // 5 minutos
+
     // Cuando cambia cualquier filtro, resetear a la página 1
     public function updated($property)
     {
@@ -104,6 +108,124 @@ class UsersTable extends Component
         return "%{$value}%";
     }
 
+    /**
+     * Obtener empresas cacheadas
+     */
+    private function getEmpresas()
+    {
+        return Cache::remember('users_table_empresas', self::CACHE_TTL, function () {
+            return Empresa::orderBy('nombre')->get(['id', 'nombre']);
+        });
+    }
+
+    /**
+     * Obtener categorías cacheadas
+     */
+    private function getCategorias()
+    {
+        return Cache::remember('users_table_categorias', self::CACHE_TTL, function () {
+            return Categoria::orderBy('nombre')->get(['id', 'nombre']);
+        });
+    }
+
+    /**
+     * Obtener turnos cacheados
+     */
+    private function getTurnos()
+    {
+        return Cache::remember('users_table_turnos', self::CACHE_TTL, function () {
+            return Turno::where('activo', true)->ordenados()->get();
+        });
+    }
+
+    /**
+     * Obtener obras cacheadas
+     */
+    private function getObras()
+    {
+        return Cache::remember('users_table_obras', self::CACHE_TTL, function () {
+            return Obra::select('id', 'obra')->orderBy('obra')->get();
+        });
+    }
+
+    /**
+     * Obtener agrupaciones de turnos con sus días (cacheado)
+     */
+    private function getAgrupacionesTurnos()
+    {
+        return Cache::remember('users_table_agrupaciones', self::CACHE_TTL, function () {
+            return AgrupacionTurno::activas()->ordenadas()->with('dias.turno')->get();
+        });
+    }
+
+    /**
+     * Preparar datos de plantillas para el modal JS (cacheado)
+     */
+    private function getPlantillasParaModal()
+    {
+        return Cache::remember('users_table_plantillas_modal', self::CACHE_TTL, function () {
+            $agrupacionesTurnos = $this->getAgrupacionesTurnos();
+            $diasAbrev = [0 => 'D', 1 => 'L', 2 => 'M', 3 => 'X', 4 => 'J', 5 => 'V', 6 => 'S'];
+
+            return $agrupacionesTurnos->map(function($a) use ($diasAbrev) {
+                $dias = [];
+                foreach ([1, 2, 3, 4, 5, 6, 0] as $d) {
+                    $diaConfig = $a->dias->firstWhere('dia_semana', $d);
+                    $dias[$d] = [
+                        'abrev' => $diasAbrev[$d],
+                        'turno' => $diaConfig && $diaConfig->turno ? $diaConfig->turno->nombre : null,
+                        'color' => $diaConfig && $diaConfig->turno ? $diaConfig->turno->color : null
+                    ];
+                }
+                return [
+                    'id' => $a->id,
+                    'nombre' => $a->nombre,
+                    'descripcion' => $a->descripcion,
+                    'dias' => $dias
+                ];
+            });
+        });
+    }
+
+    /**
+     * Obtener contactos para agenda mobile (cacheado por más tiempo)
+     */
+    private function getContactosAgenda()
+    {
+        return Cache::remember('users_table_contactos_agenda', 600, function () { // 10 minutos
+            return User::select([
+                    'id', 'name', 'primer_apellido', 'segundo_apellido',
+                    'email', 'movil_personal', 'movil_empresa', 'numero_corto',
+                    'dni', 'empresa_id', 'categoria_id', 'rol', 'turno', 'imagen'
+                ])
+                ->with(['empresa:id,nombre', 'categoria:id,nombre'])
+                ->orderBy('name')
+                ->orderBy('primer_apellido')
+                ->orderBy('segundo_apellido')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'nombre' => $user->name,
+                        'primer_apellido' => $user->primer_apellido,
+                        'segundo_apellido' => $user->segundo_apellido,
+                        'nombre_completo' => trim("{$user->name} {$user->primer_apellido} {$user->segundo_apellido}"),
+                        'email' => $user->email,
+                        'movil_personal' => $user->movil_personal,
+                        'movil_empresa' => $user->movil_empresa,
+                        'numero_corto' => $user->numero_corto,
+                        'dni' => $user->dni,
+                        'empresa' => $user->empresa->nombre ?? null,
+                        'categoria' => $user->categoria->nombre ?? null,
+                        'rol' => $user->rol,
+                        'turno' => $user->turno,
+                        'imagen' => $user->rutaImagen,
+                    ];
+                })
+                ->values();
+        });
+    }
+
     public function getFiltrosActivos()
     {
         $filtros = [];
@@ -136,11 +258,15 @@ class UsersTable extends Component
             $filtros[] = "<strong>DNI:</strong> {$this->dni}";
         }
         if (!empty($this->empresa_id)) {
-            $empresa = Empresa::find($this->empresa_id);
+            // Usar datos cacheados en lugar de query adicional
+            $empresas = $this->getEmpresas();
+            $empresa = $empresas->firstWhere('id', $this->empresa_id);
             $filtros[] = "<strong>Empresa:</strong> " . ($empresa->nombre ?? "ID {$this->empresa_id}");
         }
         if (!empty($this->categoria_id)) {
-            $categoria = Categoria::find($this->categoria_id);
+            // Usar datos cacheados en lugar de query adicional
+            $categorias = $this->getCategorias();
+            $categoria = $categorias->firstWhere('id', $this->categoria_id);
             $filtros[] = "<strong>Categoría:</strong> " . ($categoria->nombre ?? "ID {$this->categoria_id}");
         }
         if (!empty($this->turno)) {
@@ -249,9 +375,6 @@ class UsersTable extends Component
 
     public function render()
     {
-        // Forzar nueva query sin cache
-        \DB::connection()->disableQueryLog();
-
         $query = User::query()->select('users.*');
 
         $query = $this->aplicarFiltros($query);
@@ -301,74 +424,24 @@ class UsersTable extends Component
                 break;
         }
 
-        // Paginar primero, luego cargar relaciones para evitar cache
-        $registrosUsuarios = $query->paginate($this->perPage);
+        // Paginar con eager loading incluido
+        $registrosUsuarios = $query->with(['empresa:id,nombre', 'categoria:id,nombre'])->paginate($this->perPage);
 
-        // Cargar relaciones de forma fresh
-        $registrosUsuarios->load(['empresa', 'categoria']);
-
-        // Data para selects
-        $empresas = Empresa::orderBy('nombre')->get();
-        $categorias = Categoria::orderBy('nombre')->get();
+        // Usar datos cacheados para los selects y datos estáticos
+        $empresas = $this->getEmpresas();
+        $categorias = $this->getCategorias();
         $roles = ['operario', 'oficina', 'transportista', 'visitante'];
-        $turnos = Turno::where('activo', true)->ordenados()->get();
-        $agrupacionesTurnos = AgrupacionTurno::activas()->ordenadas()->with('dias.turno')->get();
-
-        // Preparar datos de plantillas para el modal JS
-        $diasAbrev = [0 => 'D', 1 => 'L', 2 => 'M', 3 => 'X', 4 => 'J', 5 => 'V', 6 => 'S'];
-        $plantillasParaModal = $agrupacionesTurnos->map(function($a) use ($diasAbrev) {
-            $dias = [];
-            foreach ([1, 2, 3, 4, 5, 6, 0] as $d) {
-                $diaConfig = $a->dias->firstWhere('dia_semana', $d);
-                $dias[$d] = [
-                    'abrev' => $diasAbrev[$d],
-                    'turno' => $diaConfig && $diaConfig->turno ? $diaConfig->turno->nombre : null,
-                    'color' => $diaConfig && $diaConfig->turno ? $diaConfig->turno->color : null
-                ];
-            }
-            return [
-                'id' => $a->id,
-                'nombre' => $a->nombre,
-                'descripcion' => $a->descripcion,
-                'dias' => $dias
-            ];
-        });
-        $contactosAgenda = User::with(['empresa', 'categoria'])
-            ->orderBy('name')
-            ->orderBy('primer_apellido')
-            ->orderBy('segundo_apellido')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'nombre' => $user->name,
-                    'primer_apellido' => $user->primer_apellido,
-                    'segundo_apellido' => $user->segundo_apellido,
-                    'nombre_completo' => $user->nombre_completo,
-                    'email' => $user->email,
-                    'movil_personal' => $user->movil_personal,
-                    'movil_empresa' => $user->movil_empresa,
-                    'numero_corto' => $user->numero_corto,
-                    'dni' => $user->dni,
-                    'empresa' => $user->empresa->nombre ?? null,
-                    'categoria' => $user->categoria->nombre ?? null,
-                    'rol' => $user->rol,
-                    'turno' => $user->turno,
-                    'imagen' => $user->rutaImagen,
-                ];
-            })
-            ->values();
-
-        // Obras para generar turnos
-        $obras = Obra::select('id', 'obra')->orderBy('obra')->get();
+        $obras = $this->getObras();
+        $plantillasParaModal = $this->getPlantillasParaModal();
+        $contactosAgenda = $this->getContactosAgenda();
 
         return view('livewire.users-table', [
             'registrosUsuarios' => $registrosUsuarios,
             'empresas' => $empresas,
             'categorias' => $categorias,
             'roles' => $roles,
-            'turnos' => $turnos,
-            'agrupacionesTurnos' => $agrupacionesTurnos,
+            'turnos' => $this->getTurnos(),
+            'agrupacionesTurnos' => $this->getAgrupacionesTurnos(),
             'plantillasParaModal' => $plantillasParaModal,
             'filtrosActivos' => $this->getFiltrosActivos(),
             'contactosAgenda' => $contactosAgenda,
