@@ -144,7 +144,7 @@ class VacacionesController extends Controller
             }
 
             // 3) Validar que no se supere el límite de días de vacaciones
-            $user = auth()->user();
+            $user = User::with('incorporacion')->find(auth()->id());
             $inicioAño = Carbon::now()->startOfYear();
 
             // Días ya aprobados este año
@@ -307,7 +307,7 @@ class VacacionesController extends Controller
         $isAjax = request()->ajax() || request()->wantsJson();
 
         try {
-            $solicitud = VacacionesSolicitud::with('user')->findOrFail($id);
+            $solicitud = VacacionesSolicitud::with('user.incorporacion')->findOrFail($id);
             $user = $solicitud->user;
 
             // Obtener año de cargo (del request o año de la fecha de inicio)
@@ -744,8 +744,9 @@ class VacacionesController extends Controller
     {
         $inicioAño = Carbon::now()->startOfYear();
 
-        $usuarios = User::where('estado', 'activo')
-            ->select('id', 'name', 'primer_apellido', 'segundo_apellido', 'rol', 'maquina_id', 'vacaciones_totales')
+        // Cargar incorporacion para calcular vacaciones_correspondientes
+        $usuarios = User::with('incorporacion')
+            ->where('estado', 'activo')
             ->orderBy('name')
             ->get();
 
@@ -785,7 +786,7 @@ class VacacionesController extends Controller
                 'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
             ]);
 
-            $user = User::findOrFail($validated['user_id']);
+            $user = User::with('incorporacion')->findOrFail($validated['user_id']);
             $rango = CarbonPeriod::create($validated['fecha_inicio'], $validated['fecha_fin']);
 
             $inicioAño = Carbon::now()->startOfYear();

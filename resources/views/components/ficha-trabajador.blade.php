@@ -77,25 +77,6 @@
                                 {{ $user->nombre_completo }}</h1>
                             <p class="text-xs sm:text-sm text-gray-300 mt-1">{{ $user->categoria->nombre ?? 'N/A' }}</p>
                         </div>
-
-                        {{-- Estadísticas en el header --}}
-                        <div class="flex gap-3 sm:gap-4 max-sm:w-full">
-                            <div class="text-center px-3 py-1.5 bg-white/10 rounded-lg max-sm:w-full sm:min-w-[6rem]">
-                                <p class="text-lg sm:text-xl font-bold text-green-400">
-                                    {{ $resumen['diasVacaciones'] }}</p>
-                                <p class="text-[10px] text-gray-300">Vacaciones</p>
-                            </div>
-                            <div class="text-center px-3 py-1.5 bg-white/10 rounded-lg max-sm:w-full sm:min-w-[6rem]">
-                                <p class="text-lg sm:text-xl font-bold text-red-400">
-                                    {{ $resumen['faltasInjustificadas'] }}</p>
-                                <p class="text-[10px] text-gray-300">Injustif.</p>
-                            </div>
-                            <div class="text-center px-3 py-1.5 bg-white/10 rounded-lg max-sm:w-full sm:min-w-[6rem]">
-                                <p class="text-lg sm:text-xl font-bold text-yellow-400">
-                                    {{ $resumen['faltasJustificadas'] }}</p>
-                                <p class="text-[10px] text-gray-300">Justif.</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -183,13 +164,22 @@
             </div>
 
             {{-- Información laboral --}}
+            @php
+                // Usar accessor del modelo (calcula dinámicamente según fecha incorporación)
+                $vacacionesCorrespondientes = $user->vacaciones_correspondientes;
+                $vacacionesRestantes = max(0, $vacacionesCorrespondientes - $resumen['diasVacaciones']);
+
+                $solicitudesPendientesData = \App\Models\VacacionesSolicitud::where('user_id', $user->id)
+                    ->where('estado', 'pendiente')
+                    ->orderBy('fecha_inicio')
+                    ->get();
+            @endphp
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <button @click="seccionLaboral = !seccionLaboral"
                     class="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors">
                     <div class="flex items-center gap-2">
                         <div class="bg-purple-100 rounded-lg p-1.5">
-                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
@@ -197,23 +187,47 @@
                         <span class="text-sm font-semibold text-gray-900">Información laboral</span>
                     </div>
                     <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                        :class="{ 'rotate-180': seccionLaboral }" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
-                        </path>
+                        :class="{ 'rotate-180': seccionLaboral }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
                 </button>
                 <div x-cloak x-show="seccionLaboral" x-collapse>
-                    <div class="px-3 pb-3 space-y-2">
-                        <div
-                            class="p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-l-3 border-blue-500">
-                            <p class="text-[10px] text-gray-500">Empresa</p>
-                            <p class="text-xs font-semibold text-gray-900">{{ $user->empresa->nombre ?? 'N/A' }}</p>
+                    <div class="px-3 pb-3 space-y-3">
+                        {{-- Datos básicos --}}
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                            <span class="text-gray-500">Empresa: <span class="text-gray-900 font-medium">{{ $user->empresa->nombre ?? 'N/A' }}</span></span>
+                            <span class="text-gray-500">Categoria: <span class="text-gray-900 font-medium">{{ $user->categoria->nombre ?? 'N/A' }}</span></span>
                         </div>
-                        <div
-                            class="p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-l-3 border-purple-500">
-                            <p class="text-[10px] text-gray-500">Categoría</p>
-                            <p class="text-xs font-semibold text-gray-900">{{ $user->categoria->nombre ?? 'N/A' }}</p>
+
+                        {{-- Vacaciones --}}
+                        <div class="py-2 px-3 bg-gray-50 rounded-lg space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-600 font-medium">Vacaciones {{ $hoy->year }}</span>
+                                <div class="flex items-center gap-4 text-xs">
+                                    <span><span class="font-semibold text-gray-700">{{ $vacacionesCorrespondientes }}</span> <span class="text-gray-400">totales</span></span>
+                                    <span><span class="font-semibold text-blue-600">{{ $resumen['diasVacaciones'] }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                    <span><span class="font-semibold {{ $vacacionesRestantes > 0 ? 'text-green-600' : 'text-gray-400' }}">{{ $vacacionesRestantes }}</span> <span class="text-gray-400">disponibles</span></span>
+                                </div>
+                            </div>
+                            @if ($solicitudesPendientesData->count() > 0)
+                                <div class="pt-2 border-t border-gray-200">
+                                    <p class="text-[10px] text-amber-600 font-medium mb-1">Solicitudes pendientes:</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach ($solicitudesPendientesData as $solicitud)
+                                            <span class="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded">
+                                                {{ \Carbon\Carbon::parse($solicitud->fecha_inicio)->format('d/m') }} - {{ \Carbon\Carbon::parse($solicitud->fecha_fin)->format('d/m') }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- Faltas y bajas en linea --}}
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="px-2 py-1 rounded {{ $resumen['faltasInjustificadas'] > 0 ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-400' }}">{{ $resumen['faltasInjustificadas'] }} injustificada{{ $resumen['faltasInjustificadas'] != 1 ? 's' : '' }}</span>
+                            <span class="px-2 py-1 rounded {{ $resumen['faltasJustificadas'] > 0 ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-400' }}">{{ $resumen['faltasJustificadas'] }} justificada{{ $resumen['faltasJustificadas'] != 1 ? 's' : '' }}</span>
+                            <span class="px-2 py-1 rounded {{ $resumen['diasBaja'] > 0 ? 'bg-gray-200 text-gray-700' : 'bg-gray-50 text-gray-400' }}">{{ $resumen['diasBaja'] }} dia{{ $resumen['diasBaja'] != 1 ? 's' : '' }} baja</span>
                         </div>
                     </div>
                 </div>

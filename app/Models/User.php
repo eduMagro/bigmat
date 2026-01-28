@@ -130,18 +130,13 @@ class User extends Authenticatable
 
     /**
      * Calcular días de vacaciones correspondientes al año actual
-     * basado en la fecha de incorporación.
+     * basado en la fecha de incorporación (siempre dinámico).
      */
     public function getVacacionesCorrespondientesAttribute()
     {
-        // 1. Si tiene un manual override, usarlo
-        if ($this->vacaciones_totales) {
-            return $this->vacaciones_totales;
-        }
-
         $diasPorAnio = 30; // Base estándar (días naturales)
 
-        // 2. Determinar la fecha de incorporación efectiva
+        // Determinar la fecha de incorporación efectiva
         $inicio = $this->fecha_incorporacion_efectiva;
 
         // Si no hay fecha de incorporación, asumimos año completo

@@ -1048,8 +1048,8 @@ class AsignacionTurnoController extends Controller
             // Ahora los festivos vienen de tu tabla
             $festivos = collect($this->getFestivos())->pluck('start')->toArray();
 
-            // Solo el usuario seleccionado (ya no “todos” en caso de festivo)
-            $usuarios = collect([User::findOrFail($request->user_id)]);
+            // Solo el usuario seleccionado (ya no "todos" en caso de festivo)
+            $usuarios = collect([User::with('incorporacion')->findOrFail($request->user_id)]);
 
             foreach ($usuarios as $user) {
                 $maquinaAsignada = $request->maquina_id ?? $user->maquina?->id;
@@ -1096,7 +1096,7 @@ class AsignacionTurnoController extends Controller
                         $tempDate->addDay();
                     }
 
-                    $totalPermitido = $user->vacaciones_totales ?? 30;
+                    $totalPermitido = $user->vacaciones_correspondientes;
 
                     // Validar según si se divide entre años o no
                     if ($usarAnteriorPrimero) {
