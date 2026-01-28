@@ -51,7 +51,6 @@ class User extends Authenticatable
         'maquina_id',
         'turno',
         'turno_actual',
-        'agrupacion_turno_id',
         'dias_vacaciones',
         'estado',
         'updated_by',
@@ -358,28 +357,5 @@ class User extends Authenticatable
     public function episAsignaciones()
     {
         return $this->hasMany(EpiUsuario::class, 'user_id');
-    }
-
-    /**
-     * Relación: El usuario pertenece a una agrupación de turnos (plantilla)
-     */
-    public function agrupacionTurno()
-    {
-        return $this->belongsTo(AgrupacionTurno::class, 'agrupacion_turno_id');
-    }
-
-    /**
-     * Obtener el turno que corresponde a una fecha específica según la plantilla asignada
-     *
-     * @param Carbon $fecha
-     * @return \App\Models\Turno|null
-     */
-    public function getTurnoParaFecha(Carbon $fecha): ?\App\Models\Turno
-    {
-        if (!$this->agrupacionTurno) {
-            return null;
-        }
-
-        return $this->agrupacionTurno->getTurnoParaDia($fecha->dayOfWeek);
     }
 }

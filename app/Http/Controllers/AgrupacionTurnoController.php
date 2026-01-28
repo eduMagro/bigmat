@@ -186,24 +186,4 @@ class AgrupacionTurnoController extends Controller
         ]);
     }
 
-    /**
-     * Asignar una agrupación a un usuario
-     */
-    public function asignarUsuario(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'agrupacion_turno_id' => 'nullable|exists:agrupaciones_turnos,id',
-        ]);
-
-        $user = \App\Models\User::find($request->user_id);
-        $user->update([
-            'agrupacion_turno_id' => $request->agrupacion_turno_id
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Plantilla asignada correctamente al empleado'
-        ]);
-    }
 }

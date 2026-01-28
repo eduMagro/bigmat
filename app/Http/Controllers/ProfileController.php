@@ -924,9 +924,6 @@ class ProfileController extends Controller
             return redirect()->back()->with('error', 'Debe seleccionar una plantilla de turno valida.');
         }
 
-        // Asignar la agrupacion al usuario
-        $user->update(['agrupacion_turno_id' => $agrupacion->id]);
-
         $obraId = request()->input('obra_id');
 
         // Cargar los dias de la agrupacion

@@ -33,14 +33,6 @@ class AgrupacionTurno extends Model
     }
 
     /**
-     * Relación: Una agrupación puede tener muchos usuarios asignados
-     */
-    public function usuarios()
-    {
-        return $this->hasMany(User::class, 'agrupacion_turno_id');
-    }
-
-    /**
      * Scope: Solo agrupaciones activas
      */
     public function scopeActivas($query)

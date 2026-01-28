@@ -57,30 +57,21 @@ class GenerarTurnosAnuales extends Command
         // Festivos desde BD por rango
         $festivosArray = $this->getFestivosEntre($inicio, $fin);
 
-        $generados = 0;
+        $procesados = 0;
         $sinPlantilla = 0;
-        $conPlantillaLegacy = 0;
 
         foreach ($usuarios as $user) {
-            // Priorizar agrupación de turnos sobre el campo legacy
-            if ($user->agrupacion_turno_id) {
-                $resultado = $this->generarTurnosDesdeAgrupacion($user, $inicio, $fin, $festivosArray, $turnoVacacionesId);
-                $generados += $resultado;
-            } elseif ($user->turno) {
-                // Fallback al sistema legacy
+            if ($user->turno) {
                 $this->generarTurnosLegacy($user, $inicio, $fin, $festivosArray);
-                $conPlantillaLegacy++;
+                $procesados++;
             } else {
                 $sinPlantilla++;
             }
         }
 
-        $this->info("Turnos generados desde plantillas: {$generados}");
-        if ($conPlantillaLegacy > 0) {
-            $this->info("Usuarios procesados con sistema legacy (campo turno): {$conPlantillaLegacy}");
-        }
+        $this->info("Usuarios procesados: {$procesados}");
         if ($sinPlantilla > 0) {
-            $this->warn("Usuarios sin plantilla asignada: {$sinPlantilla}");
+            $this->warn("Usuarios sin turno asignado: {$sinPlantilla}");
         }
         $this->info("Proceso completado correctamente.");
 
@@ -88,61 +79,7 @@ class GenerarTurnosAnuales extends Command
     }
 
     /**
-     * Genera turnos para un usuario basándose en su agrupación de turnos
-     */
-    protected function generarTurnosDesdeAgrupacion(User $user, Carbon $inicio, Carbon $fin, array $festivosArray, ?int $turnoVacacionesId): int
-    {
-        $agrupacion = $user->agrupacionTurno;
-
-        if (!$agrupacion) {
-            return 0;
-        }
-
-        // Cargar los días de la agrupación para optimizar
-        $diasConfig = $agrupacion->dias()->with('turno')->get()->keyBy('dia_semana');
-
-        // Días con turno de vacaciones ya asignados
-        $diasVacaciones = AsignacionTurno::where('user_id', $user->id)
-            ->where('turno_id', $turnoVacacionesId)
-            ->pluck('fecha')
-            ->map(fn($f) => Carbon::parse($f)->toDateString())
-            ->toArray();
-
-        $asignacionesCreadas = 0;
-
-        // Iterar por cada día del rango
-        for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
-            $fechaStr = $fecha->toDateString();
-            $diaSemana = $fecha->dayOfWeek;
-
-            // Verificar si es festivo o vacaciones
-            if (in_array($fechaStr, $festivosArray, true) || in_array($fechaStr, $diasVacaciones, true)) {
-                continue;
-            }
-
-            // Obtener la configuración del día de la semana
-            $diaConfig = $diasConfig->get($diaSemana);
-
-            // Si no hay configuración para este día o no tiene turno, no se trabaja
-            if (!$diaConfig || !$diaConfig->turno_id) {
-                continue;
-            }
-
-            // Registrar/actualizar el turno del día
-            AsignacionTurno::updateOrCreate(
-                ['user_id' => $user->id, 'fecha' => $fechaStr],
-                ['turno_id' => $diaConfig->turno_id]
-            );
-
-            $asignacionesCreadas++;
-        }
-
-        return $asignacionesCreadas;
-    }
-
-    /**
-     * Sistema legacy: genera turnos basándose en el campo 'turno' del usuario
-     * Se mantiene para compatibilidad hacia atrás
+     * Genera turnos basándose en el campo 'turno' del usuario
      */
     protected function generarTurnosLegacy(User $user, Carbon $inicio, Carbon $fin, array $festivosArray): void
     {
