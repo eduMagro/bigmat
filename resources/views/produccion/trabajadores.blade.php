@@ -116,21 +116,13 @@
                     <div class="font-semibold">${turnoNombre}</div>
                     <div class="text-xs text-gray-500">${p.hora_inicio || ''} - ${p.hora_fin || ''}</div>
                 </div>
-                <button class="ctx-menu-item" data-action="ver-perfil">
-                    <span>👤</span> Ver perfil
-                </button>
                 <button class="ctx-menu-item" data-action="editar-fichaje">
-                    <span>✏️</span> Fichajes: ${entrada}/${salida}${fichaje2Text}
+                    <span>🕐</span> Corregir fichajes (${entrada}/${salida}${fichaje2Text})
                 </button>
                 <button class="ctx-menu-item ctx-menu-danger" data-action="eliminar">
-                    <span>🗑️</span> Eliminar registro
+                    <span>🗑️</span> Eliminar turno
                 </button>
             `);
-
-            el.querySelector('[data-action="ver-perfil"]').onclick = () => {
-                cerrarMenu();
-                if (p.user_id) window.location.href = CONFIG.routes.userShow.replace(':id', p.user_id);
-            };
 
             el.querySelector('[data-action="editar-fichaje"]').onclick = async () => {
                 cerrarMenu();
@@ -210,73 +202,11 @@
             };
         }
 
-        // Copiar registros de un dia a otro
-        async function copiarRegistrosDia(fromISO, toISO, calendar) {
-            const ok = await Swal.fire({
-                icon: 'question',
-                title: 'Copiar registros',
-                html: `¿Copiar registros de <b>${fromISO}</b> a <b>${toISO}</b>?`,
-                showCancelButton: true,
-                confirmButtonText: 'Copiar',
-                cancelButtonText: 'Cancelar'
-            }).then(r => r.isConfirmed);
-            if (!ok) return;
-
-            const evs = calendar.getEvents().filter(ev => !ev.extendedProps?.es_festivo);
-
-            const yaExiste = (title, resourceId, fechaISO) => {
-                return evs.some(ev => {
-                    const rId = ev.getResources?.()[0]?.id ?? ev.extendedProps?.resourceId ?? null;
-                    return ev.title === title && String(rId) === String(resourceId) &&
-                           (ev.startStr || ev.start?.toISOString()).slice(0, 10) === fechaISO;
-                });
-            };
-
-            const delOrigen = evs.filter(ev => (ev.startStr || ev.start?.toISOString()).slice(0, 10) === fromISO);
-
-            let creados = 0;
-            for (const ev of delOrigen) {
-                const res = ev.getResources ? ev.getResources() : [];
-                const resourceId = res?.[0]?.id ?? ev.extendedProps?.resourceId ?? null;
-
-                if (yaExiste(ev.title, resourceId, toISO)) continue;
-
-                calendar.addEvent({
-                    id: `tmp-copy-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                    title: ev.title,
-                    start: toISO,
-                    end: toISO,
-                    resourceId: resourceId ?? undefined,
-                    backgroundColor: ev.backgroundColor,
-                    borderColor: ev.borderColor,
-                    textColor: ev.textColor,
-                    extendedProps: { ...ev.extendedProps, asignacion_id: null }
-                });
-                creados++;
-            }
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Copiado completado',
-                html: `Se han copiado <b>${creados}</b> registros a ${toISO}.`,
-                timer: 1400,
-                showConfirmButton: false
-            });
-        }
-
         // Menu para celda vacia
         function menuCelda(x, y, fechaISO, resourceId, calendar) {
             // resourceId ahora es el user_id (trabajador)
             const trabajador = datosCalendario.recursos.find(r => r.id == resourceId);
             const trabajadorNombre = trabajador?.title || 'Trabajador';
-
-            // Calcular fechas vecinas
-            const prevDate = new Date(fechaISO);
-            prevDate.setDate(prevDate.getDate() - 1);
-            const nextDate = new Date(fechaISO);
-            nextDate.setDate(nextDate.getDate() + 1);
-            const prevISO = prevDate.toISOString().slice(0, 10);
-            const nextISO = nextDate.toISOString().slice(0, 10);
 
             const el = abrirMenu(x, y, `
                 <div class="ctx-menu-header">
@@ -285,15 +215,6 @@
                 </div>
                 <button class="ctx-menu-item" data-action="crear-asignacion">
                     <span>➕</span> Asignar turno
-                </button>
-                <button class="ctx-menu-item" data-action="crear-festivo">
-                    <span>📅</span> Crear festivo este dia
-                </button>
-                <button class="ctx-menu-item" data-action="copiar-anterior">
-                    <span>⬅️</span> Copiar del dia anterior (${prevISO})
-                </button>
-                <button class="ctx-menu-item" data-action="copiar-siguiente">
-                    <span>➡️</span> Copiar del dia siguiente (${nextISO})
                 </button>
             `);
 
@@ -406,55 +327,6 @@
                     console.error(e);
                     mostrarError('Error al crear la asignación');
                 }
-            };
-
-            el.querySelector('[data-action="crear-festivo"]').onclick = async () => {
-                cerrarMenu();
-                const { value: titulo } = await Swal.fire({
-                    title: 'Crear festivo',
-                    input: 'text',
-                    inputLabel: 'Nombre del festivo',
-                    inputPlaceholder: 'Ej: Navidad',
-                    showCancelButton: true,
-                    confirmButtonText: 'Crear'
-                });
-                if (!titulo) return;
-
-                try {
-                    const res = await fetch(CONFIG.routes.crearFestivo, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CONFIG.csrf },
-                        body: JSON.stringify({ titulo, fecha: fechaISO })
-                    });
-                    const data = await res.json();
-                    if (data.id || data.festivo) {
-                        const festivo = data.festivo || data;
-                        const resourceIds = datosCalendario.recursos.map(r => r.id);
-                        calendar.addEvent({
-                            id: 'festivo-' + festivo.id,
-                            title: festivo.titulo,
-                            start: fechaISO,
-                            end: fechaISO,
-                            resourceIds,
-                            backgroundColor: '#ef4444',
-                            borderColor: '#dc2626',
-                            textColor: '#fff',
-                            classNames: ['evento-festivo'],
-                            extendedProps: { es_festivo: true, festivo_id: festivo.id }
-                        });
-                        Swal.fire({ icon: 'success', title: 'Festivo creado', timer: 1200, showConfirmButton: false });
-                    }
-                } catch (e) { console.error(e); }
-            };
-
-            el.querySelector('[data-action="copiar-anterior"]').onclick = () => {
-                cerrarMenu();
-                copiarRegistrosDia(prevISO, fechaISO, calendar);
-            };
-
-            el.querySelector('[data-action="copiar-siguiente"]').onclick = () => {
-                cerrarMenu();
-                copiarRegistrosDia(nextISO, fechaISO, calendar);
             };
         }
 
