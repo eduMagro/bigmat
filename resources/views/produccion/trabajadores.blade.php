@@ -101,87 +101,29 @@
             return el;
         }
 
-        // Menu para evento (turno asignado)
+        // Menu para evento (turno asignado) - solo eliminar
         function menuEvento(x, y, event, calendar) {
             const p = event.extendedProps || {};
             if (p.es_festivo) return;
 
             const turnoNombre = p.turno_nombre || event.title;
-            const entrada = p.entrada || '--';
-            const salida = p.salida || '--';
 
-            const fichaje2Text = (p.entrada2 || p.salida2) ? ` | 2º: ${p.entrada2 || '--'}/${p.salida2 || '--'}` : '';
             const el = abrirMenu(x, y, `
                 <div class="ctx-menu-header">
                     <div class="font-semibold">${turnoNombre}</div>
                     <div class="text-xs text-gray-500">${p.hora_inicio || ''} - ${p.hora_fin || ''}</div>
                 </div>
-                <button class="ctx-menu-item" data-action="editar-fichaje">
-                    <span>🕐</span> Corregir fichajes (${entrada}/${salida}${fichaje2Text})
-                </button>
                 <button class="ctx-menu-item ctx-menu-danger" data-action="eliminar">
                     <span>🗑️</span> Eliminar turno
                 </button>
             `);
 
-            el.querySelector('[data-action="editar-fichaje"]').onclick = async () => {
-                cerrarMenu();
-                const { value } = await Swal.fire({
-                    title: 'Editar fichajes',
-                    html: `
-                        <div class="text-left space-y-3">
-                            <div class="font-medium text-gray-700 mb-2">Primer tramo</div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-sm font-medium mb-1">Entrada</label>
-                                <input type="time" id="swal-entrada" value="${p.entrada && p.entrada !== '--' ? p.entrada : ''}" class="w-full border rounded px-3 py-2"></div>
-                                <div><label class="block text-sm font-medium mb-1">Salida</label>
-                                <input type="time" id="swal-salida" value="${p.salida && p.salida !== '--' ? p.salida : ''}" class="w-full border rounded px-3 py-2"></div>
-                            </div>
-                            <div class="border-t pt-3 mt-3">
-                                <div class="font-medium text-gray-700 mb-2">Segundo tramo (turno partido)</div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="block text-sm font-medium mb-1">Entrada 2</label>
-                                    <input type="time" id="swal-entrada2" value="${p.entrada2 || ''}" class="w-full border rounded px-3 py-2"></div>
-                                    <div><label class="block text-sm font-medium mb-1">Salida 2</label>
-                                    <input type="time" id="swal-salida2" value="${p.salida2 || ''}" class="w-full border rounded px-3 py-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Guardar',
-                    cancelButtonText: 'Cancelar',
-                    preConfirm: () => ({
-                        entrada: document.getElementById('swal-entrada').value || null,
-                        salida: document.getElementById('swal-salida').value || null,
-                        entrada2: document.getElementById('swal-entrada2').value || null,
-                        salida2: document.getElementById('swal-salida2').value || null
-                    })
-                });
-                if (!value) return;
-
-                try {
-                    const res = await fetch(CONFIG.routes.actualizarFichaje, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CONFIG.csrf },
-                        body: JSON.stringify({ asignacion_id: p.asignacion_id, ...value })
-                    });
-                    if (res.ok) {
-                        event.setExtendedProp('entrada', value.entrada || '--');
-                        event.setExtendedProp('salida', value.salida || '--');
-                        event.setExtendedProp('entrada2', value.entrada2 || null);
-                        event.setExtendedProp('salida2', value.salida2 || null);
-                        Swal.fire({ icon: 'success', title: 'Fichaje actualizado', timer: 1200, showConfirmButton: false });
-                    }
-                } catch (e) { console.error(e); }
-            };
-
             el.querySelector('[data-action="eliminar"]').onclick = async () => {
                 cerrarMenu();
                 const ok = await Swal.fire({
                     icon: 'warning',
-                    title: 'Eliminar registro',
-                    text: '¿Seguro que quieres eliminar esta asignacion?',
+                    title: 'Eliminar turno',
+                    text: '¿Seguro que quieres eliminar esta asignación?',
                     showCancelButton: true,
                     confirmButtonText: 'Eliminar',
                     confirmButtonColor: '#b91c1c'
@@ -199,134 +141,6 @@
                         Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1200, showConfirmButton: false });
                     }
                 } catch (e) { console.error(e); }
-            };
-        }
-
-        // Menu para celda vacia
-        function menuCelda(x, y, fechaISO, resourceId, calendar) {
-            // resourceId ahora es el user_id (trabajador)
-            const trabajador = datosCalendario.recursos.find(r => r.id == resourceId);
-            const trabajadorNombre = trabajador?.title || 'Trabajador';
-
-            const el = abrirMenu(x, y, `
-                <div class="ctx-menu-header">
-                    <div>${trabajadorNombre}</div>
-                    <div class="text-xs text-gray-500">${fechaISO}</div>
-                </div>
-                <button class="ctx-menu-item" data-action="crear-asignacion">
-                    <span>➕</span> Asignar turno
-                </button>
-            `);
-
-            el.querySelector('[data-action="crear-asignacion"]').onclick = async () => {
-                cerrarMenu();
-
-                if (!resourceId) {
-                    Swal.fire({ icon: 'warning', title: 'Sin trabajador', text: 'Debes hacer clic en la fila de un trabajador' });
-                    return;
-                }
-
-                try {
-                    // Obtener turnos disponibles
-                    const res = await fetch(CONFIG.routes.datosFormulario);
-                    const data = await res.json();
-
-                    if (!data.turnos?.length) {
-                        Swal.fire({ icon: 'warning', title: 'Sin datos', text: 'No hay turnos disponibles' });
-                        return;
-                    }
-
-                    // Crear opciones para el select de turnos
-                    const optsTurnos = data.turnos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
-
-                    const { value: formValues } = await Swal.fire({
-                        title: 'Asignar turno',
-                        html: `
-                            <div class="text-left space-y-4">
-                                <div class="p-3 bg-gray-50 rounded-lg mb-2">
-                                    <div class="text-xs text-gray-500">Trabajador</div>
-                                    <div class="font-semibold">${trabajadorNombre}</div>
-                                    <div class="text-xs text-gray-500 mt-2">Fecha</div>
-                                    <div class="font-semibold">${fechaISO}</div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Turno</label>
-                                    <select id="swal-turno" class="w-full border rounded px-3 py-2">
-                                        <option value="">-- Seleccionar turno --</option>
-                                        ${optsTurnos}
-                                    </select>
-                                </div>
-                            </div>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: 'Asignar',
-                        cancelButtonText: 'Cancelar',
-                        preConfirm: () => {
-                            const turnoId = document.getElementById('swal-turno').value;
-                            if (!turnoId) {
-                                Swal.showValidationMessage('Debes seleccionar un turno');
-                                return false;
-                            }
-                            return { user_id: resourceId, turno_id: turnoId, fecha: fechaISO };
-                        }
-                    });
-
-                    if (!formValues) return;
-
-                    // Crear la asignacion
-                    const createRes = await fetch(CONFIG.routes.crearAsignacion, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CONFIG.csrf },
-                        body: JSON.stringify(formValues)
-                    });
-                    const createData = await createRes.json();
-
-                    if (createData.success) {
-                        const a = createData.asignacion;
-                        // Calcular start y end con las horas del turno
-                        const startDateTime = a.fecha + 'T' + a.turno_hora_inicio + ':00';
-                        let endDateTime;
-                        if (a.turno_hora_fin < a.turno_hora_inicio) {
-                            // Turno nocturno: termina al dia siguiente
-                            const fechaObj = new Date(a.fecha);
-                            fechaObj.setDate(fechaObj.getDate() + 1);
-                            const fechaSiguiente = fechaObj.toISOString().slice(0, 10);
-                            endDateTime = fechaSiguiente + 'T' + a.turno_hora_fin + ':00';
-                        } else {
-                            endDateTime = a.fecha + 'T' + a.turno_hora_fin + ':00';
-                        }
-
-                        calendar.addEvent({
-                            id: 'asig-' + a.id,
-                            title: a.turno_nombre,
-                            start: startDateTime,
-                            end: endDateTime,
-                            resourceId: a.user_id,
-                            backgroundColor: a.color?.bg || '#93C5FD',
-                            borderColor: a.color?.border || '#60A5FA',
-                            textColor: '#000000',
-                            extendedProps: {
-                                asignacion_id: a.id,
-                                user_id: a.user_id,
-                                turno_id: a.turno_id,
-                                turno_nombre: a.turno_nombre,
-                                estado: 'activo',
-                                entrada: '--',
-                                salida: '--',
-                                categoria: a.categoria,
-                                foto: a.foto,
-                                hora_inicio: a.turno_hora_inicio,
-                                hora_fin: a.turno_hora_fin
-                            }
-                        });
-                        Swal.fire({ icon: 'success', title: 'Asignacion creada', timer: 1200, showConfirmButton: false });
-                    } else {
-                        mostrarError(createData.message || 'No se pudo crear la asignación');
-                    }
-                } catch (e) {
-                    console.error(e);
-                    mostrarError('Error al crear la asignación');
-                }
             };
         }
 
@@ -596,43 +410,6 @@
                 eventResize(info) {
                     // No permitir redimensionar, revertir
                     info.revert();
-                }
-            });
-
-            // Clic derecho en celda vacia - detectar fecha y recurso
-            el.addEventListener('contextmenu', (e) => {
-                // Verificar que estamos en una celda del timeline
-                const lane = e.target.closest('.fc-timeline-lane');
-                if (!lane) return;
-
-                e.preventDefault();
-
-                // Obtener el resourceId del lane
-                const resourceLane = e.target.closest('[data-resource-id]');
-                const resourceId = resourceLane?.dataset?.resourceId || null;
-
-                // Obtener la fecha de la posicion del click
-                let fechaISO = null;
-                const rect = el.getBoundingClientRect();
-                const scrollContainer = el.querySelector('.fc-timeline-body');
-                const timelineSlots = el.querySelectorAll('.fc-timeline-slot[data-date]');
-
-                // Buscar el slot que corresponde a la posicion X del click
-                for (const slot of timelineSlots) {
-                    const slotRect = slot.getBoundingClientRect();
-                    if (e.clientX >= slotRect.left && e.clientX <= slotRect.right) {
-                        fechaISO = slot.dataset.date;
-                        break;
-                    }
-                }
-
-                // Fallback: usar la fecha actual de la vista si no se encuentra
-                if (!fechaISO) {
-                    fechaISO = calendar.view?.currentStart?.toISOString().slice(0, 10);
-                }
-
-                if (fechaISO) {
-                    menuCelda(e.clientX, e.clientY, fechaISO, resourceId, calendar);
                 }
             });
 
