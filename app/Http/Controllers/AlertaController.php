@@ -233,8 +233,9 @@ class AlertaController extends Controller
             $alerta->mensaje_completo = $alerta->mensaje;
             $alerta->mensaje_corto = Str::words($alerta->mensaje, 4, '...');
 
-            // Obtener la última respuesta para mostrar actividad reciente
-            $ultimaRespuesta = $alerta->respuestas()->latest('created_at')->first();
+            // Usar la colección ya cargada (evitar N+1)
+            $respuestas = $alerta->respuestas;
+            $ultimaRespuesta = $respuestas->sortByDesc('created_at')->first();
             $alerta->ultima_actividad = $ultimaRespuesta ? $ultimaRespuesta->created_at : $alerta->created_at;
             $alerta->total_respuestas = $alerta->respuestas_count;
 
@@ -245,10 +246,10 @@ class AlertaController extends Controller
             if ($registroLeida && $registroLeida->leida_en) {
                 // Verificar si hay respuestas después de mi última lectura
                 if ($alerta->updated_at > $registroLeida->leida_en) {
-                    // Verificar que la última respuesta NO sea mía
-                    $ultimaRespuestaOtro = $alerta->respuestas()
+                    // Usar la colección ya cargada (evitar N+1)
+                    $ultimaRespuestaOtro = $respuestas
                         ->where('user_id_1', '!=', $user->id)
-                        ->latest('created_at')
+                        ->sortByDesc('created_at')
                         ->first();
 
                     if ($ultimaRespuestaOtro && $ultimaRespuestaOtro->created_at > $registroLeida->leida_en) {
@@ -321,16 +322,16 @@ $ordenablesAlertas = [];
         $ids = $request->input('alerta_ids', []);
 
         if (!empty($ids)) {
-            foreach ($ids as $alertaId) {
-                $alerta = Alerta::find($alertaId);
-                if ($alerta) {
-                    // Obtener el mensaje raíz y marcarlo como leído
-                    $mensajeRaiz = $alerta->mensajeRaiz();
-                    AlertaLeida::where('user_id', $userId)
-                        ->where('alerta_id', $mensajeRaiz->id)
-                        ->update(['leida_en' => now()]);
-                }
-            }
+            // Obtener todas las alertas de una sola vez
+            $alertas = Alerta::whereIn('id', $ids)->get();
+
+            // Recopilar IDs de mensajes raíz
+            $idsRaiz = $alertas->map(fn($alerta) => $alerta->mensajeRaiz()->id)->unique()->toArray();
+
+            // Actualizar todos en una sola query
+            AlertaLeida::where('user_id', $userId)
+                ->whereIn('alerta_id', $idsRaiz)
+                ->update(['leida_en' => now()]);
         }
 
         return response()->json(['success' => true]);

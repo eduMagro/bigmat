@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Cache;
 
 class Festivo extends Model
 {
@@ -28,34 +29,51 @@ class Festivo extends Model
     }
 
     /**
-     * Devuelve los eventos de festivos listos para FullCalendar
+     * Devuelve los eventos de festivos listos para FullCalendar (cached)
      */
     //     $eventos = Festivo::eventosCalendario();        // año actual
     //     $eventos = Festivo::eventosCalendario(2026);    // año concreto
     public static function eventosCalendario(?int $anio = null)
     {
         $anio = $anio ?? (int) date('Y');
+        $cacheKey = "festivos_calendario_{$anio}";
 
-        return self::delAnio($anio)
-            ->orderBy('fecha')
-            ->get(['id', 'titulo', 'fecha', 'anio'])
-            ->map(function ($f) {
-                return [
-                    'id'              => 'festivo-' . $f->id,
-                    'title'           => $f->titulo,
-                    'start'           => $f->fecha->toDateString(),
-                    'allDay'          => true,
-                    'backgroundColor' => '#ff0000',
-                    'borderColor'     => '#b91c1c',
-                    'textColor'       => 'white',
-                    'editable'        => true,
-                    'classNames'      => ['fc-event-festivo'],
-                    'extendedProps'   => [
-                        'festivo_id' => $f->id,
-                        'tipo'       => 'festivo',
-                        'anio'       => $f->anio ?? (int) $f->fecha->format('Y'),
-                    ],
-                ];
-            });
+        return Cache::remember($cacheKey, 86400, function () use ($anio) {
+            return self::delAnio($anio)
+                ->orderBy('fecha')
+                ->get(['id', 'titulo', 'fecha', 'anio'])
+                ->map(function ($f) {
+                    return [
+                        'id'              => 'festivo-' . $f->id,
+                        'title'           => $f->titulo,
+                        'start'           => $f->fecha->toDateString(),
+                        'allDay'          => true,
+                        'backgroundColor' => '#ff0000',
+                        'borderColor'     => '#b91c1c',
+                        'textColor'       => 'white',
+                        'editable'        => true,
+                        'classNames'      => ['fc-event-festivo'],
+                        'extendedProps'   => [
+                            'festivo_id' => $f->id,
+                            'tipo'       => 'festivo',
+                            'anio'       => $f->anio ?? (int) $f->fecha->format('Y'),
+                        ],
+                    ];
+                })->toArray();
+        });
+    }
+
+    /**
+     * Limpiar la caché de festivos cuando se modifique la tabla
+     */
+    protected static function booted()
+    {
+        $clearCache = function () {
+            Cache::forget('festivos_calendario_' . date('Y'));
+            Cache::forget('festivos_calendario');
+        };
+
+        static::saved($clearCache);
+        static::deleted($clearCache);
     }
 }

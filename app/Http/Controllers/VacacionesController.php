@@ -15,6 +15,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -59,19 +60,8 @@ class VacacionesController extends Controller
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
-        // Festivos
-        $festivos = Festivo::select('fecha', 'titulo')->get()->map(function ($festivo) {
-            return [
-                'id' => 'festivo-' . $festivo->fecha,
-                'title' => $festivo->titulo,
-                'start' => $festivo->fecha,
-                'backgroundColor' => '#ff2800',
-                'borderColor' => '#b22222',
-                'textColor' => 'white',
-                'allDay' => true,
-                'editable' => false
-            ];
-        })->toArray();
+        // Festivos (cached)
+        $festivos = $this->getFestivosCached();
 
         // Eventos de vacaciones
         $eventos = $vacaciones->map(function ($asignacion) {
@@ -739,19 +729,8 @@ class VacacionesController extends Controller
         // Obtener IDs de usuarios visibles para el usuario actual
         $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
 
-        // Obtener festivos
-        $festivos = Festivo::select('fecha', 'titulo')->get()->map(function ($festivo) {
-            return [
-                'id' => 'festivo-' . $festivo->fecha,
-                'title' => $festivo->titulo,
-                'start' => $festivo->fecha,
-                'backgroundColor' => '#ff2800',
-                'borderColor' => '#b22222',
-                'textColor' => 'white',
-                'allDay' => true,
-                'editable' => false
-            ];
-        })->toArray();
+        // Festivos (cached)
+        $festivos = $this->getFestivosCached();
 
         // Vacaciones aprobadas (filtradas por visibilidad)
         $vacaciones = AsignacionTurno::with(['user', 'turno'])
@@ -931,5 +910,26 @@ class VacacionesController extends Controller
                 'error' => 'No se pudieron asignar las vacaciones. Inténtalo de nuevo.'
             ], 500);
         }
+    }
+
+    /**
+     * Obtener festivos cacheados para el calendario.
+     */
+    private function getFestivosCached(): array
+    {
+        return Cache::remember('festivos_calendario', 86400, function () {
+            return Festivo::select('fecha', 'titulo')->get()->map(function ($festivo) {
+                return [
+                    'id' => 'festivo-' . $festivo->fecha,
+                    'title' => $festivo->titulo,
+                    'start' => $festivo->fecha,
+                    'backgroundColor' => '#ff2800',
+                    'borderColor' => '#b22222',
+                    'textColor' => 'white',
+                    'allDay' => true,
+                    'editable' => false
+                ];
+            })->toArray();
+        });
     }
 }

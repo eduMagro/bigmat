@@ -398,28 +398,37 @@ class User extends Authenticatable
      */
     public function getUsuariosVisiblesIds(): ?array
     {
+        // Cache por request para evitar múltiples queries
+        static $cache = [];
+        $cacheKey = 'visible_ids_' . $this->id;
+
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
         // Acceso total = puede ver todos
         if ($this->tieneAccesoTotal()) {
-            return null;
+            return $cache[$cacheKey] = null;
         }
 
-        // Obtener departamentos donde es responsable
-        $departamentosResponsable = $this->departamentosComoResponsable();
+        // Obtener departamentos donde es responsable (una sola query)
+        $departamentosIds = Departamento::where('responsable_id', $this->id)->pluck('id');
 
-        if ($departamentosResponsable->isEmpty()) {
+        if ($departamentosIds->isEmpty()) {
             // No es responsable, solo puede verse a sí mismo
-            return [$this->id];
+            return $cache[$cacheKey] = [$this->id];
         }
 
-        // Obtener usuarios de los departamentos donde es responsable
-        $usuariosIds = collect([$this->id]);
+        // Obtener todos los usuarios de esos departamentos en una sola query
+        $usuariosIds = \DB::table('departamento_user')
+            ->whereIn('departamento_id', $departamentosIds)
+            ->pluck('user_id')
+            ->push($this->id)
+            ->unique()
+            ->values()
+            ->toArray();
 
-        foreach ($departamentosResponsable as $departamento) {
-            $usuariosDepartamento = $departamento->usuarios()->pluck('users.id');
-            $usuariosIds = $usuariosIds->merge($usuariosDepartamento);
-        }
-
-        return $usuariosIds->unique()->values()->toArray();
+        return $cache[$cacheKey] = $usuariosIds;
     }
 
     /**
