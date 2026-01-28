@@ -386,11 +386,19 @@ class AsignacionTurnoController extends Controller
                 return response()->json(['error' => 'No estás dentro de ninguna zona de trabajo o no hay lugares configurados.'], 403);
             }
 
-            /* 3) Hora actual + detección de turno/fecha ------------------------------ */
+            /* 3) Hora actual ------------------------------------------------------------- */
             $ahora = now();
             $horaActual = $ahora->format('H:i:s');
             $fechaHoy = $ahora->toDateString();
 
+            /* 4) Para SALIDA: no necesitamos detectar turno, buscamos asignación abierta */
+            if ($request->tipo === 'salida') {
+                return $this->procesarSalida(
+                    $user, null, $horaActual, $obraEncontrada, $ahora, $request->forzar
+                );
+            }
+
+            /* 5) Para ENTRADA: detectar turno/fecha ----------------------------------- */
             [$turnoDetectado, $fechaTurnoDetectado] = $this->detectarTurnoYFecha($ahora);
             if (!$turnoDetectado || !$fechaTurnoDetectado) {
                 return response()->json(['error' => 'No se pudo determinar el turno para esta hora.'], 403);
@@ -401,7 +409,7 @@ class AsignacionTurnoController extends Controller
                 return response()->json(['error' => "No existe configurado el turno '{$turnoDetectado}'."], 500);
             }
 
-            /* 4) Buscar asignación existente ------------------------------------------ */
+            /* 6) Buscar asignación existente para entrada ----------------------------- */
             $asignacion = $user->asignacionesTurnos()
                 ->whereDate('fecha', $fechaTurnoDetectado)
                 ->first();
@@ -413,22 +421,11 @@ class AsignacionTurnoController extends Controller
                     ->first();
             }
 
-            /* 5) Lógica de TURNO PARTIDO ---------------------------------------------- */
-            $warning = null;
-            $campoActualizado = null;
-
-            if ($request->tipo === 'entrada') {
-                // ==================== FICHAJE ENTRADA ====================
-                return $this->procesarEntrada(
-                    $user, $asignacion, $turnoModelo, $turnoDetectado,
-                    $fechaTurnoDetectado, $horaActual, $obraEncontrada, $request->forzar
-                );
-            } else {
-                // ==================== FICHAJE SALIDA ====================
-                return $this->procesarSalida(
-                    $user, $asignacion, $horaActual, $obraEncontrada, $ahora, $request->forzar
-                );
-            }
+            /* 7) Procesar ENTRADA ----------------------------------------------------- */
+            return $this->procesarEntrada(
+                $user, $asignacion, $turnoModelo, $turnoDetectado,
+                $fechaTurnoDetectado, $horaActual, $obraEncontrada, $request->forzar
+            );
 
         } catch (\Throwable $e) {
             Log::error('❌ Error en fichaje', ['exception' => $e]);
@@ -529,9 +526,9 @@ class AsignacionTurnoController extends Controller
     {
         $campoActualizado = 'salida';
 
-        // Buscar asignación abierta si no se encontró
+        // Buscar asignación reciente si no se encontró (incluye turnos partidos)
         if (!$asignacion) {
-            $asignacion = $this->buscarAsignacionAbiertaParaSalida($user, $ahora);
+            $asignacion = $this->buscarAsignacionRecienteParaSalida($user, $ahora);
         }
 
         if (!$asignacion) {
@@ -854,6 +851,37 @@ class AsignacionTurnoController extends Controller
             ->whereBetween('fecha', [$desde, $hasta])
             ->whereNotNull('entrada')
             ->whereNull('salida')
+            ->orderByDesc('fecha')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Busca cualquier asignación reciente del usuario para fichaje de salida.
+     * Incluye asignaciones con salida ya registrada (para turnos partidos).
+     */
+    private function buscarAsignacionRecienteParaSalida(User $user, Carbon $ahora): ?AsignacionTurno
+    {
+        $desde = $ahora->copy()->subHours(36)->toDateString();
+        $hasta = $ahora->toDateString();
+
+        // Primero buscar asignación abierta (sin salida)
+        $abierta = $this->buscarAsignacionAbiertaParaSalida($user, $ahora);
+        if ($abierta) {
+            return $abierta;
+        }
+
+        // Si no hay abierta, buscar la más reciente con entrada (puede tener salida pero no salida2)
+        return $user->asignacionesTurnos()
+            ->whereBetween('fecha', [$desde, $hasta])
+            ->whereNotNull('entrada')
+            ->where(function ($q) {
+                // Turno partido incompleto: tiene salida pero no salida2
+                $q->where(function ($q2) {
+                    $q2->whereNotNull('salida')
+                       ->whereNull('salida2');
+                });
+            })
             ->orderByDesc('fecha')
             ->orderByDesc('id')
             ->first();
