@@ -82,6 +82,10 @@
             background-color: #f9fafb;
         }
 
+        .dark body {
+            background-color: #111827;
+        }
+
         * {
             box-sizing: border-box;
             -webkit-font-smoothing: antialiased;
@@ -137,6 +141,10 @@
             transition: opacity 0.2s ease;
         }
 
+        .dark .navigation-overlay {
+            background: rgba(17, 24, 39, 0.8);
+        }
+
         .navigation-overlay.active {
             opacity: 1;
             pointer-events: all;
@@ -154,6 +162,11 @@
             border-top-color: #3b82f6;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
+        }
+
+        .dark .navigation-spinner {
+            border-color: #374151;
+            border-top-color: #60a5fa;
         }
 
         @keyframes spin {

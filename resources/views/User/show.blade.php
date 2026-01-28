@@ -50,25 +50,25 @@
                         x-transition:leave="ease-in duration-200"
                         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                        class="inline-block align-top bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full !max-h-[90vh] !overflow-y-auto">
+                        class="inline-block align-top bg-white dark:bg-gray-800 rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full !max-h-[90vh] !overflow-y-auto">
 
-                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <div class="sm:flex sm:items-start">
                                 <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100" id="modal-title">
                                         Gestión de Contratos y Documentos
                                     </h3>
 
                                     <!-- Fecha de Incorporación -->
-                                    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de
+                                    <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Fecha de
                                             Incorporación</label>
                                         <template x-if="hasIncorporacion">
                                             <div>
-                                                <div class="p-2 bg-white border border-gray-200 rounded-md text-gray-700 sm:text-sm"
+                                                <div class="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-400 sm:text-sm"
                                                     x-text="fechaIncorporacion ? formatDate(fechaIncorporacion) : 'No definida'">
                                                 </div>
-                                                <p class="text-xs text-gray-500 mt-1">Vinculada a la incorporación (No
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Vinculada a la incorporación (No
                                                     modificable).</p>
                                             </div>
                                         </template>
@@ -77,16 +77,16 @@
                                                 @if (auth()->user()->rol === 'oficina')
                                                     <div class="flex gap-2">
                                                         <input type="date" x-model="fechaIncorporacion"
-                                                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-md">
                                                         <button @click="updateFechaIncorporacion()"
                                                             class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 text-sm">Guardar</button>
                                                     </div>
                                                 @else
-                                                    <div class="p-2 bg-white border border-gray-200 rounded-md text-gray-700 sm:text-sm"
+                                                    <div class="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-400 sm:text-sm"
                                                         x-text="fechaIncorporacion ? formatDate(fechaIncorporacion) : 'No definida'">
                                                     </div>
                                                 @endif
-                                                <p class="text-xs text-gray-500 mt-1">Usada para el cálculo de
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Usada para el cálculo de
                                                     vacaciones.
                                                 </p>
                                             </div>
@@ -97,26 +97,26 @@
 
                                     <!-- Listado de Contratos de Incorporación -->
                                     <div class="mt-6 mb-6">
-                                        <h4 class="font-medium text-gray-900 mb-2">Contratos (Incorporación)</h4>
-                                        <div class="overflow-hidden border border-gray-200 rounded-lg bg-gray-50">
+                                        <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-2">Contratos (Incorporación)</h4>
+                                        <div class="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700">
                                             <template x-if="!hasIncorporacion">
-                                                <p class="p-4 text-sm text-gray-500 italic">El usuario no tiene una
+                                                <p class="p-4 text-sm text-gray-500 dark:text-gray-400 italic">El usuario no tiene una
                                                     incorporación vinculada.</p>
                                             </template>
                                             <template x-if="hasIncorporacion && contratos.length === 0">
-                                                <p class="p-4 text-sm text-gray-500 italic">No hay contratos subidos en
+                                                <p class="p-4 text-sm text-gray-500 dark:text-gray-400 italic">No hay contratos subidos en
                                                     la incorporación.</p>
                                             </template>
-                                            <ul class="divide-y divide-gray-200 max-h-40 overflow-y-auto"
+                                            <ul class="divide-y divide-gray-200 dark:divide-gray-700 max-h-40 overflow-y-auto"
                                                 x-show="hasIncorporacion && contratos.length > 0">
                                                 <template x-for="doc in contratos" :key="doc.id">
-                                                    <li class="p-3 hover:bg-gray-100 flex justify-between items-center">
+                                                    <li class="p-3 hover:bg-gray-100 dark:hover:bg-gray-600 flex justify-between items-center">
                                                         <div class="flex-1 min-w-0">
-                                                            <p class="text-sm font-medium text-blue-800 truncate cursor-pointer"
+                                                            <p class="text-sm font-medium text-blue-800 dark:text-blue-400 truncate cursor-pointer"
                                                                 @click="window.open(doc.download_url, '_blank')"
                                                                 x-text="'Contrato de Trabajo'">
                                                             </p>
-                                                            <p class="text-xs text-gray-500"
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400"
                                                                 x-text="'Subido: ' + formatDate(doc.created_at)"></p>
                                                         </div>
                                                         <div class="ml-4 flex-shrink-0 flex gap-2">
@@ -156,9 +156,9 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                             <button type="button" @click="closeModal()"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                                 Cerrar
                             </button>
                         </div>

@@ -31,7 +31,9 @@
       "Bash(npm run build:*)",
       "Bash(powershell:*)",
       "Bash(xargs ls:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(composer show:*)",
+      "Bash(composer dump-autoload:*)"
     ]
   }
 }

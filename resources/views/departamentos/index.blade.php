@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Permisos y configuración</x-slot>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
             {{ __('Permisos y configuración') }}
         </h2>
     </x-slot>
@@ -42,37 +42,37 @@
 
         <!-- Success/Error Messages -->
         @if (session('success'))
-            <div class="mb-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-sm">
+            <div class="mb-4 bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg shadow-sm">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                             clip-rule="evenodd" />
                     </svg>
-                    <p class="text-green-700 font-medium">{{ session('success') }}</p>
+                    <p class="text-green-700 dark:text-green-300 font-medium">{{ session('success') }}</p>
                 </div>
             </div>
         @endif
 
         @if (session('error'))
-            <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg shadow-sm">
+            <div class="mb-4 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-lg shadow-sm">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                             clip-rule="evenodd" />
                     </svg>
-                    <p class="text-red-700 font-medium">{{ session('error') }}</p>
+                    <p class="text-red-700 dark:text-red-300 font-medium">{{ session('error') }}</p>
                 </div>
             </div>
         @endif
 
         <!-- Tabla Responsive -->
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <!-- Vista Desktop -->
             <div class="hidden md:block overflow-x-auto">
                 <table class="w-full table-auto border-collapse">
-                    <thead class="bg-blue-500 text-white">
+                    <thead class="bg-blue-500 dark:bg-blue-600 text-white">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                                 Departamento
@@ -92,8 +92,8 @@
                         </tr>
                     </thead>
                         @forelse ($departamentos as $departamento)
-                    <tbody x-data="{ isExpanded: false }" class="bg-white divide-y divide-gray-200">
-                        <tr class="hover:bg-blue-50 transition-colors duration-150">
+                    <tbody x-data="{ isExpanded: false }" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr class="hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors duration-150">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <button @click="isExpanded = !isExpanded"
                                     class="flex items-center gap-2 text-left font-semibold text-blue-600 hover:text-blue-800 transition-colors">
@@ -111,11 +111,11 @@
                                 </button>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="text-gray-700">{{ $departamento->descripcion ?? '—' }}</span>
+                                <span class="text-gray-700 dark:text-gray-300">{{ $departamento->descripcion ?? '—' }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <span
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $departamento->usuarios->count() > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $departamento->usuarios->count() > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
                                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path
                                             d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
@@ -125,7 +125,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <span
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $departamento->secciones->count() > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600' }}">
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $departamento->secciones->count() > 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
                                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path
                                             d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -183,7 +183,7 @@
                             </td>
                         </tr>
 
-                        <tr x-show="isExpanded" class="bg-gray-50" x-cloak>
+                        <tr x-show="isExpanded" class="bg-gray-50 dark:bg-gray-700" x-cloak>
                             <td colspan="5" class="px-6 py-4">
                                 @include('departamentos.partials.detalle-departamento', [
                                     'departamento' => $departamento,
@@ -195,7 +195,7 @@
                     <tbody>
                         <tr>
                             <td colspan="5" class="px-6 py-8 text-center">
-                                <div class="flex flex-col items-center justify-center text-gray-500">
+                                <div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                                     <svg class="w-12 h-12 mb-3 text-gray-400" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -214,14 +214,14 @@
             <!-- Vista Mobile -->
             <div class="md:hidden space-y-3 p-3">
                 @forelse ($departamentos as $departamento)
-                    <div class="border-2 border-gray-200 rounded-xl shadow-md bg-white hover:shadow-lg transition-shadow duration-200"
+                    <div class="border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-md bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow duration-200"
                         x-data="{ isExpanded: false }">
                         <!-- Cabecera del card -->
-                        <div class="p-4 bg-blue-50 rounded-t-xl">
+                        <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-t-xl">
                             <button @click="isExpanded = !isExpanded" class="w-full text-left">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="flex-1">
-                                        <h3 class="font-bold text-blue-700 text-lg flex items-center gap-2">
+                                        <h3 class="font-bold text-blue-700 dark:text-blue-400 text-lg flex items-center gap-2">
                                             <svg x-show="!isExpanded" class="w-5 h-5" fill="none"
                                                 stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -234,13 +234,13 @@
                                             </svg>
                                             {{ $departamento->nombre }}
                                         </h3>
-                                        <p class="text-sm text-gray-600 mt-1">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                             {{ $departamento->descripcion ?? 'Sin descripción' }}</p>
                                     </div>
                                 </div>
                                 <div class="flex gap-3 mt-3">
                                     <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $departamento->usuarios->count() > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $departamento->usuarios->count() > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                             <path
                                                 d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
@@ -248,7 +248,7 @@
                                         {{ $departamento->usuarios->count() }} usuarios
                                     </span>
                                     <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $departamento->secciones->count() > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $departamento->secciones->count() > 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                             <path
                                                 d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -260,7 +260,7 @@
                         </div>
 
                         <!-- Botones de acción -->
-                        <div class="p-3 space-y-2 bg-white">
+                        <div class="p-3 space-y-2 bg-white dark:bg-gray-800">
                             <div class="grid grid-cols-2 gap-2">
                                 <button @click="openModalSecciones = true; departamentoId = {{ $departamento->id }};"
                                     class="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-3 rounded-lg text-xs font-semibold transition-colors shadow-sm">
@@ -307,14 +307,14 @@
                         </div>
 
                         <!-- Detalles expandibles -->
-                        <div x-show="isExpanded" x-transition class="border-t bg-gray-50 p-4 space-y-4 rounded-b-xl">
+                        <div x-show="isExpanded" x-transition class="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-4 space-y-4 rounded-b-xl">
                             @include('departamentos.partials.detalle-departamento', [
                                 'departamento' => $departamento,
                             ])
                         </div>
                     </div>
                 @empty
-                    <div class="text-center text-gray-500 py-12">
+                    <div class="text-center text-gray-500 dark:text-gray-400 py-12">
                         <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -330,16 +330,16 @@
         <!-- Tabla resumen de todos los departamentos -->
         <!-- Botones para departamentos -->
         <div class="mt-12 flex flex-col sm:flex-row justify-start items-start sm:items-center mb-4 gap-2 sm:gap-4">
-            <h3 class="text-lg font-semibold text-gray-700">Resumen Departamentos</h3>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Resumen Departamentos</h3>
             <button @click="openNuevoDepartamentoModal = true"
                 class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow">
                 + Nuevo Departamento
             </button>
         </div>
 
-        <div class="w-full mt-4 overflow-x-auto bg-white shadow-lg rounded-lg">
-            <table class="w-full min-w-[600px] border border-gray-300 rounded-lg" id="tablaDepartamentos">
-                <thead class="bg-blue-500 text-white">
+        <div class="w-full mt-4 overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+            <table class="w-full min-w-[600px] border border-gray-300 dark:border-gray-700 rounded-lg" id="tablaDepartamentos">
+                <thead class="bg-blue-500 dark:bg-blue-600 text-white">
                     <tr class="text-center text-xs uppercase">
                         <th class="px-4 py-2 text-left">Nombre</th>
                         <th class="px-4 py-2 text-left">Descripción</th>
@@ -357,32 +357,32 @@
                         }" @dblclick="editando = true"
                             @keydown.enter.stop.prevent="guardarDepartamento(departamento); editando = false"
                             @keydown.escape="departamento = JSON.parse(JSON.stringify(original)); editando = false"
-                            :class="{ 'bg-yellow-100': editando }"
-                            class="border-t cursor-pointer hover:bg-blue-50 focus:outline-none" tabindex="0">
+                            :class="{ 'bg-yellow-100 dark:bg-yellow-900/30': editando }"
+                            class="border-t dark:border-gray-700 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none" tabindex="0">
 
 
                             <!-- Nombre -->
-                            <td class="px-4 py-2 border">
+                            <td class="px-4 py-2 border dark:border-gray-700">
                                 <template x-if="!editando">
-                                    <span x-text="departamento.nombre"></span>
+                                    <span class="text-gray-900 dark:text-gray-100" x-text="departamento.nombre"></span>
                                 </template>
                                 <input x-show="editando" type="text" x-model="departamento.nombre"
-                                    class="form-control form-control-sm">
+                                    class="form-control form-control-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                             </td>
 
                             <!-- Descripción -->
-                            <td class="px-4 py-2 border">
+                            <td class="px-4 py-2 border dark:border-gray-700">
                                 <template x-if="!editando">
-                                    <span x-text="departamento.descripcion ?? '—'"></span>
+                                    <span class="text-gray-700 dark:text-gray-300" x-text="departamento.descripcion ?? '—'"></span>
                                 </template>
                                 <input x-show="editando" type="text" x-model="departamento.descripcion"
-                                    class="form-control form-control-sm">
+                                    class="form-control form-control-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                             </td>
 
                             <!-- Responsable -->
-                            <td class="px-4 py-2 border">
+                            <td class="px-4 py-2 border dark:border-gray-700">
                                 <select
-                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 w-full"
+                                    class="text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 w-full"
                                     onchange="cambiarResponsable({{ $dep->id }}, this.value)">
                                     <option value="">Sin responsable</option>
                                     @foreach ($usuariosOficina as $usuario)
@@ -394,12 +394,12 @@
                             </td>
 
                             <!-- Usuarios asignados -->
-                            <td class="px-4 py-2 border text-center">
+                            <td class="px-4 py-2 border dark:border-gray-700 text-center text-gray-700 dark:text-gray-300">
                                 {{ $dep->usuarios->count() }} usuario{{ $dep->usuarios->count() === 1 ? '' : 's' }}
                             </td>
 
                             <!-- Secciones visibles -->
-                            <td class="px-4 py-2 border text-center">
+                            <td class="px-4 py-2 border dark:border-gray-700 text-center text-gray-700 dark:text-gray-300">
                                 {{ $dep->secciones->count() }} sección{{ $dep->secciones->count() === 1 ? '' : 'es' }}
                             </td>
 
@@ -521,16 +521,16 @@
         <!-- Tabla resumen de todas las secciones -->
         <!-- Botones para secciones -->
         <div class="mt-12 flex flex-col sm:flex-row justify-start items-start sm:items-center mb-4 gap-2 sm:gap-4">
-            <h3 class="text-lg font-semibold text-gray-700">Resumen Secciones</h3>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Resumen Secciones</h3>
             <button @click="openNuevaSeccionModal = true"
                 class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded shadow">
                 + Nueva Sección
             </button>
         </div>
 
-        <div class="w-full mt-4 overflow-x-auto bg-white shadow-lg rounded-lg">
-            <table id="tabla-secciones" class="w-full min-w-[600px] border border-gray-300 rounded-lg">
-                <thead class="bg-blue-500 text-white">
+        <div class="w-full mt-4 overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+            <table id="tabla-secciones" class="w-full min-w-[600px] border border-gray-300 dark:border-gray-700 rounded-lg">
+                <thead class="bg-blue-500 dark:bg-blue-600 text-white">
                     <tr class="text-center text-xs uppercase">
                         <th class="px-4 py-2 text-left">Nombre</th>
                         <th class="px-4 py-2 text-left">Ruta</th>
@@ -548,39 +548,39 @@
                         }" @dblclick="editando = true"
                             @keydown.enter.stop.prevent="guardarSeccion(seccion); editando = false"
                             @keydown.escape="seccion = JSON.parse(JSON.stringify(original)); editando = false"
-                            :class="{ 'bg-yellow-100': editando }"
-                            class="border-t cursor-pointer hover:bg-blue-50 focus:outline-none" tabindex="0">
+                            :class="{ 'bg-yellow-100 dark:bg-yellow-900/30': editando }"
+                            class="border-t dark:border-gray-700 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none" tabindex="0">
 
                             <!-- Nombre -->
-                            <td class="px-4 py-2 border">
+                            <td class="px-4 py-2 border dark:border-gray-700">
                                 <template x-if="!editando">
-                                    <span x-text="seccion.nombre"></span>
+                                    <span class="text-gray-900 dark:text-gray-100" x-text="seccion.nombre"></span>
                                 </template>
                                 <input x-show="editando" type="text" x-model="seccion.nombre"
-                                    class="form-control form-control-sm">
+                                    class="form-control form-control-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                             </td>
 
                             <!-- Ruta -->
-                            <td class="px-4 py-2 border">
+                            <td class="px-4 py-2 border dark:border-gray-700">
                                 <template x-if="!editando">
-                                    <span x-text="seccion.ruta"></span>
+                                    <span class="text-gray-700 dark:text-gray-300" x-text="seccion.ruta"></span>
                                 </template>
                                 <input x-show="editando" type="text" x-model="seccion.ruta"
-                                    class="form-control form-control-sm">
+                                    class="form-control form-control-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                             </td>
 
 
 
                             <!-- Departamentos asociados -->
-                            <td class="px-4 py-2 border text-center">
+                            <td class="px-4 py-2 border dark:border-gray-700 text-center text-gray-700 dark:text-gray-300">
                                 {{ $sec->departamentos->pluck('nombre')->join(', ') ?: 'Ninguno' }}
                             </td>
 
                             <!-- Mostrar en dashboard -->
-                            <td class="px-4 py-2 border text-center">
+                            <td class="px-4 py-2 border dark:border-gray-700 text-center">
                                 <input type="checkbox" :checked="seccion.mostrar_en_dashboard"
                                     @change="seccion.mostrar_en_dashboard = $event.target.checked; toggleMostrarDashboard(seccion.id, $event.target.checked)"
-                                    class="form-checkbox h-5 w-5 text-blue-600 cursor-pointer">
+                                    class="form-checkbox h-5 w-5 text-blue-600 dark:border-gray-600 cursor-pointer">
                             </td>
 
 
@@ -596,7 +596,7 @@
              AUTO-DETECCIÓN DE SECCIONES - Módulos sin configurar
         ═══════════════════════════════════════════════════════════════════════════════ -->
         @if(count($seccionesComparacion['sin_seccion']) > 0)
-        <div class="mt-12 bg-white shadow-lg rounded-lg overflow-hidden border border-amber-300"
+        <div class="mt-12 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-amber-300 dark:border-amber-600"
              x-data="seccionesAutoDetect()"
              x-show="seccionesFaltantes.length > 0"
              x-transition:leave="transition ease-in duration-300"
@@ -634,12 +634,12 @@
             <div class="p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                     <template x-for="item in seccionesFaltantes" :key="item.prefijo">
-                        <div class="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                        <div class="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition">
                             <div class="flex-1 min-w-0 mr-2">
-                                <div class="font-medium text-gray-900 truncate" x-text="item.nombre_sugerido"></div>
-                                <div class="text-xs text-gray-500 font-mono">
+                                <div class="font-medium text-gray-900 dark:text-gray-100 truncate" x-text="item.nombre_sugerido"></div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
                                     <span x-text="item.prefijo + '.*'"></span>
-                                    <span class="text-amber-600" x-text="'(' + item.total_rutas + ')'"></span>
+                                    <span class="text-amber-600 dark:text-amber-400" x-text="'(' + item.total_rutas + ')'"></span>
                                 </div>
                             </div>
                             <button @click="crearSeccion(item.prefijo, item.nombre_sugerido)"
@@ -657,15 +657,15 @@
                     </template>
                 </div>
 
-                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700" x-show="seccionesFaltantes.length > 0">
+                <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg text-sm text-blue-700 dark:text-blue-300" x-show="seccionesFaltantes.length > 0">
                     <strong>Siguiente paso:</strong> Después de crear las secciones, asígnalas a los departamentos correspondientes usando el botón "Secciones" de cada departamento.
                 </div>
 
-                <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center" x-show="seccionesFaltantes.length === 0" x-cloak>
+                <div class="mt-4 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-center" x-show="seccionesFaltantes.length === 0" x-cloak>
                     <svg class="w-12 h-12 mx-auto text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <p class="text-green-700 font-medium">Todos los módulos tienen sección asignada</p>
+                    <p class="text-green-700 dark:text-green-300 font-medium">Todos los módulos tienen sección asignada</p>
                 </div>
             </div>
         </div>
@@ -769,7 +769,7 @@
         <!-- ═══════════════════════════════════════════════════════════════════════════════
              CONFIGURACIÓN DEL DASHBOARD - Orden de secciones y acceso de operarios
         ═══════════════════════════════════════════════════════════════════════════════ -->
-        <div class="mt-12 bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+        <div class="mt-12 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
                 <h3 class="text-xl font-bold text-white flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -787,40 +787,40 @@
             <div class="p-6">
                 <!-- Configuración de Secciones para Operarios -->
                 @if ($departamentoOperarios)
-                    <div class="border-t pt-6 mt-6">
-                        <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <div class="border-t dark:border-gray-700 pt-6 mt-6">
+                        <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
                             <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                             Secciones visibles para Operarios
-                            <span class="text-sm font-normal text-gray-500">(Departamento:
+                            <span class="text-sm font-normal text-gray-500 dark:text-gray-400">(Departamento:
                                 {{ $departamentoOperarios->nombre }})</span>
                         </h4>
 
-                        <p class="text-sm text-gray-600 mb-4">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                             Las secciones marcadas serán visibles en el dashboard de los usuarios con rol "operario".
                             <a href="#"
                                 @click.prevent="openModalSecciones = true; departamentoId = {{ $departamentoOperarios->id }}"
-                                class="text-blue-600 hover:underline">Editar secciones</a>
+                                class="text-blue-600 dark:text-blue-400 hover:underline">Editar secciones</a>
                         </p>
 
                         <div class="flex flex-wrap gap-2">
                             @forelse ($departamentoOperarios->secciones as $seccion)
                                 <span
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium">
                                     {{ $seccion->nombre }}
                                 </span>
                             @empty
-                                <span class="text-gray-500 italic">No hay secciones asignadas al departamento
+                                <span class="text-gray-500 dark:text-gray-400 italic">No hay secciones asignadas al departamento
                                     Operarios</span>
                             @endforelse
                         </div>
                     </div>
                 @else
-                    <div class="border-t pt-6 mt-6">
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="border-t dark:border-gray-700 pt-6 mt-6">
+                        <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
                             <div class="flex items-start gap-3">
                                 <svg class="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
@@ -828,15 +828,15 @@
                                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                                 <div>
-                                    <h5 class="font-semibold text-yellow-800">Departamento "Operarios" no encontrado
+                                    <h5 class="font-semibold text-yellow-800 dark:text-yellow-300">Departamento "Operarios" no encontrado
                                     </h5>
-                                    <p class="text-sm text-yellow-700 mt-1">
+                                    <p class="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
                                         Para configurar las secciones visibles para operarios, primero crea un
                                         departamento llamado
                                         exactamente "Operarios".
                                     </p>
                                     <button type="button" @click="openNuevoDepartamentoModal = true"
-                                        class="mt-2 text-sm text-yellow-800 hover:text-yellow-900 font-medium underline">
+                                        class="mt-2 text-sm text-yellow-800 dark:text-yellow-300 hover:text-yellow-900 dark:hover:text-yellow-200 font-medium underline">
                                         + Crear departamento Operarios
                                     </button>
                                 </div>
@@ -923,22 +923,22 @@
         <div x-show="openNuevaSeccionModal" x-cloak
             class="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
             <div x-show="openNuevaSeccionModal" x-transition
-                class="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md z-50 max-h-[90vh] overflow-y-auto">
-                    <h3 class="text-lg font-semibold mb-4">Crear nueva sección</h3>
+                class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md z-50 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Crear nueva sección</h3>
 
                     <form method="POST" action="{{ route('secciones.store') }}">
                         @csrf
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700">Nombre</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
                             <input type="text" name="nombre" required
-                                class="w-full p-2 border border-gray-300 rounded-lg">
+                                class="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg">
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700">Ruta (route name)</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ruta (route name)</label>
                             <input type="text" name="ruta" required
-                                class="w-full p-2 border border-gray-300 rounded-lg"
+                                class="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"
                                 placeholder="ej: productos.index">
                         </div>
 
@@ -964,7 +964,7 @@
         <div x-show="openModal" x-cloak
             class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div x-show="openModal" x-transition
-                class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+                class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
                     <!-- Header del modal -->
                     <div
                         class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 flex justify-between items-center">
@@ -998,13 +998,13 @@
                         <div class="flex-1 overflow-y-auto p-6">
                             <div class="mb-4">
                                 <div class="flex items-center justify-between mb-3">
-                                    <p class="text-sm text-gray-600">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
                                         <span class="font-semibold">{{ count($usuariosOficina) }}</span> usuarios
                                         disponibles
                                     </p>
                                     <button type="button"
                                         @click="$el.closest('form').querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = !cb.checked)"
-                                        class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                                        class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                                         Invertir selección
                                     </button>
                                 </div>
@@ -1013,7 +1013,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 @forelse ($usuariosOficina as $usuario)
                                     <label
-                                        class="flex items-start space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all cursor-pointer group">
+                                        class="flex items-start space-x-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 transition-all cursor-pointer group">
                                         <input type="checkbox" name="usuarios[]" :value="'{{ $usuario->id }}'"
                                             :checked="usuariosMarcados.includes({{ $usuario->id }})"
                                             class="mt-1 w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-2 cursor-pointer">
@@ -1025,10 +1025,10 @@
                                                 </div>
                                                 <div class="flex-1 min-w-0">
                                                     <p
-                                                        class="font-semibold text-gray-900 truncate group-hover:text-green-700 transition-colors">
+                                                        class="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">
                                                         {{ $usuario->nombre_completo }}
                                                     </p>
-                                                    <p class="text-sm text-gray-500 truncate">{{ $usuario->email }}
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ $usuario->email }}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1036,27 +1036,27 @@
                                     </label>
                                 @empty
                                     <div class="col-span-2 text-center py-12">
-                                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none"
+                                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        <p class="text-gray-500 font-medium">No hay usuarios disponibles</p>
+                                        <p class="text-gray-500 dark:text-gray-400 font-medium">No hay usuarios disponibles</p>
                                     </div>
                                 @endforelse
                             </div>
                         </div>
 
                         <!-- Footer del modal -->
-                        <div class="border-t bg-gray-50 px-6 py-4 flex justify-between items-center gap-3">
-                            <p class="text-sm text-gray-600">
+                        <div class="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-6 py-4 flex justify-between items-center gap-3">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
                                 <span
                                     x-text="$el.closest('form').querySelectorAll('input[type=checkbox]:checked').length"></span>
                                 seleccionado(s)
                             </p>
                             <div class="flex gap-3">
                                 <button type="button" @click="openModal = false"
-                                    class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors">
+                                    class="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg transition-colors">
                                     Cancelar
                                 </button>
                                 <button type="submit"
@@ -1080,21 +1080,21 @@
         <div x-show="openNuevoDepartamentoModal" x-cloak
             class="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
             <div x-show="openNuevoDepartamentoModal" x-transition
-                class="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md z-50 max-h-[90vh] overflow-y-auto">
-                <h3 class="text-lg font-semibold mb-4">Crear nuevo departamento</h3>
+                class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md z-50 max-h-[90vh] overflow-y-auto">
+                <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Crear nuevo departamento</h3>
 
                     <form method="POST" action="{{ route('departamentos.store') }}">
                         @csrf
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700">Nombre</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
                             <input type="text" name="nombre" required
-                                class="w-full p-2 border border-gray-300 rounded-lg">
+                                class="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg">
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700">Descripción</label>
-                            <textarea name="descripcion" rows="3" class="w-full p-2 border border-gray-300 rounded-lg"></textarea>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+                            <textarea name="descripcion" rows="3" class="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg"></textarea>
                         </div>
 
                         <div class="mt-4 flex justify-end space-x-2">
@@ -1114,7 +1114,7 @@
         <div x-show="openModalSecciones" x-cloak
             class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div x-show="openModalSecciones" x-transition
-                class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+                class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
                     <!-- Header del modal -->
                     <div
                         class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 flex justify-between items-center">
@@ -1149,13 +1149,13 @@
                         <div class="flex-1 overflow-y-auto p-6">
                             <div class="mb-4">
                                 <div class="flex items-center justify-between mb-3">
-                                    <p class="text-sm text-gray-600">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
                                         <span class="font-semibold" x-text="todasLasSecciones.length"></span> secciones
                                         disponibles
                                     </p>
                                     <button type="button"
                                         @click="$el.closest('form').querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = !cb.checked)"
-                                        class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                                        class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
                                         Invertir selección
                                     </button>
                                 </div>
@@ -1164,7 +1164,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <template x-for="seccion in todasLasSecciones" :key="seccion.id">
                                     <label
-                                        class="flex items-start space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer group">
+                                        class="flex items-start space-x-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all cursor-pointer group">
                                         <input type="checkbox" name="secciones[]" :value="seccion.id"
                                             :checked="(seccion.departamentos || []).map(d => d.id).includes(departamentoId)"
                                             class="mt-1 w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 focus:ring-2 cursor-pointer">
@@ -1176,12 +1176,12 @@
                                                     </div>
                                                 <div class="flex-1 min-w-0">
                                                     <p
-                                                        class="font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition-colors"
+                                                        class="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors"
                                                         x-text="seccion.nombre">
                                                     </p>
-                                                    <p class="text-xs text-gray-500 truncate" x-text="seccion.ruta"></p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate" x-text="seccion.ruta"></p>
                                                     <span x-show="seccion.mostrar_en_dashboard"
-                                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 mt-1">
                                                             <svg class="w-3 h-3 mr-1" fill="currentColor"
                                                                 viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd"
@@ -1197,15 +1197,15 @@
                                 </template>
                                 <!-- Empty state -->
                                 <div x-show="todasLasSecciones.length === 0" class="col-span-3 text-center py-12">
-                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none"
+                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    <p class="text-gray-500 font-medium">No hay secciones registradas</p>
+                                    <p class="text-gray-500 dark:text-gray-400 font-medium">No hay secciones registradas</p>
                                     <button type="button"
                                         @click="openModalSecciones = false; openNuevaSeccionModal = true"
-                                        class="mt-3 text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+                                        class="mt-3 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium text-sm">
                                         + Crear primera sección
                                     </button>
                                 </div>
@@ -1213,15 +1213,15 @@
                         </div>
 
                         <!-- Footer del modal -->
-                        <div class="border-t bg-gray-50 px-6 py-4 flex justify-between items-center gap-3">
-                            <p class="text-sm text-gray-600">
+                        <div class="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-6 py-4 flex justify-between items-center gap-3">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
                                 <span
                                     x-text="$el.closest('form').querySelectorAll('input[type=checkbox]:checked').length"></span>
                                 seleccionada(s)
                             </p>
                             <div class="flex gap-3">
                                 <button type="button" @click="openModalSecciones = false"
-                                    class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors">
+                                    class="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg transition-colors">
                                     Cancelar
                                 </button>
                                 <button type="submit"

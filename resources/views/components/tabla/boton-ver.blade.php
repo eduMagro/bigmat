@@ -3,7 +3,7 @@
 <a href="{{ $href }}"
     wire:navigate
     {{ $attributes->merge([
-        'class' => 'w-6 h-6 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 flex items-center justify-center',
+        'class' => 'w-6 h-6 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 flex items-center justify-center',
     ]) }}>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
         stroke-width="2">

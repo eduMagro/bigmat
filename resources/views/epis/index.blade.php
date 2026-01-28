@@ -1,17 +1,17 @@
 <x-app-layout>
     <x-slot name="title">EPIs</x-slot>
 
-    <div class="py-6 px-4 bg-slate-100 min-h-screen" x-data="episPage()" x-init="init()">
+    <div class="py-6 px-4 bg-slate-100 dark:bg-gray-900 min-h-screen" x-data="episPage()" x-init="init()">
         <div class="max-w-6xl mx-auto space-y-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-900">EPIs por trabajador</h1>
-                    <p class="text-sm text-gray-600 mt-1">Agenda de usuarios con EPIs en posesión.</p>
+                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">EPIs por trabajador</h1>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Agenda de usuarios con EPIs en posesión.</p>
                 </div>
 
                 <div class="flex gap-2 items-end">
                     <div class="relative w-full sm:w-96" data-user-suggest>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Buscar trabajador</label>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar trabajador</label>
                         <input type="text" x-model="query" @input="onQueryChange()"
                             @keydown.escape="closeSuggestions()" @focus="openSuggestions()"
                             placeholder="Nombre, apellidos, DNI, móvil…"
@@ -19,35 +19,35 @@
 
                         <!-- Helper / sugerencias -->
                         <div x-cloak x-show="suggestionsOpen"
-                            class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+                            class="absolute z-50 mt-2 w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur border border-slate-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden">
                             <div class="max-h-80 overflow-y-auto">
                                 <template x-if="suggestions.length === 0">
-                                    <div class="p-4 text-sm text-gray-600">Sin coincidencias.</div>
+                                    <div class="p-4 text-sm text-gray-600 dark:text-gray-400">Sin coincidencias.</div>
                                 </template>
                                 <template x-for="u in suggestions" :key="u.id">
                                     <button type="button"
-                                        class="w-full text-left px-4 py-3 hover:bg-gray-200 transition-colors flex items-center gap-3"
+                                        class="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
                                         @click="selectUser(u)">
                                         <div
-                                            class="w-9 h-9 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                            class="w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                             <template x-if="u.ruta_imagen">
                                                 <img :src="u.ruta_imagen" :alt="`Foto de ${u.nombre_completo}`"
                                                     class="w-full h-full object-cover" />
                                             </template>
                                             <template x-if="!u.ruta_imagen">
-                                                <span class="text-gray-600 font-semibold"
+                                                <span class="text-gray-600 dark:text-gray-400 font-semibold"
                                                     x-text="u.nombre_completo?.slice(0,1)?.toUpperCase()"></span>
                                             </template>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-sm font-semibold text-gray-900 truncate"
+                                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                 x-text="u.nombre_completo"></p>
-                                            <p class="text-xs text-gray-600 truncate">
+                                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                 <span x-text="u.dni || 'DNI N/D'"></span>
                                                 <span class="mx-1">·</span>
                                                 <span x-text="u.movil_personal || 'Móvil N/D'"></span>
                                             </p>
-                                            <p class="text-xs text-gray-500 mt-1 flex flex-col">
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex flex-col">
                                                 <span
                                                     x-text="`Categoría: ${u.categoria?.nombre || 'Sin asignar'}`"></span>
                                                 <span x-text="`Empresa: ${u.empresa?.nombre || 'Sin empresa'}`"></span>
@@ -82,28 +82,28 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
-                    class="bg-white rounded-xl border border-slate-200 p-4 shadow-md hover:shadow-lg transition-shadow duration-200">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Usuarios con EPIs</p>
-                    <p class="text-lg font-semibold text-gray-900 mt-1" x-text="stats.usuariosConEpis"></p>
+                    class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-4 shadow-md hover:shadow-lg transition-shadow duration-200">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Usuarios con EPIs</p>
+                    <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1" x-text="stats.usuariosConEpis"></p>
                 </div>
                 <div
-                    class="bg-white rounded-xl border border-slate-200 p-4 shadow-md hover:shadow-lg transition-shadow duration-200">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Catálogo</p>
-                    <p class="text-lg font-semibold text-gray-900 mt-1" x-text="catalogoCount"></p>
+                    class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-4 shadow-md hover:shadow-lg transition-shadow duration-200">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Catálogo</p>
+                    <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1" x-text="catalogoCount"></p>
                 </div>
             </div>
 
             <div
-                class="bg-white/95 rounded-xl border border-slate-200 p-4 space-y-4 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                class="bg-white/95 dark:bg-gray-800/95 rounded-xl border border-slate-200 dark:border-gray-700 p-4 space-y-4 shadow-lg hover:shadow-xl transition-shadow duration-200">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Filtrar usuarios por EPI</label>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Filtrar usuarios por EPI</label>
                         <input type="text" x-model="agendaEpiQuery" @input="onAgendaEpiQueryChange()"
                             placeholder="Nombre, codigo o categoria del EPI"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Filtrar por empresa</label>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Filtrar por empresa</label>
                         <select x-model="agendaEmpresaId" @change="onAgendaFiltersChange()"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Todas</option>
@@ -113,7 +113,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Filtrar por categoría</label>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Filtrar por categoría</label>
                         <select x-model="agendaCategoriaId" @change="onAgendaFiltersChange()"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Todas</option>
@@ -125,7 +125,7 @@
                 </div>
                 <div class="flex justify-end">
                     <button type="button"
-                        class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 shadow-sm hover:shadow-md transition"
+                        class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 shadow-sm hover:shadow-md transition"
                         @click="resetAgendaFilters()"
                         :disabled="!agendaEpiQuery && !agendaEmpresaId && !agendaCategoriaId">
                         Limpiar filtros
@@ -134,52 +134,52 @@
             </div>
 
             <div
-                class="bg-white/95 rounded-xl border border-slate-200 overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-200">
-                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/70">
-                    <h2 class="font-semibold text-gray-900">Agenda</h2>
+                class="bg-white/95 dark:bg-gray-800/95 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-200">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/70">
+                    <h2 class="font-semibold text-gray-900 dark:text-gray-100">Agenda</h2>
                 </div>
 
                 <template x-if="loadingUsers">
-                    <div class="p-6 text-gray-700">Cargando…</div>
+                    <div class="p-6 text-gray-700 dark:text-gray-300">Cargando…</div>
                 </template>
 
                 <template x-if="!loadingUsers && agendaUsers.length === 0">
-                    <div class="p-6 text-gray-700">No hay usuarios con EPIs en posesión.</div>
+                    <div class="p-6 text-gray-700 dark:text-gray-300">No hay usuarios con EPIs en posesión.</div>
                 </template>
 
                 <template x-if="!loadingUsers && agendaUsers.length > 0">
-                    <div class="divide-y divide-gray-100">
+                    <div class="divide-y divide-gray-100 dark:divide-gray-700">
                         <template x-for="u in agendaUsers" :key="u.id">
                             <div
-                                class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-gray-200 group">
+                                class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-gray-200 dark:hover:bg-gray-700 group">
                                 <div class="flex items-center gap-4 min-w-0">
                                     <div
-                                        class="group flex items-center justify-center w-12 h-12 rounded-full overflow-hidden bg-gray-100 border-0 border-transparent group-hover:border-2 group-hover:border-gray-700 transition-all duration-100">
+                                        class="group flex items-center justify-center w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 border-0 border-transparent group-hover:border-2 group-hover:border-gray-700 dark:group-hover:border-gray-500 transition-all duration-100">
                                         <template x-if="u.ruta_imagen">
                                             <img :src="u.ruta_imagen" :alt="`Foto de ${u.nombre_completo}`"
                                                 class="w-full h-full object-cover" />
                                         </template>
                                         <template x-if="!u.ruta_imagen">
-                                            <span class="text-gray-600 font-semibold"
+                                            <span class="text-gray-600 dark:text-gray-400 font-semibold"
                                                 x-text="u.nombre_completo?.slice(0,1)?.toUpperCase()"></span>
                                         </template>
                                     </div>
 
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2 min-w-0">
-                                            <p class="font-semibold text-gray-900 truncate"
+                                            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                 x-text="u.nombre_completo">
                                             </p>
                                             <span
                                                 class="inline-flex items-center rounded-full bg-blue-50 text-blue-700 px-2 py-0.5 text-xs font-medium"
                                                 x-text="`${u.epis_en_posesion} EPIs`"></span>
                                         </div>
-                                        <div class="text-sm text-gray-600 flex flex-col sm:flex-row sm:gap-4 mt-1">
+                                        <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row sm:gap-4 mt-1">
                                             <span x-text="`DNI: ${u.dni || 'N/D'}`"></span>
                                             <span class="truncate" x-text="`Email: ${u.email || 'N/D'}`"></span>
                                             <span x-text="`Móvil: ${u.movil_personal || 'N/D'}`"></span>
                                         </div>
-                                        <div class="text-sm text-gray-600 flex flex-col sm:flex-row sm:gap-4 mt-1">
+                                        <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row sm:gap-4 mt-1">
                                             <span x-text="`Categoría: ${u.categoria?.nombre || 'Sin asignar'}`"></span>
                                             <span class="truncate"
                                                 x-text="`Empresa: ${u.empresa?.nombre || 'Sin empresa'}`"></span>
@@ -212,15 +212,15 @@
             <div class="absolute inset-0 bg-black/50" @click="closeModal()"></div>
 
             <div
-                class="relative w-full sm:max-w-5xl bg-white/95 backdrop-blur rounded-t-2xl sm:rounded-2xl border border-slate-200 shadow-[0_20px_60px_rgba(15,23,42,0.35)] overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
-                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between">
+                class="relative w-full sm:max-w-5xl bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-t-2xl sm:rounded-2xl border border-slate-200 dark:border-gray-700 shadow-[0_20px_60px_rgba(15,23,42,0.35)] overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-gray-700 bg-slate-50/80 dark:bg-gray-700/80 flex items-center justify-between">
                     <div class="min-w-0 w-full">
-                        <p class="text-xs uppercase tracking-wide text-gray-500">EPIs</p>
+                        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">EPIs</p>
                         <div class="flex flex-col sm:flex-row sm:items-center sm:gap-3">
-                            <p class="font-semibold text-gray-900 truncate" x-text="modalTitle"></p>
+                            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate" x-text="modalTitle"></p>
                             <template x-if="modalTab === 'usuario' && selectedUser">
                                 <div
-                                    class="text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto">
+                                    class="text-xs text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto">
                                     <span
                                         x-text="`Categoría: ${selectedUser.categoria?.nombre || 'Sin asignar'}`"></span>
                                     <span x-text="`Empresa: ${selectedUser.empresa?.nombre || 'Sin empresa'}`"></span>
@@ -239,14 +239,14 @@
                 </div>
 
                 <div class="px-6 pt-4">
-                    <div class="flex gap-2 border-b border-slate-200">
+                    <div class="flex gap-2 border-b border-slate-200 dark:border-gray-700">
                         <button type="button" class="px-4 py-2 text-sm font-medium rounded-t-lg"
-                            :class="modalTab === 'usuario' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-200'"
+                            :class="modalTab === 'usuario' ? 'bg-gray-900 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'"
                             @click="switchModalTab('usuario')" :disabled="!selectedUser">
                             Usuario
                         </button>
                         <button type="button" class="px-4 py-2 text-sm font-medium rounded-t-lg"
-                            :class="modalTab === 'catalogo' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-200'"
+                            :class="modalTab === 'catalogo' ? 'bg-gray-900 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'"
                             @click="switchModalTab('catalogo')">
                             Catálogo
                         </button>
@@ -259,7 +259,7 @@
                         <div>
                             <template x-if="!selectedUser">
                                 <div
-                                    class="rounded-lg border border-dashed border-gray-300 bg-slate-50 p-6 text-gray-700">
+                                    class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 p-6 text-gray-700 dark:text-gray-300">
                                     Selecciona un usuario para ver/gestionar sus EPIs.
                                 </div>
                             </template>
@@ -268,12 +268,12 @@
                                 <div class="space-y-6">
                                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                         <div
-                                            class="lg:col-span-2 bg-white/95 border border-slate-200 rounded-xl p-4 shadow-md">
-                                            <p class="text-xs uppercase tracking-wide text-gray-500">Asignar EPI</p>
+                                            class="lg:col-span-2 bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-md">
+                                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Asignar EPI</p>
                                             <div class="mt-3 grid grid-cols-1 sm:grid-cols-4 gap-3">
                                                 <div class="sm:col-span-2">
                                                     <label
-                                                        class="block text-xs font-medium text-gray-700 mb-1">EPI</label>
+                                                        class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">EPI</label>
                                                     <div class="relative" data-epi-suggest>
                                                         <input type="text" x-model="epiAssignQuery"
                                                             @input="onEpiAssignQueryChange()"
@@ -283,33 +283,33 @@
                                                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
 
                                                         <div x-cloak x-show="epiAssignSuggestionsOpen"
-                                                            class="absolute z-50 mt-2 w-full bg-white/95 border border-slate-200 shadow-sm rounded-xl shadow-xl overflow-hidden">
+                                                            class="absolute z-50 mt-2 w-full bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl shadow-xl overflow-hidden">
                                                             <div class="max-h-80 overflow-y-auto">
                                                                 <template x-if="epiAssignSuggestions.length === 0">
-                                                                    <div class="p-4 text-sm text-gray-600">Sin
+                                                                    <div class="p-4 text-sm text-gray-600 dark:text-gray-400">Sin
                                                                         coincidencias.</div>
                                                                 </template>
                                                                 <template x-for="e in epiAssignSuggestions"
                                                                     :key="e.id">
                                                                     <button type="button"
-                                                                        class="w-full text-left px-4 py-3 hover:bg-gray-200 flex items-center gap-3"
+                                                                        class="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-3"
                                                                         @click="selectEpiToAssign(e)">
                                                                         <div
-                                                                            class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                                            class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                                                             <template x-if="e.imagen_url">
                                                                                 <img :src="e.imagen_url"
                                                                                     :alt="`Imagen de ${e.nombre}`"
                                                                                     class="w-full h-full object-cover" />
                                                                             </template>
                                                                             <template x-if="!e.imagen_url">
-                                                                                <span class="text-gray-500 text-xs">Sin
+                                                                                <span class="text-gray-500 dark:text-gray-400 text-xs">Sin
                                                                                     img</span>
                                                                             </template>
                                                                         </div>
                                                                         <div class="min-w-0 flex-1">
-                                                                            <p class="text-sm font-semibold text-gray-900 truncate"
+                                                                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                                                 x-text="e.nombre"></p>
-                                                                            <p class="text-xs text-gray-600 truncate">
+                                                                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                                                 <span
                                                                                     x-text="e.codigo ? `Código: ${e.codigo}` : 'Sin código'"></span>
                                                                                 <span class="mx-1">·</span>
@@ -319,7 +319,7 @@
                                                                         </div>
                                                                         <template x-if="!e.activo">
                                                                             <span
-                                                                                class="text-xs font-medium text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">Inactivo</span>
+                                                                                class="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-2 py-0.5">Inactivo</span>
                                                                         </template>
                                                                     </button>
                                                                 </template>
@@ -327,7 +327,7 @@
                                                         </div>
 
                                                         <template x-if="assignForm.epi_id">
-                                                            <p class="text-xs text-gray-600 mt-2">
+                                                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">
                                                                 Seleccionado: <span class="font-medium"
                                                                     x-text="selectedEpiLabel"></span>
                                                             </p>
@@ -336,14 +336,14 @@
                                                 </div>
                                                 <div>
                                                     <label
-                                                        class="block text-xs font-medium text-gray-700 mb-1">Cantidad</label>
+                                                        class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad</label>
                                                     <input type="number" min="1"
                                                         x-model.number="assignForm.cantidad"
                                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                                 </div>
                                                 <div>
                                                     <label
-                                                        class="block text-xs font-medium text-gray-700 mb-1">Notas</label>
+                                                        class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notas</label>
                                                     <input type="text" x-model="assignForm.notas"
                                                         placeholder="Opcional"
                                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
@@ -359,39 +359,39 @@
                                             </div>
                                         </div>
 
-                                        <div class="bg-white/95 border border-slate-200 rounded-xl p-4 shadow-md">
-                                            <p class="text-xs uppercase tracking-wide text-gray-500">Resumen</p>
+                                        <div class="bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-md">
+                                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Resumen</p>
                                             <div class="mt-2 flex items-center gap-3">
                                                 <div
-                                                    class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                    class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                                     <template x-if="selectedUser.ruta_imagen">
                                                         <img :src="selectedUser.ruta_imagen"
                                                             :alt="`Foto de ${selectedUser.nombre_completo}`"
                                                             class="w-full h-full object-cover" />
                                                     </template>
                                                     <template x-if="!selectedUser.ruta_imagen">
-                                                        <span class="text-gray-600 font-semibold"
+                                                        <span class="text-gray-600 dark:text-gray-400 font-semibold"
                                                             x-text="selectedUser.nombre_completo?.slice(0,1)?.toUpperCase()"></span>
                                                     </template>
                                                 </div>
                                                 <div class="min-w-0 w-full">
                                                     <div
                                                         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                                        <p class="text-lg font-semibold text-gray-900 truncate"
+                                                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                             x-text="selectedUser.nombre_completo"></p>
                                                         <div
-                                                            class="text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                                                            class="text-xs text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row sm:items-center sm:gap-3">
                                                         </div>
                                                     </div>
-                                                    <p class="text-sm text-gray-600 mt-0.5"
+                                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5"
                                                         x-text="`DNI: ${selectedUser.dni || 'N/D'}`"></p>
                                                 </div>
                                             </div>
-                                            <p class="text-sm text-gray-600 mt-2"
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2"
                                                 x-text="`Email: ${selectedUser.email || 'N/D'}`"></p>
-                                            <p class="text-sm text-gray-600"
+                                            <p class="text-sm text-gray-600 dark:text-gray-400"
                                                 x-text="`Móvil: ${selectedUser.movil_personal || 'N/D'}`"></p>
-                                            <p class="text-sm text-gray-600 mt-3">
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-3">
                                                 En posesión: <span class="font-semibold"
                                                     x-text="userTotalEnPosesion"></span>
                                             </p>
@@ -406,11 +406,11 @@
                                     </div>
 
                                     <div
-                                        class="bg-white/95 border border-slate-200 rounded-xl overflow-hidden shadow-md">
-                                        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/70">
+                                        class="bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-md">
+                                        <div class="px-6 py-4 border-b border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/70">
                                             <div
                                                 class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                <h3 class="font-semibold text-gray-900">EPIs en posesión</h3>
+                                                <h3 class="font-semibold text-gray-900 dark:text-gray-100">EPIs en posesión</h3>
                                                 <input type="text" x-model="userEpiFilterQuery"
                                                     placeholder="Filtrar por producto…"
                                                     class="w-full sm:w-72 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
@@ -418,16 +418,16 @@
                                         </div>
 
                                         <template x-if="loadingAsignaciones">
-                                            <div class="p-6 text-gray-700">Cargando…</div>
+                                            <div class="p-6 text-gray-700 dark:text-gray-300">Cargando…</div>
                                         </template>
 
                                         <template x-if="!loadingAsignaciones && asignacionesEnPosesion.length === 0">
-                                            <div class="p-6 text-gray-700">Este usuario no tiene EPIs en posesión.
+                                            <div class="p-6 text-gray-700 dark:text-gray-300">Este usuario no tiene EPIs en posesión.
                                             </div>
                                         </template>
 
                                         <template x-if="!loadingAsignaciones && userEpiGroupsFiltered.length > 0">
-                                            <div class="divide-y divide-gray-100">
+                                            <div class="divide-y divide-gray-100 dark:divide-gray-700">
                                                 <template x-for="g in userEpiGroupsFiltered" :key="g.epi.id">
                                                     <div>
                                                         <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer"
@@ -435,30 +435,30 @@
                                                             :class="expandedEpiId === Number(g.epi.id) ? 'bg-slate-50' : ''">
                                                             <div class="flex items-center gap-4 min-w-0">
                                                                 <div
-                                                                    class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                                    class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                                                     <template x-if="g.epi.imagen_url">
                                                                         <img :src="g.epi.imagen_url"
                                                                             :alt="`Imagen de ${g.epi.nombre}`"
                                                                             class="w-full h-full object-cover" />
                                                                     </template>
                                                                     <template x-if="!g.epi.imagen_url">
-                                                                        <span class="text-gray-500 text-xs">Sin
+                                                                        <span class="text-gray-500 dark:text-gray-400 text-xs">Sin
                                                                             img</span>
                                                                     </template>
                                                                 </div>
                                                                 <div class="min-w-0">
-                                                                    <p class="font-semibold text-gray-900 truncate">
+                                                                    <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">
                                                                         <span x-text="g.epi.nombre"></span>
                                                                         <template x-if="g.epi.codigo">
-                                                                            <span class="text-sm text-gray-600"
+                                                                            <span class="text-sm text-gray-600 dark:text-gray-400"
                                                                                 x-text="` (${g.epi.codigo})`"></span>
                                                                         </template>
                                                                     </p>
-                                                                    <p class="text-sm text-gray-600">
+                                                                    <p class="text-sm text-gray-600 dark:text-gray-400">
                                                                         Cantidad: <span class="font-semibold"
                                                                             x-text="g.total_en_posesion"></span>
                                                                     </p>
-                                                                    <p class="text-xs text-gray-500 mt-1">Click para
+                                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Click para
                                                                         ver historial</p>
                                                                 </div>
                                                             </div>
@@ -475,25 +475,25 @@
                                                             x-show="expandedEpiId === Number(g.epi.id)" x-transition
                                                             class="px-4 sm:px-6 py-4 border-t border-gray-300 bg-gray-300">
                                                             <div
-                                                                class="bg-white/95 border border-slate-200 shadow-sm rounded-xl overflow-hidden mt-2">
+                                                                class="bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden mt-2">
                                                                 <div
-                                                                    class="px-4 py-3 border-b border-gray-300 flex items-center justify-between">
-                                                                    <p class="text-sm font-semibold text-gray-900">
+                                                                    class="px-4 py-3 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
+                                                                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                                         Historial de asignaciones</p>
-                                                                    <p class="text-xs text-gray-600">
+                                                                    <p class="text-xs text-gray-600 dark:text-gray-400">
                                                                         Devueltos: <span class="font-semibold"
                                                                             x-text="g.total_devueltos"></span>
                                                                     </p>
                                                                 </div>
 
-                                                                <div class="divide-y divide-gray-100">
+                                                                <div class="divide-y divide-gray-100 dark:divide-gray-700">
                                                                     <template x-for="a in g.asignaciones"
                                                                         :key="a.id">
                                                                         <div
                                                                             class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                                                             <div class="min-w-0">
                                                                                 <p
-                                                                                    class="text-sm font-medium text-gray-900">
+                                                                                    class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                                                     <span
                                                                                         x-text="formatDate(a.fecha_asignacion)"></span>
                                                                                     <span
@@ -501,7 +501,7 @@
                                                                                     <span
                                                                                         x-text="`Cantidad: ${a.cantidad}`"></span>
                                                                                 </p>
-                                                                                <p class="text-xs text-gray-600 mt-1">
+                                                                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                                                                     <template x-if="a.devuelto_en">
                                                                                         <span
                                                                                             x-text="`Devuelto: ${formatDate(a.devuelto_en)}`"></span>
@@ -520,7 +520,7 @@
                                                                             <template x-if="!a.devuelto_en">
                                                                                 <div class="flex gap-2 flex-wrap">
                                                                                     <button type="button"
-                                                                                        class="px-2 py-1 rounded-lg bg-white border border-gray-300 text-gray-900 hover:bg-gray-200 disabled:opacity-50"
+                                                                                        class="px-2 py-1 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
                                                                                         :disabled="saving"
                                                                                         @click.stop="openFechaModal(a, 'entrega')">
                                                                                         <svg class="h-6 w-6"
@@ -558,7 +558,7 @@
                                                                             </template>
                                                                             <template x-if="a.devuelto_en">
                                                                                 <button type="button"
-                                                                                    class="px-2 py-1 rounded-lg bg-white border border-gray-300 text-gray-900 hover:bg-gray-200 disabled:opacity-50"
+                                                                                    class="px-2 py-1 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
                                                                                     :disabled="saving"
                                                                                     @click.stop="openFechaModal(a, 'devolucion')">
                                                                                     <svg viewBox="0 0 24 24"
@@ -617,39 +617,39 @@
                     <!-- Tab catálogo -->
                     <template x-if="modalTab === 'catalogo'">
                         <div class="space-y-6">
-                            <div class="bg-white/95 border border-slate-200 shadow-sm rounded-xl p-4">
-                                <p class="text-xs uppercase tracking-wide text-gray-500">Crear EPI</p>
+                            <div class="bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl p-4">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Crear EPI</p>
                                 <div class="mt-3 grid grid-cols-1 sm:grid-cols-6 gap-3">
                                     <div class="sm:col-span-2">
-                                        <label class="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
                                         <input type="text" x-model="epiCreate.nombre"
                                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-gray-700 mb-1">Código</label>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
                                         <input type="text" x-model="epiCreate.codigo" placeholder="Opcional"
                                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                     </div>
                                     <div class="sm:col-span-2">
-                                        <label class="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
                                         <input type="text" x-model="epiCreate.categoria" placeholder="Opcional"
                                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-gray-700 mb-1">Activo</label>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Activo</label>
                                         <label class="inline-flex items-center gap-2 mt-2">
                                             <input type="checkbox" x-model="epiCreate.activo"
-                                                class="rounded border-gray-300" />
-                                            <span class="text-sm text-gray-700">Sí</span>
+                                                class="rounded border-gray-300 dark:border-gray-600" />
+                                            <span class="text-sm text-gray-700 dark:text-gray-300">Sí</span>
                                         </label>
                                     </div>
                                     <div class="sm:col-span-4">
-                                        <label class="block text-xs font-medium text-gray-700 mb-1">Descripción</label>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
                                         <input type="text" x-model="epiCreate.descripcion" placeholder="Opcional"
                                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                     </div>
                                     <div class="sm:col-span-2">
-                                        <label class="block text-xs font-medium text-gray-700 mb-1">Imagen</label>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Imagen</label>
                                         <input type="file" accept="image/*"
                                             @change="epiCreateFile = $event.target.files?.[0] || null"
                                             class="w-full text-sm" />
@@ -664,13 +664,13 @@
                                 </div>
                             </div>
 
-                            <div class="bg-white/95 border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                                <div class="px-6 py-4 border-b border-gray-300">
+                            <div class="bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-300 dark:border-gray-700">
                                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <h3 class="font-semibold text-gray-900">EPIs en base de datos</h3>
+                                        <h3 class="font-semibold text-gray-900 dark:text-gray-100">EPIs en base de datos</h3>
                                         <div class="flex gap-2">
                                             <button type="button"
-                                                class="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                                class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600"
                                                 @click="openCompras()">
                                                 Compras
                                             </button>
@@ -683,47 +683,47 @@
                                     </div>
                                     <div class="mt-3 flex items-center gap-2">
                                         <input id="epis-show-inactive" type="checkbox" x-model="showInactiveEpis"
-                                            class="rounded border-gray-300" />
-                                        <label for="epis-show-inactive" class="text-sm text-gray-700">Mostrar
+                                            class="rounded border-gray-300 dark:border-gray-600" />
+                                        <label for="epis-show-inactive" class="text-sm text-gray-700 dark:text-gray-300">Mostrar
                                             inactivos</label>
                                     </div>
                                 </div>
 
                                 <template x-if="loadingEpis">
-                                    <div class="p-6 text-gray-700">Cargando…</div>
+                                    <div class="p-6 text-gray-700 dark:text-gray-300">Cargando…</div>
                                 </template>
 
                                 <template x-if="!loadingEpis && epis.length === 0">
-                                    <div class="p-6 text-gray-700">No hay EPIs creados.</div>
+                                    <div class="p-6 text-gray-700 dark:text-gray-300">No hay EPIs creados.</div>
                                 </template>
 
                                 <template x-if="!loadingEpis && catalogEpis.length > 0">
-                                    <div class="divide-y divide-gray-100">
+                                    <div class="divide-y divide-gray-100 dark:divide-gray-700">
                                         <template x-for="e in catalogEpis" :key="e.id">
                                             <div class="p-4 sm:p-6" x-data="{ editOpen: false, form: { ...e } }">
                                                 <div
                                                     class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                                     <div class="flex items-center gap-4 min-w-0">
                                                         <div
-                                                            class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                            class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                                             <template x-if="e.imagen_url">
                                                                 <img :src="e.imagen_url"
                                                                     :alt="`Imagen de ${e.nombre}`"
                                                                     class="w-full h-full object-cover" />
                                                             </template>
                                                             <template x-if="!e.imagen_url">
-                                                                <span class="text-gray-500 text-xs">Sin img</span>
+                                                                <span class="text-gray-500 dark:text-gray-400 text-xs">Sin img</span>
                                                             </template>
                                                         </div>
                                                         <div class="min-w-0">
-                                                            <p class="font-semibold text-gray-900 truncate">
+                                                            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">
                                                                 <span x-text="e.nombre"></span>
                                                                 <template x-if="!e.activo">
                                                                     <span
-                                                                        class="ml-2 text-xs font-medium text-gray-600">(inactivo)</span>
+                                                                        class="ml-2 text-xs font-medium text-gray-600 dark:text-gray-400">(inactivo)</span>
                                                                 </template>
                                                             </p>
-                                                            <p class="text-sm text-gray-600">
+                                                            <p class="text-sm text-gray-600 dark:text-gray-400">
                                                                 <template x-if="e.codigo"><span
                                                                         x-text="`Código: ${e.codigo}`"></span></template>
                                                                 <template x-if="e.codigo && e.categoria"><span> ·
@@ -732,7 +732,7 @@
                                                                         x-text="`Categoría: ${e.categoria}`"></span></template>
                                                             </p>
                                                             <template x-if="e.descripcion">
-                                                                <p class="text-sm text-gray-600 mt-1"
+                                                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1"
                                                                     x-text="e.descripcion"></p>
                                                             </template>
                                                         </div>
@@ -740,7 +740,7 @@
 
                                                     <div class="flex gap-2">
                                                         <button type="button"
-                                                            class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-medium"
+                                                            class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium"
                                                             @click="editOpen = !editOpen">
                                                             Editar
                                                         </button>
@@ -753,44 +753,44 @@
                                                 </div>
 
                                                 <div x-cloak x-show="editOpen"
-                                                    class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                                    class="mt-4 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl p-4">
                                                     <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
                                                         <div class="sm:col-span-2">
                                                             <label
-                                                                class="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
                                                             <input type="text" x-model="form.nombre"
                                                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                                         </div>
                                                         <div>
                                                             <label
-                                                                class="block text-xs font-medium text-gray-700 mb-1">Código</label>
+                                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
                                                             <input type="text" x-model="form.codigo"
                                                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                                         </div>
                                                         <div class="sm:col-span-2">
                                                             <label
-                                                                class="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
+                                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
                                                             <input type="text" x-model="form.categoria"
                                                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                                         </div>
                                                         <div>
                                                             <label
-                                                                class="block text-xs font-medium text-gray-700 mb-1">Activo</label>
+                                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Activo</label>
                                                             <label class="inline-flex items-center gap-2 mt-2">
                                                                 <input type="checkbox" x-model="form.activo"
-                                                                    class="rounded border-gray-300" />
-                                                                <span class="text-sm text-gray-700">Sí</span>
+                                                                    class="rounded border-gray-300 dark:border-gray-600" />
+                                                                <span class="text-sm text-gray-700 dark:text-gray-300">Sí</span>
                                                             </label>
                                                         </div>
                                                         <div class="sm:col-span-4">
                                                             <label
-                                                                class="block text-xs font-medium text-gray-700 mb-1">Descripción</label>
+                                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
                                                             <input type="text" x-model="form.descripcion"
                                                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                                         </div>
                                                         <div class="sm:col-span-2">
                                                             <label
-                                                                class="block text-xs font-medium text-gray-700 mb-1">Nueva
+                                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva
                                                                 imagen</label>
                                                             <input type="file" accept="image/*"
                                                                 @change="form._file = $event.target.files?.[0] || null"
@@ -822,9 +822,9 @@
             <div class="absolute inset-0 bg-black/50" @click="closeRecentModal()"></div>
 
             <div
-                class="relative w-full sm:max-w-3xl bg-white/95 backdrop-blur border border-slate-200 rounded-t-2xl sm:rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.35)] overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
+                class="relative w-full sm:max-w-3xl bg-white/95 dark:bg-gray-800/95 backdrop-blur border border-slate-200 dark:border-gray-700 rounded-t-2xl sm:rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.35)] overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
                 <div
-                    class="px-6 py-4 border-b border-slate-200 bg-gradient-to-tr from-gray-700 to-gray-800 flex items-center justify-between">
+                    class="px-6 py-4 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-tr from-gray-700 to-gray-800 flex items-center justify-between">
                     <div class="min-w-0">
                         <p class="text-xs uppercase tracking-wide text-gray-200">Historial de EPIs</p>
                         <p class="font-semibold text-white truncate"
@@ -840,8 +840,8 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-3 border-b border-gray-300 flex items-center justify-between">
-                    <p class="text-sm text-gray-700" x-text="recentModalSummary"></p>
+                <div class="px-6 py-3 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
+                    <p class="text-sm text-gray-700 dark:text-gray-300" x-text="recentModalSummary"></p>
                     <div class="flex items-center gap-2">
                         <button type="button"
                             class="px-3 py-1.5 rounded-lg bg-gradient-to-tr from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 text-sm disabled:opacity-50"
@@ -860,41 +860,41 @@
 
                 <div class="p-6 overflow-y-auto">
                     <template x-if="recentModalLoading">
-                        <div class="p-6 text-gray-700">Cargando…</div>
+                        <div class="p-6 text-gray-700 dark:text-gray-300">Cargando…</div>
                     </template>
 
                     <template x-if="!recentModalLoading && recentModalItems.length === 0">
-                        <div class="p-6 text-gray-700">Sin movimientos.</div>
+                        <div class="p-6 text-gray-700 dark:text-gray-300">Sin movimientos.</div>
                     </template>
 
                     <div class="space-y-3" x-show="!recentModalLoading && recentModalItems.length > 0">
                         <template x-for="a in recentModalItems" :key="a.id">
                             <div
-                                class="p-4 border border-slate-200 rounded-xl hover:bg-gray-200 flex items-center gap-4">
+                                class="p-4 border border-slate-200 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-4">
                                 <div
-                                    class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                    class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                     <template x-if="a.epi?.imagen_url">
                                         <img :src="a.epi.imagen_url" :alt="`Imagen de ${a.epi.nombre}`"
                                             class="w-full h-full object-cover" />
                                     </template>
                                     <template x-if="!a.epi?.imagen_url">
-                                        <span class="text-gray-500 text-xs">Sin img</span>
+                                        <span class="text-gray-500 dark:text-gray-400 text-xs">Sin img</span>
                                     </template>
                                 </div>
 
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-semibold text-gray-900 truncate"
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                         x-text="a.epi?.nombre || 'EPI'"></p>
-                                    <p class="text-xs text-gray-600 truncate mt-0.5"
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5"
                                         x-text="`Notas: ${a.notas || 'Sin notas'}`">
                                     </p>
-                                    <p class="text-xs text-gray-600 mt-1">
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                         <span x-text="`Entregado: ${formatDate(a.fecha_asignacion)}`"></span>
                                         <span class="mx-1">·</span>
                                         <span x-text="`Cantidad: ${a.cantidad}`"></span>
                                     </p>
                                     <template x-if="a.devuelto_en">
-                                        <p class="text-xs text-gray-600">
+                                        <p class="text-xs text-gray-600 dark:text-gray-400">
                                             <span x-text="`Devuelto: ${formatDate(a.devuelto_en)}`"></span>
                                         </p>
                                     </template>
@@ -916,18 +916,18 @@
             <div class="absolute inset-0 bg-black/50" @click="closeFechaModal()"></div>
 
             <div
-                class="relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
-                <div class="px-5 py-4 border-b border-gray-300 flex items-center justify-between">
+                class="relative w-full sm:max-w-lg bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+                <div class="px-5 py-4 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
                     <div class="min-w-0">
-                        <p class="text-xs uppercase tracking-wide text-gray-500">EPIs</p>
-                        <p class="font-semibold text-gray-900 truncate"
+                        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">EPIs</p>
+                        <p class="font-semibold text-gray-900 dark:text-gray-100 truncate"
                             x-text="editFechaTipo === 'entrega' ? 'Editar fecha de entrega' : 'Editar fecha de devoluci?n'">
                         </p>
                     </div>
 
-                    <button type="button" class="p-2 rounded-lg hover:bg-gray-200" @click="closeFechaModal()"
+                    <button type="button" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700" @click="closeFechaModal()"
                         aria-label="Cerrar">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -935,23 +935,23 @@
                 </div>
 
                 <div class="p-5 space-y-4 overflow-y-auto">
-                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <p class="text-sm text-gray-700">Fecha actual:</p>
-                        <p class="text-lg font-semibold text-gray-900" x-text="editFechaAnterior || 'N/D'"></p>
+                    <div class="bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-lg p-3">
+                        <p class="text-sm text-gray-700 dark:text-gray-300">Fecha actual:</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="editFechaAnterior || 'N/D'"></p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1"
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                             x-text="editFechaTipo === 'entrega' ? 'Nueva fecha de entrega' : 'Nueva fecha de devoluci?n'"></label>
                         <input type="date"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                             x-model="editFechaNueva">
-                        <p class="text-xs text-gray-500 mt-1">Si dejas el campo vac?o no se aplicar? ning?n cambio.</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Si dejas el campo vac?o no se aplicar? ning?n cambio.</p>
                     </div>
                 </div>
 
-                <div class="px-5 py-4 border-t border-gray-300 flex justify-end gap-3">
-                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200"
+                <div class="px-5 py-4 border-t border-gray-300 dark:border-gray-700 flex justify-end gap-3">
+                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
                         @click="closeFechaModal()">
                         Cancelar
                     </button>
@@ -970,23 +970,23 @@
             <div class="absolute inset-0 bg-black/50" @click="closeCompras()"></div>
 
             <div
-                class="relative w-full sm:max-w-4xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
-                <div class="px-6 py-4 border-b border-gray-300 flex items-center justify-between">
+                class="relative w-full sm:max-w-4xl bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wide text-gray-500">Compras</p>
-                        <p class="font-semibold text-gray-900">Compras de EPIs</p>
+                        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Compras</p>
+                        <p class="font-semibold text-gray-900 dark:text-gray-100">Compras de EPIs</p>
                     </div>
-                    <button type="button" class="p-2 rounded-lg hover:bg-gray-200" @click="closeCompras()"
+                    <button type="button" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700" @click="closeCompras()"
                         aria-label="Cerrar">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
-                <div class="px-6 py-3 border-b border-gray-300 flex items-center justify-between">
-                    <p class="text-sm text-gray-700"
+                <div class="px-6 py-3 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
+                    <p class="text-sm text-gray-700 dark:text-gray-300"
                         x-text="comprasLoading ? 'Cargando…' : `${compras.length} compras`"></p>
                     <button type="button" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
                         @click="openCompraCreate()">
@@ -994,15 +994,15 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-4 border-b border-gray-300">
+                <div class="px-6 py-4 border-b border-gray-300 dark:border-gray-700">
                     <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
                         <div class="sm:col-span-2">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Fecha (día)</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha (día)</label>
                             <input type="date" x-model="comprasFilterDate" @change="refreshCompras()"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                         </div>
                         <div class="sm:col-span-4">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Buscar por producto</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar por producto</label>
                             <div class="relative" data-compras-filter-epi-suggest>
                                 <input type="text" x-model="comprasFilterEpiQuery"
                                     @input="onComprasFilterEpiQueryChange()"
@@ -1012,29 +1012,29 @@
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
 
                                 <div x-show="comprasFilterEpiSuggestionsOpen"
-                                    class="absolute z-50 mt-2 w-full bg-white/95 border border-slate-200 shadow-sm rounded-xl shadow-xl overflow-hidden">
+                                    class="absolute z-50 mt-2 w-full bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl shadow-xl overflow-hidden">
                                     <div class="max-h-80 overflow-y-auto">
                                         <template x-if="comprasFilterEpiSuggestions.length === 0">
-                                            <div class="p-4 text-sm text-gray-600">Sin coincidencias.</div>
+                                            <div class="p-4 text-sm text-gray-600 dark:text-gray-400">Sin coincidencias.</div>
                                         </template>
                                         <template x-for="e in comprasFilterEpiSuggestions" :key="e.id">
                                             <button type="button"
-                                                class="w-full text-left px-4 py-3 hover:bg-gray-200 flex items-center gap-3"
+                                                class="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-3"
                                                 @click="selectComprasFilterEpi(e)">
                                                 <div
-                                                    class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                    class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                                     <template x-if="e.imagen_url">
                                                         <img :src="e.imagen_url" :alt="`Imagen de ${e.nombre}`"
                                                             class="w-full h-full object-cover" />
                                                     </template>
                                                     <template x-if="!e.imagen_url">
-                                                        <span class="text-gray-500 text-xs">Sin img</span>
+                                                        <span class="text-gray-500 dark:text-gray-400 text-xs">Sin img</span>
                                                     </template>
                                                 </div>
                                                 <div class="min-w-0 flex-1">
-                                                    <p class="text-sm font-semibold text-gray-900 truncate"
+                                                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                         x-text="e.nombre"></p>
-                                                    <p class="text-xs text-gray-600 truncate">
+                                                    <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                         <span
                                                             x-text="e.codigo ? `Código: ${e.codigo}` : 'Sin código'"></span>
                                                         <span class="mx-1">·</span>
@@ -1049,12 +1049,12 @@
 
                                 <template x-if="comprasFilterEpiId">
                                     <div class="mt-2 flex items-center justify-between gap-2">
-                                        <p class="text-xs text-gray-600 truncate">
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
                                             Filtrando por: <span class="font-medium"
                                                 x-text="comprasFilterEpiLabel"></span>
                                         </p>
                                         <button type="button"
-                                            class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"
+                                            class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                                             @click="clearComprasFilterEpi()">
                                             Quitar filtro
                                         </button>
@@ -1067,11 +1067,11 @@
 
                 <div class="p-6 overflow-y-auto">
                     <template x-if="comprasLoading">
-                        <div class="p-6 text-gray-700">Cargando…</div>
+                        <div class="p-6 text-gray-700 dark:text-gray-300">Cargando…</div>
                     </template>
 
                     <template x-if="!comprasLoading && compras.length === 0">
-                        <div class="p-6 text-gray-700">No hay compras registradas.</div>
+                        <div class="p-6 text-gray-700 dark:text-gray-300">No hay compras registradas.</div>
                     </template>
 
                     <div class="space-y-3" x-show="!comprasLoading && compras.length > 0">
@@ -1081,9 +1081,9 @@
                                     it.precio_unitario === '') ? 'border-yellow-400' : 'border-slate-200'">
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                     <div class="min-w-0">
-                                        <p class="text-sm font-semibold text-gray-900 truncate"
+                                        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                             x-text="`Compra del ${formatDateTime(c.created_at)}`"></p>
-                                        <p class="text-xs text-gray-600 mt-1">
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                             <span x-text="`Productos: ${c.productos ?? 0}`"></span>
                                             <span class="mx-1">·</span>
                                             <span x-text="`EPIs: ${c.unidades ?? 0}`"></span>
@@ -1107,7 +1107,7 @@
 
                                     <div class="flex gap-2">
                                         <button type="button"
-                                            class="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                            class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600"
                                             @click="openCompraEdit(c.id)">
                                             Editar
                                         </button>
@@ -1132,17 +1132,17 @@
             <div class="absolute inset-0 bg-black/50" @click="closeCompraModal()"></div>
 
             <div
-                class="relative w-full sm:max-w-5xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
-                <div class="px-6 py-4 border-b border-gray-300 flex items-center justify-between">
+                class="relative w-full sm:max-w-5xl bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
                     <div class="min-w-0">
-                        <p class="text-xs uppercase tracking-wide text-gray-500"
+                        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
                             x-text="compraMode === 'create' ? 'Nueva compra' : 'Editar compra'"></p>
-                        <p class="font-semibold text-gray-900 truncate"
+                        <p class="font-semibold text-gray-900 dark:text-gray-100 truncate"
                             x-text="compraMode === 'create' ? 'Hacer compra' : `Compra #${compraId}`"></p>
                     </div>
-                    <button type="button" class="p-2 rounded-lg hover:bg-gray-200" @click="closeCompraModal()"
+                    <button type="button" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700" @click="closeCompraModal()"
                         aria-label="Cerrar">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -1150,19 +1150,19 @@
                 </div>
 
                 <div class="p-6 overflow-y-auto space-y-6">
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <div class="bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl p-4">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <p class="text-sm font-semibold text-gray-900">Añadir EPIs a la compra</p>
+                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Añadir EPIs a la compra</p>
                             <label class="inline-flex items-center gap-2">
                                 <input type="checkbox" x-model="compraEstadoComprada"
-                                    class="rounded border-gray-300" />
-                                <span class="text-sm text-gray-700">Marcar como comprada</span>
+                                    class="rounded border-gray-300 dark:border-gray-600" />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Marcar como comprada</span>
                             </label>
                         </div>
 
                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-6 gap-3">
                             <div class="sm:col-span-4">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">EPI</label>
+                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">EPI</label>
                                 <div class="relative" data-compra-epi-suggest>
                                     <input type="text" x-model="compraEpiQuery" @input="onCompraEpiQueryChange()"
                                         @keydown.escape="closeCompraEpiSuggestions()"
@@ -1171,29 +1171,29 @@
                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
 
                                     <div x-show="compraEpiSuggestionsOpen"
-                                        class="absolute z-50 mt-2 w-full bg-white/95 border border-slate-200 shadow-sm rounded-xl shadow-xl overflow-hidden">
+                                        class="absolute z-50 mt-2 w-full bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl shadow-xl overflow-hidden">
                                         <div class="max-h-80 overflow-y-auto">
                                             <template x-if="compraEpiSuggestions.length === 0">
-                                                <div class="p-4 text-sm text-gray-600">Sin coincidencias.</div>
+                                                <div class="p-4 text-sm text-gray-600 dark:text-gray-400">Sin coincidencias.</div>
                                             </template>
                                             <template x-for="e in compraEpiSuggestions" :key="e.id">
                                                 <button type="button"
-                                                    class="w-full text-left px-4 py-3 hover:bg-gray-200 flex items-center gap-3"
+                                                    class="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-3"
                                                     @click="addCompraItem(e)">
                                                     <div
-                                                        class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                        class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                                         <template x-if="e.imagen_url">
                                                             <img :src="e.imagen_url" :alt="`Imagen de ${e.nombre}`"
                                                                 class="w-full h-full object-cover" />
                                                         </template>
                                                         <template x-if="!e.imagen_url">
-                                                            <span class="text-gray-500 text-xs">Sin img</span>
+                                                            <span class="text-gray-500 dark:text-gray-400 text-xs">Sin img</span>
                                                         </template>
                                                     </div>
                                                     <div class="min-w-0 flex-1">
-                                                        <p class="text-sm font-semibold text-gray-900 truncate"
+                                                        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                             x-text="e.nombre"></p>
-                                                        <p class="text-xs text-gray-600 truncate">
+                                                        <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                             <span
                                                                 x-text="e.codigo ? `Código: ${e.codigo}` : 'Sin código'"></span>
                                                             <span class="mx-1">·</span>
@@ -1209,7 +1209,7 @@
                             </div>
 
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Ticket (opcional)</label>
+                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Ticket (opcional)</label>
                                 <input type="file" accept="image/*,application/pdf"
                                     @change="compraTicketFile = $event.target.files?.[0] || null"
                                     class="w-full text-sm" />
@@ -1221,11 +1221,11 @@
                         </div>
                     </div>
 
-                    <div class="bg-white/95 border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-300 flex items-center justify-between">
+                    <div class="bg-white/95 dark:bg-gray-800/95 border border-slate-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between">
                             <div>
-                                <h3 class="font-semibold text-gray-900">Items</h3>
-                                <p class="text-xs text-gray-600 mt-1">
+                                <h3 class="font-semibold text-gray-900 dark:text-gray-100">Items</h3>
+                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                     <span x-text="`Productos: ${compraTotalProductos}`"></span>
                                     <span class="mx-1">·</span>
                                     <span x-text="`EPIs: ${compraTotalUnidades}`"></span>
@@ -1241,28 +1241,28 @@
                         </div>
 
                         <template x-if="compraItems.length === 0">
-                            <div class="p-6 text-gray-700">Añade EPIs para crear la compra.</div>
+                            <div class="p-6 text-gray-700 dark:text-gray-300">Añade EPIs para crear la compra.</div>
                         </template>
 
-                        <div class="divide-y divide-gray-100" x-show="compraItems.length > 0">
+                        <div class="divide-y divide-gray-100 dark:divide-gray-700" x-show="compraItems.length > 0">
                             <template x-for="(it, idx) in compraItems" :key="it.epi_id">
                                 <div
                                     class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div class="flex items-center gap-4 min-w-0">
                                         <div
-                                            class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                            class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                             <template x-if="it.epi?.imagen_url">
                                                 <img :src="it.epi.imagen_url" :alt="`Imagen de ${it.epi.nombre}`"
                                                     class="w-full h-full object-cover" />
                                             </template>
                                             <template x-if="!it.epi?.imagen_url">
-                                                <span class="text-gray-500 text-xs">Sin img</span>
+                                                <span class="text-gray-500 dark:text-gray-400 text-xs">Sin img</span>
                                             </template>
                                         </div>
                                         <div class="min-w-0">
-                                            <p class="font-semibold text-gray-900 truncate"
+                                            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate"
                                                 x-text="it.epi?.nombre || 'EPI'"></p>
-                                            <p class="text-xs text-gray-600 truncate">
+                                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                 <span
                                                     x-text="it.epi?.codigo ? `Código: ${it.epi.codigo}` : 'Sin código'"></span>
                                                 <span class="mx-1">·</span>
@@ -1275,13 +1275,13 @@
                                     <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
                                         <div>
                                             <label
-                                                class="block text-xs font-medium text-gray-700 mb-1">Cantidad</label>
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad</label>
                                             <input type="number" min="1" x-model.number="it.cantidad"
                                                 class="w-28 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
                                         </div>
                                         <div>
                                             <label
-                                                class="block text-xs font-medium text-gray-700 mb-1">Precio/epi</label>
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Precio/epi</label>
                                             <input type="number" min="0" step="0.01"
                                                 x-model.number="it.precio_unitario" placeholder="Opcional"
                                                 class="w-36 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />

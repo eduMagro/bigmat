@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
 
 <head>
     <meta charset="utf-8">
@@ -13,6 +13,11 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
     <!-- Iconos -->
@@ -115,7 +120,7 @@
         </div>
 
         <!-- Panel derecho - Formulario -->
-        <div class="w-full lg:w-1/2 flex flex-col min-h-screen" style="background-color: #f9fafb;">
+        <div class="w-full lg:w-1/2 flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
 
             <!-- Header móvil con gradiente -->
             <div class="lg:hidden relative overflow-hidden"
@@ -134,7 +139,7 @@
                 <div class="absolute bottom-0 left-0 right-0">
                     <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg"
                         preserveAspectRatio="none" style="display: block; width: 100%; height: 30px;">
-                        <path d="M0 60L1440 60L1440 0C1440 0 1082.5 40 720 40C357.5 40 0 0 0 0L0 60Z" fill="#f9fafb" />
+                        <path d="M0 60L1440 60L1440 0C1440 0 1082.5 40 720 40C357.5 40 0 0 0 0L0 60Z" class="fill-gray-50 dark:fill-gray-900" />
                     </svg>
                 </div>
             </div>
@@ -145,25 +150,25 @@
 
                     <!-- Título (visible en desktop, oculto en móvil ya que está en el header) -->
                     <div class="mb-8 hidden lg:block">
-                        <h2 class="text-2xl font-bold text-gray-900">Iniciar sesión</h2>
-                        <p class="mt-2 text-sm text-gray-600">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Iniciar sesión</h2>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                             Ingresa tus credenciales para acceder al sistema
                         </p>
                     </div>
 
                     <!-- Card del formulario en móvil -->
                     <div
-                        class="lg:bg-transparent lg:shadow-none lg:p-0 bg-white rounded-2xl shadow-lg px-4 py-6 sm:p-6 -mt-6 lg:mt-0">
+                        class="lg:bg-transparent lg:shadow-none lg:p-0 bg-white dark:bg-gray-800 rounded-2xl shadow-lg dark:shadow-gray-900/50 px-4 py-6 sm:p-6 -mt-6 lg:mt-0">
                         <!-- Título móvil dentro del card -->
                         <div class="lg:hidden mb-6 text-center">
-                            <h2 class="text-xl font-bold text-gray-900">Iniciar sesión</h2>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Iniciar sesión</h2>
                         </div>
 
                         {{ $slot }}
                     </div>
 
                     <!-- Footer móvil -->
-                    <div class="lg:hidden mt-8 text-center text-xs text-gray-400">
+                    <div class="lg:hidden mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
                         &copy; {{ date('Y') }} Bigmat Los Palacios. Todos los derechos reservados.
                     </div>
                 </div>

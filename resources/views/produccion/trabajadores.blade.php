@@ -42,11 +42,11 @@
     @endpush
 
     <div class="py-2" id="calendario-container">
-        <div class="px-4 py-2 bg-white border-b flex items-center justify-between">
+        <div class="px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <input type="text" id="filtro-eventos" placeholder="Buscar trabajador..."
-                   class="w-64 border border-gray-300 rounded px-3 py-2 text-sm focus:ring focus:ring-blue-300 focus:border-blue-500">
+                   class="w-64 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm focus:ring focus:ring-blue-300 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">
             <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-500">Turnos:</span>
+                <span class="text-xs text-gray-600 dark:text-gray-400">Turnos:</span>
                 @foreach($turnos as $turno)
                     <span class="flex items-center gap-1">
                         <span class="w-3 h-3 rounded-full" style="background: {{ $turno->color ?? '#93C5FD' }}"></span>
@@ -55,7 +55,7 @@
                 @endforeach
             </div>
         </div>
-        <div class="w-full bg-white">
+        <div class="w-full bg-white dark:bg-gray-800">
             <div id="calendario" class="w-full" style="height: calc(100vh - 140px);"></div>
         </div>
     </div>

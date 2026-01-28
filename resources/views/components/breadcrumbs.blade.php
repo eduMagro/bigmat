@@ -29,7 +29,7 @@
 <!-- Indicador de carga para wire:navigate -->
 <div wire:loading class="fixed top-0 left-0 right-0 h-1 bg-blue-500 z-50 animate-pulse"></div>
 
-<nav class="hidden md:flex items-center space-x-2 text-sm text-gray-600 mb-6"
+<nav class="hidden md:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6"
      x-data="{
          currentPath: window.location.pathname,
 
@@ -59,7 +59,7 @@
      }">
     @foreach($breadcrumbs as $index => $crumb)
         @if($index > 0)
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
         @endif
@@ -67,7 +67,7 @@
         @if($crumb['route'] && $index < count($breadcrumbs) - 1)
             <a href="{{ route($crumb['route']) }}" wire:navigate
                wire:navigate
-               class="hover:text-blue-600 transition-all duration-200 hover:underline">
+               class="hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 hover:underline">
                 {{ $crumb['label'] }}
             </a>
         @else
@@ -76,14 +76,14 @@
                 <div class="flex items-center space-x-1 flex-wrap gap-y-1">
                     @foreach($sectionTabs as $tabIndex => $tab)
                         @if($tabIndex > 0)
-                            <span class="text-gray-400">|</span>
+                            <span class="text-gray-400 dark:text-gray-600">|</span>
                         @endif
                         @if(!empty($tab['disabled']))
                             {{-- Pestaña DESHABILITADA --}}
-                            <span class="px-3 py-1 rounded whitespace-nowrap text-gray-400 cursor-not-allowed opacity-60 inline-flex items-center gap-1"
+                            <span class="px-3 py-1 rounded whitespace-nowrap text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60 inline-flex items-center gap-1"
                                   title="No tienes permiso para acceder a esta sección">
                                 {{ $tab['icon'] ?? '' }} {{ $tab['label'] }}
-                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-3 h-3 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
@@ -92,8 +92,8 @@
                             {{-- Pestaña HABILITADA --}}
                             <a href="{{ route($tab['route']) }}" wire:navigate
                                :class="isRouteActive('{{ route($tab['route']) }}') || routeStartsWith('{{ route($tab['route']) }}')
-                                   ? 'bg-blue-100 text-blue-700 font-semibold'
-                                   : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'"
+                                   ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold'
+                                   : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700'"
                                class="px-3 py-1 rounded whitespace-nowrap transition-all duration-200">
                                 {{ $tab['icon'] ?? '' }} {{ $tab['label'] }}
                             </a>
@@ -101,7 +101,7 @@
                     @endforeach
                 </div>
             @else
-                <span class="font-medium text-gray-900">{{ $crumb['label'] }}</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ $crumb['label'] }}</span>
             @endif
         @endif
     @endforeach

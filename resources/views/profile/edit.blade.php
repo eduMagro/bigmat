@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
             <x-volver />{{ __('Administración de Perfil') }}
         </h2>
 
@@ -8,13 +8,13 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
                 <div class="max-w-xl">
                     @include('profile.partials.update-password-form')
                 </div>
             </div>
             {{-- Cerrar sesiones en otros dispositivos --}}
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
                 <div class="max-w-xl space-y-4">
                     <form method="POST" action="{{ route('usuarios.cerrarSesiones', $user) }}">
                         @csrf
@@ -24,12 +24,12 @@
                         </button>
                     </form>
                     @if ($sesiones->isNotEmpty())
-                        <div class="mt-4 space-y-2 text-sm text-gray-700">
-                            <h3 class="font-semibold text-base text-gray-800">Sesiones activas de
+                        <div class="mt-4 space-y-2 text-sm text-gray-700 dark:text-gray-400">
+                            <h3 class="font-semibold text-base text-gray-800 dark:text-gray-100">Sesiones activas de
                                 {{ $user->nombre_completo }}:</h3>
 
                             @foreach ($sesiones as $sesion)
-                                <div class="p-3 border rounded bg-gray-50">
+                                <div class="p-3 border dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-700">
                                     <p><strong>IP:</strong> {{ $sesion['ip_address'] ?? 'Desconocida' }}</p>
                                     <p><strong>Navegador:</strong> {{ Str::limit($sesion['user_agent'], 80) }}</p>
                                     <p><strong>Última actividad:</strong> {{ $sesion['ultima_actividad'] }}</p>
@@ -43,7 +43,7 @@
                 </div>
             </div>
             {{-- 🧑‍💼 Despedir al trabajador --}}
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
                 <div class="max-w-xl space-y-4">
 
                     @if ($user->estado === 'despedido')
@@ -99,7 +99,7 @@
             </script>
 
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
                 <div class="max-w-xl">
                     @include('profile.partials.delete-user-form')
                 </div>

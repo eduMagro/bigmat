@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
+    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
         {{ __('¿Olvidaste tu contraseña? No hay problema. Solo dinos tu dirección de correo electrónico y te enviaremos un enlace para restablecer la contraseña, lo que te permitirá elegir una nueva.') }}
     </div>
 
@@ -15,7 +15,7 @@
             <x-input-label for="email" :value="'Correo Electrónico'" />
             <x-text-input 
                 id="email" 
-                class="block mt-1 w-full border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                class="block mt-1 w-full border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:border-indigo-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200 dark:bg-gray-700 dark:text-gray-100"
                 type="email" 
                 name="email" 
                 :value="old('email')" 

@@ -2,8 +2,8 @@
     <x-tabla.filtros-aplicados :filtros="$filtrosActivos" />
 
     <!-- Tabla de asignaciones -->
-    <div class="w-full max-w-full overflow-x-auto bg-white shadow-lg rounded-lg">
-        <table class="w-full border border-gray-300 rounded-lg text-xs uppercase text-center">
+    <div class="w-full max-w-full overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+        <table class="w-full border border-gray-200 dark:border-gray-700 rounded-lg text-xs uppercase text-center">
             <thead class="bg-blue-500 text-white">
                 <tr>
                     <th class="p-2 border cursor-pointer" wire:click="sortBy('user_id')">
@@ -93,7 +93,7 @@
                     </th>
                 </tr>
             </thead>
-            <tbody class="text-gray-700">
+            <tbody class="text-gray-600 dark:text-gray-400">
                 @forelse ($asignaciones as $asignacion)
                     <tr tabindex="0" x-data="{
                         editando: false,
@@ -109,8 +109,8 @@
                           }
                         }"
                         @keydown.enter.stop="guardarCambios(asignacion, original); editando = false"
-                        :class="{ 'bg-yellow-100': editando }"
-                        class="border-b odd:bg-gray-100 even:bg-gray-50 hover:bg-blue-200 cursor-pointer text-xs uppercase">
+                        :class="{ 'bg-yellow-100 dark:bg-yellow-900': editando }"
+                        class="border-b border-gray-200 dark:border-gray-700 odd:bg-gray-100 dark:odd:bg-gray-700 even:bg-gray-50 dark:even:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-xs uppercase">
 
                         <td class="px-2 py-2 border">{{ $asignacion->user->id }}</td>
                         <td class="px-2 py-2 border">
@@ -211,7 +211,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-gray-500">No hay asignaciones
+                        <td colspan="9" class="text-center py-4 text-gray-600 dark:text-gray-400">No hay asignaciones
                             disponibles.
                         </td>
                     </tr>

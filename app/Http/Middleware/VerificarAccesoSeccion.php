@@ -20,6 +20,9 @@ class VerificarAccesoSeccion
         'irpf-tramos.',
         'seguridad-social.',
         'convenios.',
+        'nominas.',
+        'generar.nominas',
+        'nomina.',
     ];
 
     /**

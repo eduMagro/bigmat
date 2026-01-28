@@ -1,8 +1,8 @@
 <div class="max-md:hidden" x-data="usersTableData()">
     <x-tabla.filtros-aplicados :filtros="$filtrosActivos" />
 
-    <div class="w-full max-w-full overflow-x-auto bg-white shadow-lg rounded-lg mt-4">
-        <table class="w-full border border-gray-300 rounded-lg">
+    <div class="w-full max-w-full overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg mt-4">
+        <table class="w-full border border-gray-200 dark:border-gray-700 rounded-lg">
             <thead class="bg-blue-500 text-white">
                 <tr class="text-center text-xs uppercase">
                     <x-tabla.encabezado-ordenable campo="id" :sortActual="$sort" :orderActual="$order" texto="ID" />
@@ -127,15 +127,15 @@
                 </tr>
             </thead>
 
-            <tbody class="text-gray-700 text-sm">
+            <tbody class="text-gray-600 dark:text-gray-400 text-sm">
                 @forelse ($registrosUsuarios as $user)
                 <tr tabindex="0"
                     wire:key="user-{{ $user->id }}"
                     x-data="{ usuario: {{ Js::from($user) }}, original: {{ Js::from($user) }} }"
                     x-on:dblclick="if(!$event.target.closest('input, select, button, a')) { editandoUserId === {{ $user->id }} ? (editandoUserId = null, usuario = JSON.parse(JSON.stringify(original))) : editandoUserId = {{ $user->id }} }"
                     x-on:keydown.enter.stop="if(editandoUserId === {{ $user->id }}) { guardarUsuario(usuario); editandoUserId = null; }"
-                    x-bind:class="{ 'bg-yellow-100': editandoUserId === {{ $user->id }}, 'hover:bg-blue-50': editandoUserId !== {{ $user->id }} }"
-                    class="border-b odd:bg-gray-100 even:bg-gray-50 cursor-pointer text-xs uppercase transition-colors">
+                    x-bind:class="{ 'bg-yellow-100 dark:bg-yellow-900': editandoUserId === {{ $user->id }}, 'hover:bg-blue-50 dark:hover:bg-gray-700': editandoUserId !== {{ $user->id }} }"
+                    class="border-b border-gray-200 dark:border-gray-700 odd:bg-gray-100 dark:odd:bg-gray-700 even:bg-gray-50 dark:even:bg-gray-800 cursor-pointer text-xs uppercase transition-colors">
 
                     <td class="px-2 py-3 text-center border">{{ $user->id }}</td>
 
@@ -307,7 +307,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="15" class="text-center py-4 text-gray-500">No hay usuarios disponibles.</td>
+                    <td colspan="15" class="text-center py-4 text-gray-600 dark:text-gray-400">No hay usuarios disponibles.</td>
                 </tr>
                 @endforelse
             </tbody>

@@ -7,14 +7,14 @@
         <div>
             <h3 class="text-xl font-semibold text-blue-700 mb-4">Solicitudes pendientes</h3>
             @if ($solicitudesPendientes->isEmpty())
-                <p class="text-gray-600">No hay solicitudes pendientes.</p>
+                <p class="text-gray-600 dark:text-gray-400">No hay solicitudes pendientes.</p>
             @else
                 <x-tabla-solicitudes :solicitudes="$solicitudesPendientes" />
             @endif
         </div>
 
         {{-- Calendario de vacaciones --}}
-        <div class="w-full bg-white rounded-lg shadow-lg p-4 sm:p-6">
+        <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
             <h3 class="text-lg font-semibold text-blue-700 mb-4">Calendario de Vacaciones</h3>
             <div id="calendario-vacaciones"></div>
         </div>
@@ -70,12 +70,25 @@
             transition: background-color 0.15s;
         }
 
+        :is(.dark .usuario-item) {
+            border-bottom-color: #374151;
+        }
+
         .usuario-item:hover {
             background-color: #f3f4f6;
         }
 
+        :is(.dark .usuario-item:hover) {
+            background-color: #374151;
+        }
+
         .usuario-item.selected {
             background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        :is(.dark .usuario-item.selected) {
+            background-color: #1e3a5f;
             border-color: #3b82f6;
         }
 
@@ -86,6 +99,10 @@
         .usuario-nombre {
             font-weight: 500;
             color: #1f2937;
+        }
+
+        :is(.dark .usuario-nombre) {
+            color: #f3f4f6;
         }
 
         .usuario-vacaciones {
@@ -118,6 +135,11 @@
             margin-top: 12px;
         }
 
+        :is(.dark .lista-usuarios) {
+            border-color: #374151;
+            background-color: #1f2937;
+        }
+
         .buscador-usuarios {
             width: 100%;
             padding: 10px 14px;
@@ -127,8 +149,18 @@
             transition: border-color 0.2s;
         }
 
+        :is(.dark .buscador-usuarios) {
+            border-color: #374151;
+            background-color: #1f2937;
+            color: #f3f4f6;
+        }
+
         .buscador-usuarios:focus {
             outline: none;
+            border-color: #3b82f6;
+        }
+
+        :is(.dark .buscador-usuarios:focus) {
             border-color: #3b82f6;
         }
 
@@ -290,7 +322,7 @@
                     // Reemplazar la tabla con mensaje de "no hay solicitudes"
                     const container = tabla.closest('.overflow-x-auto');
                     if (container) {
-                        container.innerHTML = '<p class="text-gray-600">No hay solicitudes pendientes.</p>';
+                        container.innerHTML = '<p class="text-gray-600 dark:text-gray-400">No hay solicitudes pendientes.</p>';
                     }
                 }
             });
@@ -511,7 +543,7 @@
 
             function generarListaUsuarios(usuarios) {
                 if (usuarios.length === 0) {
-                    return '<div style="padding: 20px; text-align: center; color: #6b7280;">No se encontraron empleados</div>';
+                    return '<div style="padding: 20px; text-align: center;" class="text-gray-600 dark:text-gray-400">No se encontraron empleados</div>';
                 }
 
                 return usuarios.map(u => {

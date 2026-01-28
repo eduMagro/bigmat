@@ -8,19 +8,6 @@
     });
 </script>
 
-@if (session('abort'))
-    <script>
-        Swal.fire({
-            icon: 'error',
-            title: 'Acceso denegado',
-            text: "{{ session('abort') }}",
-        }).then(() => {
-            window.location.reload(); // Recarga la página tras el mensaje
-        });
-    </script>
-@endif
-
-
 {{-- Los listeners de alertas ahora están consolidados en initAlertsPage() al final del archivo --}}
 
 
@@ -154,14 +141,22 @@ Navegador: ${navigator.userAgent}`;
 
         console.log('🔍 Inicializando sistema de alertas...');
 
+        // Procesar abort (acceso denegado)
+        @if (session('abort'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Acceso denegado',
+                text: @json(session('abort')),
+            }).then(() => {
+                window.location.reload();
+            });
+        @endif
+
         // Procesar errores de validación
         @if ($errors->any())
-            let erroresHtml = '';
-            let erroresTexto = '';
-            @foreach ($errors->all() as $error)
-                erroresHtml += '<li>{{ $error }}<\/li>';
-                erroresTexto += '- {{ $error }}\n';
-            @endforeach
+            const erroresArray = @json($errors->all());
+            let erroresHtml = erroresArray.map(e => '<li>' + e + '</li>').join('');
+            let erroresTexto = erroresArray.map(e => '- ' + e).join('\n');
 
             Swal.fire({
                 icon: 'error',
@@ -260,15 +255,16 @@ Navegador: ${navigator.userAgent}`;
 
         // Procesar múltiples warnings
         @if (session('warnings'))
-            @foreach (session('warnings') as $warning)
+            const warningsArray = @json(session('warnings'));
+            warningsArray.forEach(warning => {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Atención',
-                    text: "{{ $warning }}",
+                    text: warning,
                     timer: 5000,
                     showConfirmButton: false
                 });
-            @endforeach
+            });
         @endif
 
         // Marcar como inicializado

@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-slot name="title">Crear Usuario - {{ config('app.name') }}</x-slot>
-    <div class="bg-gray-50 py-4 px-4">
+    <div class="bg-gray-50 dark:bg-gray-900 py-4 px-4">
         <div class="max-w-5xl mx-auto">
             <!-- Form Card -->
-            <div class="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                 <div class="bg-blue-600 px-4 py-3">
                     <h1 class="text-xl font-bold text-white">Crear Nuevo Usuario</h1>
                 </div>
@@ -14,15 +14,15 @@
 
                         {{-- INPUT CLASSES --}}
                         @php
-                            $inputClass = 'w-full px-2 py-1.5 border border-gray-300 rounded text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent';
-                            $selectClass = 'w-full px-2 py-1.5 border border-gray-300 rounded text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent cursor-pointer';
-                            $labelClass = 'block text-xs font-medium text-gray-700 mb-1';
+                            $inputClass = 'w-full px-2 py-1.5 border border-gray-300 dark:border-gray-700 rounded text-xs text-gray-800 dark:text-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent';
+                            $selectClass = 'w-full px-2 py-1.5 border border-gray-300 dark:border-gray-700 rounded text-xs text-gray-800 dark:text-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent cursor-pointer';
+                            $labelClass = 'block text-xs font-medium text-gray-700 dark:text-gray-400 mb-1';
                             $errorClass = 'mt-0.5 text-xs text-red-600';
                         @endphp
 
                         {{-- SECCIÓN: DATOS PERSONALES --}}
                         <div class="mb-3">
-                            <h3 class="text-sm font-semibold text-gray-800 mb-2 pb-1 border-b border-blue-500">
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2 pb-1 border-b border-blue-500">
                                 Datos Personales
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
@@ -58,7 +58,7 @@
 
                         {{-- SECCIÓN: CONTACTO --}}
                         <div class="mb-3">
-                            <h3 class="text-sm font-semibold text-gray-800 mb-2 pb-1 border-b border-green-500">
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2 pb-1 border-b border-green-500">
                                 Contacto
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
@@ -87,7 +87,7 @@
 
                         {{-- SECCIÓN: INFORMACIÓN LABORAL --}}
                         <div class="mb-3">
-                            <h3 class="text-sm font-semibold text-gray-800 mb-2 pb-1 border-b border-purple-500">
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2 pb-1 border-b border-purple-500">
                                 Información Laboral
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
@@ -144,7 +144,7 @@
 
                         {{-- SECCIÓN: SEGURIDAD --}}
                         <div class="mb-3">
-                            <h3 class="text-sm font-semibold text-gray-800 mb-2 pb-1 border-b border-red-500">
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2 pb-1 border-b border-red-500">
                                 Seguridad
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
@@ -165,7 +165,7 @@
                         </div>
 
                         {{-- BOTÓN DE ENVÍO --}}
-                        <div class="flex justify-end pt-3 border-t border-gray-200">
+                        <div class="flex justify-end pt-3 border-t border-gray-200 dark:border-gray-700">
                             <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" x-bind:disabled="cargando">
                                 <span x-show="!cargando">Registrar Usuario</span>
                                 <span x-show="cargando">Registrando...</span>

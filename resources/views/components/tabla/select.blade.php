@@ -2,7 +2,7 @@
 
 <div class="w-full">
     @if ($label)
-        <label for="{{ $name }}" class="block mb-1 text-sm font-medium text-gray-700">
+        <label for="{{ $name }}" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
             {{ $label }}
         </label>
     @endif
@@ -10,7 +10,7 @@
     <select name="{{ $name }}" id="{{ $name }}"
         {{ $attributes->merge([
             'class' =>
-                'w-full px-2 py-1 border border-gray-300 rounded text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500',
         ]) }}>
         @if ($empty !== false)
             <option value="">{{ $empty }}</option>

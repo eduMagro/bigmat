@@ -3,7 +3,7 @@
     'rutaExportar' => null, // Ruta para exportar, opcional
 ])
 
-<th class="p-1 border text-center align-middle">
+<th class="p-1 border border-gray-200 dark:border-gray-700 text-center align-middle">
     <div class="flex justify-center gap-2 items-center h-full">
         {{-- 🔍 Botón buscar --}}
         <button type="submit"

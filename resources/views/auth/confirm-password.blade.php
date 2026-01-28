@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
+    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
         {{ __('Esta es una zona segura de la aplicación. Por favor, confirma tu contraseña antes de continuar.') }}
     </div>
 
@@ -11,7 +11,7 @@
             <x-input-label for="password" :value="'Contraseña'" />
             <x-text-input 
                 id="password" 
-                class="block mt-1 w-full border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                class="block mt-1 w-full border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:border-indigo-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200 dark:bg-gray-700 dark:text-gray-100"
                 type="password" 
                 name="password" 
                 required 

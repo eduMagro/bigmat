@@ -1,5 +1,5 @@
 <a href="{{ $action }}" onclick="event.preventDefault(); confirmarEliminacion('{{ $action }}')"
-    class="w-6 h-6 bg-red-100 text-red-600 rounded hover:bg-red-200 flex items-center justify-center" title="Eliminar">
+    class="w-6 h-6 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 flex items-center justify-center" title="Eliminar">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
         stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"

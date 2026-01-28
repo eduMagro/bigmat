@@ -5,8 +5,8 @@
         <!-- Cabecera -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Incorporaciones de Trabajadores</h1>
-                <p class="text-gray-600 mt-1">Gestiona las nuevas incorporaciones y su documentación</p>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Incorporaciones de Trabajadores</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Gestiona las nuevas incorporaciones y su documentación</p>
             </div>
             <a href="{{ route('incorporaciones.create') }}"
                 class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
@@ -38,7 +38,7 @@
         </div>
 
         <!-- Filtros -->
-        <div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 mb-6">
             <form method="GET" action="{{ route('incorporaciones.index') }}" class="flex flex-wrap gap-4">
                 <div class="flex-1 min-w-[200px]">
                     <input type="text" name="buscar" value="{{ request('buscar') }}"
@@ -73,14 +73,14 @@
                 <div class="flex items-center gap-2">
                     <input type="checkbox" name="no_asignado" id="no_asignado" value="1"
                         {{ request('no_asignado') ? 'checked' : '' }}
-                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                    <label for="no_asignado" class="text-sm text-gray-700">Sin asignar</label>
+                        class="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500">
+                    <label for="no_asignado" class="text-sm text-gray-700 dark:text-gray-400">Sin asignar</label>
                 </div>
-                <button type="submit" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                <button type="submit" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
                     Filtrar
                 </button>
                 @if (request()->hasAny(['buscar', 'estado', 'empresa', 'no_asignado']))
-                    <a href="{{ route('incorporaciones.index') }}" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    <a href="{{ route('incorporaciones.index') }}" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
                         Limpiar
                     </a>
                 @endif
@@ -88,9 +88,9 @@
         </div>
 
         <!-- Tabla de incorporaciones -->
-        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
             @if ($incorporaciones->isEmpty())
-                <div class="p-8 text-center text-gray-500">
+                <div class="p-8 text-center text-gray-500 dark:text-gray-400">
                     <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -104,8 +104,8 @@
                 </div>
             @else
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Candidato
                                 </th>
@@ -120,13 +120,13 @@
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach ($incorporaciones as $inc)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4">
-                                        <div class="font-medium text-gray-900">{{ $inc->name }}
+                                        <div class="font-medium text-gray-900 dark:text-gray-100">{{ $inc->name }}
                                             {{ $inc->primer_apellido }} {{ $inc->segundo_apellido }}</div>
-                                        <div class="text-sm text-gray-500">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">
                                             @if ($inc->dni)
                                                 {{ $inc->dni }} &middot;
                                             @endif
@@ -138,7 +138,7 @@
                                             {{ $inc->empresa_nombre }}
                                         </span>
                                         @if ($inc->puesto)
-                                            <div class="text-xs text-gray-500 mt-1">{{ $inc->puesto }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $inc->puesto }}</div>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4">
@@ -151,12 +151,12 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center">
-                                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                            <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
                                                 <div class="bg-blue-600 h-2 rounded-full"
                                                     style="width: {{ $inc->porcentajeDocumentosPost() }}%"></div>
                                             </div>
                                             <span
-                                                class="text-sm text-gray-600">{{ $inc->porcentajeDocumentosPost() }}%</span>
+                                                class="text-sm text-gray-600 dark:text-gray-400">{{ $inc->porcentajeDocumentosPost() }}%</span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
@@ -176,7 +176,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         @if ($inc->fecha_incorporacion)
-                                            <span class="text-sm text-gray-700 font-medium">
+                                            <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">
                                                 {{ $inc->fecha_incorporacion->format('d/m/Y') }}
                                             </span>
                                         @else
@@ -205,7 +205,7 @@
                 </div>
 
                 <!-- Paginación -->
-                <div class="px-6 py-4 border-t">
+                <div class="px-6 py-4 border-t dark:border-gray-700">
                     {{ $incorporaciones->withQueryString()->links() }}
                 </div>
             @endif

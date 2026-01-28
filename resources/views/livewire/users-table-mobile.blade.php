@@ -1,11 +1,11 @@
 <div x-data="agendaUsuarios()" class="users-mobile md:hidden mt-4 space-y-3">
-    <div class="sticky top-0 z-20 bg-white border border-gray-200 shadow-sm rounded-lg">
+    <div class="sticky top-0 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
         <div class="flex items-center gap-2 px-4 py-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 1 1 1.414-1.414l3.387 3.387a1 1 0 0 1-1.414 1.414l-3.387-3.387ZM14 8a6 6 0 1 0-12 0 6 6 0 0 0 12 0Z" clip-rule="evenodd" />
             </svg>
             <input type="text" x-model.debounce.200ms="filtro" placeholder="Buscar por nombre o apellido"
-                class="w-full border-0 focus:ring-0 text-sm text-gray-800 placeholder:text-gray-400" />
+                class="w-full border-0 focus:ring-0 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-800 placeholder:text-gray-400" />
             <a href="{{ route('incorporaciones.index') }}" class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -15,9 +15,9 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 divide-y">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
         <template x-for="contacto in filtrados" :key="contacto.id">
-            <div class="p-4 flex items-start gap-3 hover:bg-blue-50 transition cursor-pointer" @click="abrirModal(contacto)">
+            <div class="p-4 flex items-start gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer" @click="abrirModal(contacto)">
                 <div class="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     <img x-show="contacto.imagen" :src="contacto.imagen" alt="Avatar" class="w-full h-full object-cover" loading="lazy">
                     <div x-show="!contacto.imagen" class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">
@@ -29,23 +29,23 @@
                 <div class="flex-1 min-w-0">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
-                            <p class="font-semibold text-gray-900 truncate" x-text="contacto.nombre_completo"></p>
-                            <p class="text-sm text-gray-500 truncate" x-text="contacto.empresa || 'Sin empresa'"></p>
+                            <p class="font-semibold text-gray-800 dark:text-gray-100 truncate" x-text="contacto.nombre_completo"></p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 truncate" x-text="contacto.empresa || 'Sin empresa'"></p>
                         </div>
                     </div>
-                    <p class="text-xs mt-1 text-gray-600" x-text="contacto.categoria || contacto.rol || 'Rol no asignado'"></p>
+                    <p class="text-xs mt-1 text-gray-600 dark:text-gray-400" x-text="contacto.categoria || contacto.rol || 'Rol no asignado'"></p>
                 </div>
             </div>
         </template>
 
-        <div x-show="!filtrados.length" class="p-4 text-center text-gray-500 text-sm">
+        <div x-show="!filtrados.length" class="p-4 text-center text-gray-600 dark:text-gray-400 text-sm">
             No hay contactos con ese nombre.
         </div>
     </div>
 
     <div x-cloak x-show="modalAbierto || cerrandoPorDrag" class="fixed inset-0 z-40 flex items-end sm:items-center justify-center overflow-hidden">
         <div class="absolute inset-0 bg-black/40" @click="cerrarModal"></div>
-        <div x-show="modalAbierto || cerrandoPorDrag" class="bg-white rounded-t-3xl mx-auto p-0 shadow-2xl overflow-hidden flex flex-col h-[calc(100vh-110px)] bottom-0 absolute sm:w-[calc(95vw)] w-screen"
+        <div x-show="modalAbierto || cerrandoPorDrag" class="bg-white dark:bg-gray-800 rounded-t-3xl mx-auto p-0 shadow-2xl overflow-hidden flex flex-col h-[calc(100vh-110px)] bottom-0 absolute sm:w-[calc(95vw)] w-screen"
             x-transition:enter="transform transition ease-out duration-150"
             x-transition:enter-start="translate-y-full"
             x-transition:enter-end="translate-y-0"
@@ -154,85 +154,85 @@
             <div class="px-5 pb-6 space-y-4 overflow-y-auto flex-1">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm pb-4">
                     <div>
-                        <p class="text-gray-500">Nombre</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.nombre || 'Sin nombre'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">Nombre</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.nombre || 'Sin nombre'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.nombre"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Nombre">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Nombre">
                     </div>
                     <div>
-                        <p class="text-gray-500">Primer apellido</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.primer_apellido || 'N/D'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">Primer apellido</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.primer_apellido || 'N/D'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.primer_apellido"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Primer apellido">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Primer apellido">
                     </div>
                     <div>
-                        <p class="text-gray-500">Segundo apellido</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.segundo_apellido || 'N/D'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">Segundo apellido</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.segundo_apellido || 'N/D'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.segundo_apellido"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Segundo apellido">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Segundo apellido">
                     </div>
                     <div>
-                        <p class="text-gray-500">Email</p>
+                        <p class="text-gray-600 dark:text-gray-400">Email</p>
                         <a x-show="seleccionado && seleccionado.email && !editando"
                             :href="seleccionado && seleccionado.email ? ('mailto:' + seleccionado.email) : null"
-                            class="text-blue-700 font-semibold break-words"
+                            class="text-blue-700 dark:text-blue-400 font-semibold break-words"
                             x-text="seleccionado && seleccionado.email ? seleccionado.email : ''"></a>
                         <input x-show="editando" type="email" x-model="seleccionado.email"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="correo@ejemplo.com">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="correo@ejemplo.com">
                         <p x-show="!seleccionado || !seleccionado.email" class="text-gray-400">Sin email</p>
                     </div>
                     <div>
-                        <p class="text-gray-500">Empresa</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.empresa || 'Sin empresa'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">Empresa</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.empresa || 'Sin empresa'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.empresa"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Empresa">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Empresa">
                     </div>
                     <div>
-                        <p class="text-gray-500">Categoría</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.categoria || 'Sin categoría'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">Categoría</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.categoria || 'Sin categoría'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.categoria"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Categoría">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Categoría">
                     </div>
                     <div>
-                        <p class="text-gray-500">Turno</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.turno || 'No definido'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">Turno</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.turno || 'No definido'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.turno"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Turno">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Turno">
                     </div>
                     <div>
-                        <p class="text-gray-500">DNI</p>
-                        <p class="text-gray-900 font-semibold" x-show="!editando" x-text="seleccionado?.dni || 'N/D'"></p>
+                        <p class="text-gray-600 dark:text-gray-400">DNI</p>
+                        <p class="text-gray-800 dark:text-gray-100 font-semibold" x-show="!editando" x-text="seleccionado?.dni || 'N/D'"></p>
                         <input x-show="editando" type="text" x-model="seleccionado.dni"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="DNI">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="DNI">
                     </div>
                     <div>
-                        <p class="text-gray-500">Móvil personal</p>
+                        <p class="text-gray-600 dark:text-gray-400">Móvil personal</p>
                         <template x-if="seleccionado?.movil_personal && !editando">
                             <a :href="'tel:' + limpiarTelefono(seleccionado.movil_personal)"
-                                class="text-green-700 font-semibold" x-text="seleccionado.movil_personal"></a>
+                                class="text-green-700 dark:text-green-400 font-semibold" x-text="seleccionado.movil_personal"></a>
                         </template>
                         <input x-show="editando" type="text" x-model="seleccionado.movil_personal"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Móvil personal">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Móvil personal">
                         <p x-show="!seleccionado?.movil_personal" class="text-gray-400">No disponible</p>
                     </div>
                     <div>
-                        <p class="text-gray-500">Móvil empresa</p>
+                        <p class="text-gray-600 dark:text-gray-400">Móvil empresa</p>
                         <template x-if="seleccionado?.movil_empresa && !editando">
                             <a :href="'tel:' + limpiarTelefono(seleccionado.movil_empresa)"
-                                class="text-blue-700 font-semibold" x-text="seleccionado.movil_empresa"></a>
+                                class="text-blue-700 dark:text-blue-400 font-semibold" x-text="seleccionado.movil_empresa"></a>
                         </template>
                         <input x-show="editando" type="text" x-model="seleccionado.movil_empresa"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="Móvil empresa">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="Móvil empresa">
                         <p x-show="!seleccionado?.movil_empresa" class="text-gray-400">No disponible</p>
                     </div>
                     <div>
-                        <p class="text-gray-500">Nº corporativo</p>
+                        <p class="text-gray-600 dark:text-gray-400">Nº corporativo</p>
                         <template x-if="seleccionado?.numero_corto && !editando">
                             <a :href="'tel:' + limpiarTelefono(seleccionado.numero_corto)"
-                                class="text-amber-700 font-semibold" x-text="seleccionado.numero_corto"></a>
+                                class="text-amber-700 dark:text-amber-400 font-semibold" x-text="seleccionado.numero_corto"></a>
                         </template>
                         <input x-show="editando" type="text" x-model="seleccionado.numero_corto"
-                            class="w-full border rounded px-2 py-1 text-sm text-gray-800" placeholder="0000">
+                            class="w-full border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-700" placeholder="0000">
                         <p x-show="!seleccionado?.numero_corto" class="text-gray-400">No disponible</p>
                     </div>
                 </div>

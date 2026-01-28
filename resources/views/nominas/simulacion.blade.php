@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Usuarios - {{ config('app.name') }}</x-slot>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
             {{ 'Simulador Nómina' }}
         </h2>
     </x-slot>
@@ -9,13 +9,13 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             {{-- Formulario desde bruto --}}
-            <div class="bg-white p-6 rounded shadow">
-                <h3 class="text-lg font-semibold mb-4 text-gray-700">Desde salario bruto</h3>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded shadow">
+                <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Desde salario bruto</h3>
                 <form id="formBruto" method="POST" action="{{ route('nomina.simular') }}">
                     @csrf
 
-                    <label class="block mb-1 font-semibold">Sueldo bruto anual (€):</label>
-                    <input type="number" name="sueldo_bruto_anual" class="form-control" required step="0.01">
+                    <label class="block mb-1 font-semibold dark:text-gray-100">Sueldo bruto anual (€):</label>
+                    <input type="number" name="sueldo_bruto_anual" class="form-control dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required step="0.01">
 
                     @include('nominas._form_datos_personales')
                     <br>
@@ -26,13 +26,13 @@
             </div>
 
             {{-- Formulario desde neto --}}
-            <div class="bg-white p-6 rounded shadow">
-                <h3 class="text-lg font-semibold mb-4 text-gray-700">Desde salario neto</h3>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded shadow">
+                <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Desde salario neto</h3>
                 <form id="formNeto" method="POST" action="{{ route('nomina.inversa.calcular') }}">
                     @csrf
 
-                    <label class="block mb-1 font-semibold">Sueldo neto mensual deseado (€):</label>
-                    <input type="number" name="neto_deseado" class="form-control" required step="0.01">
+                    <label class="block mb-1 font-semibold dark:text-gray-100">Sueldo neto mensual deseado (€):</label>
+                    <input type="number" name="neto_deseado" class="form-control dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required step="0.01">
 
                     @include('nominas._form_datos_personales')
                     <br>

@@ -34,9 +34,9 @@ class NominaController extends Controller
             'mes_anio' => 'required|date_format:Y-m',
         ]);
 
-        // 1) Subida a carpeta temporal
-        $rutaRelativa = $request->file('archivo')->store('private/temp');
-        $rutaAbsoluta = storage_path('app/' . $rutaRelativa);
+        // 1) Subida a carpeta temporal (el disco 'local' tiene root en storage/app/private)
+        $rutaRelativa = $request->file('archivo')->store('temp');
+        $rutaAbsoluta = storage_path('app/private/' . $rutaRelativa);
 
         // 2) Ampliar límites de ejecución
         @set_time_limit(0);
@@ -48,8 +48,8 @@ class NominaController extends Controller
         $mesEnEspañol = ucfirst($fecha->locale('es')->translatedFormat('F'));
         $anio         = $fecha->format('Y');
 
-        // 4) Crear carpeta base para el lote
-        $carpetaBaseRelativa = 'private/nominas/nominas_' . $anio . '/nomina_' . $mesEnEspañol . '_' . $anio;
+        // 4) Crear carpeta base para el lote (relativo al disco 'local' que tiene root en storage/app/private)
+        $carpetaBaseRelativa = 'nominas/nominas_' . $anio . '/nomina_' . $mesEnEspañol . '_' . $anio;
         if (!Storage::exists($carpetaBaseRelativa)) {
             Storage::makeDirectory($carpetaBaseRelativa);
         }
@@ -120,8 +120,8 @@ class NominaController extends Controller
             // Nombre de archivo
             $nombreArchivo = $clave . '_' . $mesEnEspañol . '_' . $anio . '.pdf';
 
-            // Ruta de guardado
-            $rutaSalida = storage_path('app/' . $carpetaBaseRelativa . '/' . $nombreArchivo);
+            // Ruta de guardado (storage/app/private/ + ruta relativa)
+            $rutaSalida = storage_path('app/private/' . $carpetaBaseRelativa . '/' . $nombreArchivo);
 
             try {
                 $fpdi->Output($rutaSalida, 'F');
