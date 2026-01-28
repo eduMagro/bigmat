@@ -8,6 +8,7 @@ use App\Models\Festivo;
 use App\Models\User;
 use App\Models\VacacionesSolicitud;
 use App\Models\Alerta;
+use App\Models\AlertaLeida;
 use App\Models\Departamento;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -272,14 +273,20 @@ class VacacionesController extends Controller
                 $rrhh = User::where('email', 'josemanuel.amuedo@pacoreyes.com')->first();
 
                 if ($rrhh) {
-                    Alerta::create([
+                    $alertaRrhh = Alerta::create([
                         'user_id_1' => auth()->id(),
                         'destinatario_id' => $rrhh->id,
                         'mensaje' => $mensaje,
                         'tipo' => 'vacaciones',
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
+
+                    // Crear registro de lectura para RRHH
+                    AlertaLeida::create([
+                        'alerta_id' => $alertaRrhh->id,
+                        'user_id' => $rrhh->id,
+                        'leida_en' => null,
+                    ]);
+
                     $alertaEnviada = true;
                 }
 
@@ -293,13 +300,18 @@ class VacacionesController extends Controller
                         ->unique();
 
                     foreach ($responsablesIds as $responsableId) {
-                        Alerta::create([
+                        $alertaResp = Alerta::create([
                             'user_id_1' => auth()->id(),
                             'destinatario_id' => $responsableId,
                             'mensaje' => $mensaje,
                             'tipo' => 'vacaciones',
-                            'created_at' => now(),
-                            'updated_at' => now(),
+                        ]);
+
+                        // Crear registro de lectura para el responsable
+                        AlertaLeida::create([
+                            'alerta_id' => $alertaResp->id,
+                            'user_id' => $responsableId,
+                            'leida_en' => null,
                         ]);
                     }
                 }
