@@ -1166,7 +1166,7 @@
                                 <button onclick="denegarRevision(${solicitudId})" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors">
                                     Denegar
                                 </button>
-                                <a href="{{ url('/mi-perfil') }}/${userId}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors inline-block">
+                                <a href="{{ url('/users') }}/${userId}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors inline-block">
                                     Ver Perfil
                                 </a>
                             </div>
@@ -1444,7 +1444,7 @@
                             <button onclick="denegarRevision(${solicitudId})" class="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors">
                                 Denegar
                             </button>
-                            <a href="{{ url('/mi-perfil') }}/${userId}" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center">
+                            <a href="{{ url('/users') }}/${userId}" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center">
                                 Ver Perfil
                             </a>
                         </div>
