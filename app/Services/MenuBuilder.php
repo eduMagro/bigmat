@@ -4,9 +4,22 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class MenuBuilder
 {
+    /**
+     * Rutas de configuración (restringidas para responsables)
+     */
+    private static $rutasConfiguracion = [
+        'ajustes.',
+        'departamentos.',
+        'secciones.',
+        'irpf-tramos.',
+        'seguridad-social.',
+        'convenios.',
+    ];
+
     /**
      * Construye el menú filtrado para el usuario actual
      */
@@ -21,6 +34,11 @@ class MenuBuilder
             $menu = config('menu.main');
 
             if (!$menu || !is_array($menu)) {
+                return [];
+            }
+
+            // Usuarios básicos (no admin, no responsable) no ven el menú
+            if (!$user->tieneAccesoTotal() && !$user->esResponsableDepartamento()) {
                 return [];
             }
 
@@ -39,13 +57,9 @@ class MenuBuilder
 
     /**
      * Filtra una sección del menú según permisos del usuario
-     * Los items sin permiso se marcan como 'disabled' en lugar de ocultarse
      */
     private static function filterSection($section, $user)
     {
-        // No verificamos la ruta de la sección principal (ej: secciones.produccion)
-        // porque son rutas virtuales. Solo verificamos los items del submenu.
-
         $filteredSubmenu = [];
         $hasAccessibleItems = false;
 
@@ -54,7 +68,6 @@ class MenuBuilder
                 $filteredItem = $item;
                 $canAccess = self::userCanAccessRoute($item['route'], $user);
 
-                // Marcar como disabled si no tiene acceso
                 $filteredItem['disabled'] = !$canAccess;
 
                 if ($canAccess) {
@@ -72,7 +85,6 @@ class MenuBuilder
             }
         }
 
-        // Si no tiene ningún submenú accesible, no mostrar la sección
         if (!$hasAccessibleItems) {
             return null;
         }
@@ -83,6 +95,11 @@ class MenuBuilder
 
     /**
      * Verifica si el usuario puede acceder a una ruta
+     *
+     * Sistema simplificado:
+     * 1. ACCESO TOTAL: Administrador, Administración, Programador -> todo
+     * 2. RESPONSABLES: Todo excepto configuración
+     * 3. USUARIOS BÁSICOS: Solo mi-perfil y alertas (no ven menú)
      */
     private static function userCanAccessRoute($routeName, $user)
     {
@@ -91,87 +108,30 @@ class MenuBuilder
             return false;
         }
 
-        // Acceso total para correos específicos
+        // Acceso total por correo específico
         $emailsAccesoTotal = config('acceso.correos_acceso_total', []);
         if (in_array(strtolower(trim($user->email)), $emailsAccesoTotal)) {
             return true;
         }
 
-        // Aquí se puede integrar con el sistema de permisos existente
-        // Por ahora, permitimos acceso básico según rol
-
-        // Operarios solo ven módulos específicos
-        if ($user->rol === 'operario') {
-            $prefijosOperario = config('acceso.prefijos_operario_dashboard', []);
-            foreach ($prefijosOperario as $prefijo) {
-                if ($routeName === $prefijo || str_starts_with($routeName, $prefijo)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Transportistas solo ven módulos específicos
-        if ($user->rol === 'transportista') {
-            $prefijosTransportista = config('acceso.prefijos_transportista', []);
-            return in_array($routeName, $prefijosTransportista, true);
-        }
-
-        // Oficina: verificar permisos en base de datos
-        if ($user->rol === 'oficina') {
-            return self::checkDatabasePermissions($routeName, $user);
-        }
-
-        return false;
-    }
-
-    /**
-     * Verifica permisos en base de datos
-     */
-    private static function checkDatabasePermissions($routeName, $user)
-    {
-        // Extraer el identificador base de la ruta (ej: "maquinas" de "maquinas.index")
-        $routeParts = explode('.', $routeName);
-        $baseRoute = $routeParts[0];
-
-        // Buscar la sección correspondiente
-        $seccion = \DB::table('secciones')
-            ->where('ruta', 'LIKE', "{$baseRoute}%")
-            ->orWhere('ruta', $routeName)
-            ->first();
-
-        if (!$seccion) {
-            // Si no hay sección específica, permitir acceso a secciones principales
-            if (str_starts_with($routeName, 'secciones.')) {
-                return true;
-            }
-            return false;
-        }
-
-        // Verificar permiso directo del usuario
-        $permisoDirecto = \DB::table('permisos_acceso')
-            ->where('user_id', $user->id)
-            ->where('seccion_id', $seccion->id)
-            ->where('puede_ver', true)
-            ->exists();
-
-        if ($permisoDirecto) {
+        // === 1) ACCESO TOTAL: Administrador, Administración, Programador ===
+        if ($user->tieneAccesoTotal()) {
             return true;
         }
 
-        // Verificar permisos heredados por departamento
-        $departamentosUsuario = $user->departamentos->pluck('id')->toArray();
-
-        if (empty($departamentosUsuario)) {
-            return false;
+        // === 2) RESPONSABLES: Todo excepto configuración ===
+        if ($user->esResponsableDepartamento()) {
+            // Verificar si es ruta de configuración
+            foreach (self::$rutasConfiguracion as $rutaConfig) {
+                if (Str::startsWith($routeName, $rutaConfig)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
-        $permisoPorDept = \DB::table('departamento_seccion')
-            ->whereIn('departamento_id', $departamentosUsuario)
-            ->where('seccion_id', $seccion->id)
-            ->exists();
-
-        return $permisoPorDept;
+        // === 3) USUARIOS BÁSICOS: No tienen acceso al menú ===
+        return false;
     }
 
     /**
@@ -230,8 +190,6 @@ class MenuBuilder
      */
     public static function clearAllCache()
     {
-        // Esto requeriría iterar sobre todos los usuarios
-        // o usar tags de cache si el driver lo soporta
         Cache::flush();
     }
 }

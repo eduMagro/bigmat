@@ -26,14 +26,16 @@ use App\Http\Controllers\PoliticasController;
 use App\Http\Controllers\RevisionFichajeController;
 use App\Http\Controllers\AgrupacionTurnoController;
 
-// Ruta principal - redirige a login, dashboard o mi-perfil según el rol
+// Ruta principal - redirige según permisos
 Route::get('/', function () {
     if (auth()->check()) {
         $user = auth()->user();
-        if ($user->esOperario()) {
-            return redirect()->route('usuarios.show', $user->id);
+        // Usuarios con acceso total o responsables van al dashboard
+        if ($user->tieneAccesoTotal() || $user->esResponsableDepartamento()) {
+            return redirect()->route('dashboard');
         }
-        return redirect()->route('dashboard');
+        // Usuarios básicos van a su perfil
+        return redirect()->route('usuarios.show', $user->id);
     }
     return redirect()->route('login');
 });

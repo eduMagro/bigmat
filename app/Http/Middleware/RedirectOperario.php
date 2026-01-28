@@ -10,54 +10,32 @@ use Symfony\Component\HttpFoundation\Response;
 class RedirectOperario
 {
     /**
-     * Rutas permitidas para operarios
-     */
-    protected $rutasPermitidas = [
-        'usuarios.show',
-        'usuarios.imagen',
-        'usuarios.editarSubirImagen',
-        'logout',
-        // Calendario y datos del perfil
-        'users.verEventos-turnos',
-        'users.verResumen-asistencia',
-        'usuarios.getVacationData',
-        // Fichaje
-        'users.fichar',
-        // Vacaciones
-        'vacaciones.solicitar',
-        'vacaciones.misSolicitudesPendientes',
-        'vacaciones.eliminarDiasSolicitud',
-        'vacaciones.eliminarSolicitud',
-        'vacaciones.eliminarEvento',
-        // Revision de fichajes
-        'usuarios.fichajes-rango',
-        'revision-fichaje.store',
-        // Alertas
-        'alertas.index',
-        'alertas.show',
-        'alertas.store',
-        'alertas.update',
-        'alertas.destroy',
-        'alertas.verSinLeer',
-        'alertas.marcarLeidas',
-        'alertas.obtenerHilo',
-    ];
-
-    /**
      * Handle an incoming request.
+     *
+     * Este middleware actúa como respaldo de seguridad.
+     * La lógica principal de permisos está en VerificarAccesoSeccion.
+     *
+     * Redirige a usuarios básicos (no admin, no responsable) al perfil
+     * si intentan acceder al dashboard u otras rutas principales.
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
 
-        // Si el usuario es operario y está intentando acceder a una ruta no permitida
-        if ($user && $user->esOperario()) {
-            $rutaActual = $request->route()->getName();
+        if (!$user) {
+            return $next($request);
+        }
 
-            // Verificar si la ruta actual está permitida
-            if (!in_array($rutaActual, $this->rutasPermitidas)) {
-                return redirect()->route('usuarios.show', $user->id);
-            }
+        // Si tiene acceso total o es responsable, continuar normalmente
+        if ($user->tieneAccesoTotal() || $user->esResponsableDepartamento()) {
+            return $next($request);
+        }
+
+        // Usuarios básicos: redirigir desde dashboard a su perfil
+        $rutaActual = $request->route()->getName();
+
+        if ($rutaActual === 'dashboard') {
+            return redirect()->route('usuarios.show', $user->id);
         }
 
         return $next($request);

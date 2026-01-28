@@ -7,11 +7,65 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Models\Seccion;
-use App\Models\PermisoAcceso;
 
 class VerificarAccesoSeccion
 {
+    /**
+     * Rutas de configuración (restringidas para responsables)
+     */
+    protected $rutasConfiguracion = [
+        'ajustes.',
+        'departamentos.',
+        'secciones.',
+        'irpf-tramos.',
+        'seguridad-social.',
+        'convenios.',
+    ];
+
+    /**
+     * Rutas permitidas para usuarios básicos (no admin, no responsable)
+     */
+    protected $rutasBasicas = [
+        // Mi perfil
+        'usuarios.show',
+        'usuarios.imagen',
+        'usuarios.editarSubirImagen',
+        'users.verEventos-turnos',
+        'users.verResumen-asistencia',
+        'usuarios.getVacationData',
+        // Fichaje
+        'users.fichar',
+        // Vacaciones (solicitar)
+        'vacaciones.solicitar',
+        'vacaciones.misSolicitudesPendientes',
+        'vacaciones.eliminarDiasSolicitud',
+        'vacaciones.eliminarSolicitud',
+        // Revision de fichajes
+        'usuarios.fichajes-rango',
+        'revision-fichaje.store',
+        // Alertas
+        'alertas.index',
+        'alertas.show',
+        'alertas.store',
+        'alertas.update',
+        'alertas.destroy',
+        'alertas.verSinLeer',
+        'alertas.marcarLeidas',
+        'alertas.obtenerHilo',
+        // Políticas
+        'politicas.privacidad',
+        'politicas.cookies',
+        'politicas.terminos',
+        'politicas.mostrar',
+        'politicas.aceptar',
+        // Logout
+        'logout',
+        // Contrato propio
+        'incorporaciones.descargarMiContrato',
+        // Nóminas propias
+        'nominas.crearDescargarMes',
+    ];
+
     /**
      * Deniega el acceso con redirect o JSON según el tipo de petición
      */
@@ -20,188 +74,64 @@ class VerificarAccesoSeccion
         Log::debug('🚫 Acceso denegado', [
             'mensaje' => $mensaje,
             'url' => $request->fullUrl(),
-            'ajax' => $request->ajax(),
-            'expectsJson' => $request->expectsJson(),
+            'usuario' => Auth::user()?->email,
         ]);
 
-        // Si es petición AJAX o espera JSON
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['error' => $mensaje, 'message' => $mensaje], 403);
         }
 
-        // Redirect al dashboard con mensaje de error
-        return redirect()->route('dashboard')->with('error', $mensaje);
+        // Redirigir a mi-perfil si no tiene acceso
+        $user = Auth::user();
+        if ($user) {
+            return redirect()->route('usuarios.show', $user->id)->with('error', $mensaje);
+        }
+
+        return redirect()->route('login')->with('error', $mensaje);
     }
 
     public function handle(Request $request, Closure $next): mixed
     {
-        $usuarioAutenticado = Auth::user();
-        if (!$usuarioAutenticado) {
+        $usuario = Auth::user();
+
+        if (!$usuario) {
             return $this->denegarAcceso($request, 'No autenticado.');
         }
 
-        $correoUsuario = strtolower(trim($usuarioAutenticado->email));
-        $nombreRutaActual = $request->route()?->getName() ?? '';
-        $rolUsuario = strtolower((string) $usuarioAutenticado->rol);
+        $nombreRuta = $request->route()?->getName() ?? '';
 
-        // === 1) Acceso total por correo (desde config/acceso.php) ===
+        // === 0) BYPASS: Correos con acceso total ===
         $correosAccesoTotal = config('acceso.correos_acceso_total', []);
-        if (in_array($correoUsuario, $correosAccesoTotal, true)) {
+        if (in_array(strtolower(trim($usuario->email)), $correosAccesoTotal, true)) {
             return $next($request);
         }
 
-        // === 2) Acceso total para usuarios del departamento Administrador ===
-        $esAdministrador = $usuarioAutenticado->departamentos()
-            ->whereRaw('LOWER(nombre) = ?', ['administrador'])
-            ->exists();
-
-        if ($esAdministrador) {
+        // === 1) ACCESO TOTAL: Administrador, Administración, Programador ===
+        if ($usuario->tieneAccesoTotal()) {
             return $next($request);
         }
 
-        // === 3) Rutas libres (desde config/acceso.php) ===
-        $rutasLibres = config('acceso.rutas_libres', []);
-        if (in_array($nombreRutaActual, $rutasLibres, true)) {
-            return $next($request);
-        }
-
-        // === 4) Roles y permisos ===
-        if ($rolUsuario === 'operario') {
-            $prefijosOperario = config('acceso.prefijos_operario', []);
-            $permitido = collect($prefijosOperario)->contains(
-                fn($prefijo) => $nombreRutaActual === $prefijo || Str::startsWith($nombreRutaActual, $prefijo)
-            );
-
-            if (!$permitido) {
-                Log::info('🚫 Ruta denegada para operario', [
-                    'usuario' => $usuarioAutenticado->email,
-                    'ruta' => $nombreRutaActual,
-                ]);
-                return $this->denegarAcceso($request, 'No tienes permiso para acceder.');
-            }
-            return $next($request);
-        }
-
-        if ($rolUsuario === 'transportista') {
-            $prefijosTransportista = config('acceso.prefijos_transportista', []);
-            $permitido = collect($prefijosTransportista)->contains(
-                fn($prefijo) => $nombreRutaActual === $prefijo || Str::startsWith($nombreRutaActual, $prefijo)
-            );
-
-            if (!$permitido) {
-                Log::info('🚫 Ruta denegada para transportista', [
-                    'usuario' => $usuarioAutenticado->email,
-                    'ruta' => $nombreRutaActual,
-                ]);
-                return $this->denegarAcceso($request, 'No tienes permiso para acceder.');
-            }
-            return $next($request);
-        }
-
-        // === 5) Usuarios de oficina - verificar secciones y departamentos ===
-        if ($rolUsuario === 'oficina') {
-            $accionRuta = strtolower(Str::afterLast($nombreRutaActual, '.'));
-            $seccionBase = Str::before($nombreRutaActual, '.');
-
-            // Buscar sección exacta primero, luego por prefijo
-            $seccion = Seccion::whereRaw('LOWER(ruta) = ?', [strtolower($nombreRutaActual)])->first();
-            if (!$seccion) {
-                $seccion = Seccion::whereRaw('LOWER(ruta) LIKE ?', [strtolower($seccionBase) . '.%'])->first();
-            }
-            if (!$seccion) {
-                Log::warning('❌ Ruta sin sección registrada', ['ruta' => $nombreRutaActual]);
-                return $this->denegarAcceso($request, "La sección '{$seccionBase}' no está registrada en el sistema.");
-            }
-
-            // === Verificar acceso por DEPARTAMENTO ===
-            $departamentosUsuario = $usuarioAutenticado->departamentos->pluck('id')->toArray();
-            $departamentosSeccion = $seccion->departamentos->pluck('id')->toArray();
-            $tieneAccesoPorDepartamento = !empty(array_intersect($departamentosUsuario, $departamentosSeccion));
-
-            // Si NO tiene acceso por departamento, denegar
-            if (!$tieneAccesoPorDepartamento) {
-                Log::debug('❌ Sin acceso por departamento', [
-                    'usuario' => $usuarioAutenticado->email,
-                    'seccion' => $seccion->ruta,
-                    'departamentos_usuario' => $departamentosUsuario,
-                    'departamentos_seccion' => $departamentosSeccion,
-                ]);
-                return $this->denegarAcceso($request, "No tienes acceso a la sección '{$seccion->nombre}'.");
-            }
-
-            // === Verificar permisos granulares (ver/crear/editar) ===
-            $permisos = PermisoAcceso::where('user_id', $usuarioAutenticado->id)
-                ->where('seccion_id', $seccion->id)
-                ->first();
-
-            // Si no tiene permisos específicos, solo permitir VER (index/show)
-            if (!$permisos) {
-                $esAccionVer = in_array($accionRuta, ['index', 'show'])
-                    || Str::startsWith($accionRuta, 'ver')
-                    || Str::startsWith($accionRuta, 'show');
-
-                if ($esAccionVer) {
-                    Log::debug('✅ Acceso por departamento (solo ver)', [
-                        'usuario' => $usuarioAutenticado->email,
-                        'seccion' => $seccion->ruta,
-                    ]);
-                    return $next($request);
-                }
-
-                Log::debug('❌ Sin permisos para crear/editar', [
-                    'usuario' => $usuarioAutenticado->email,
-                    'seccion' => $seccion->ruta,
-                    'accion' => $accionRuta,
-                ]);
-                return $this->denegarAcceso($request, "No tienes permisos para realizar esta acción en '{$seccion->nombre}'.");
-            }
-
-            // Convertir a collection para mantener compatibilidad con el código existente
-            $permisos = collect([$permisos]);
-
-            $autorizado = false;
-            foreach ($permisos as $permiso) {
-                if (
-                    // Permiso de VER
-                    (in_array($accionRuta, ['index', 'show']) || Str::startsWith($accionRuta, 'ver') || Str::startsWith($accionRuta, 'show')) && $permiso->puede_ver
-
-                    // Permiso de CREAR
-                    || (in_array($accionRuta, ['create', 'store']) || Str::startsWith($accionRuta, 'crear') || Str::startsWith($accionRuta, 'store')) && $permiso->puede_crear
-
-                    // Permiso de EDITAR
-                    || (in_array($accionRuta, ['edit', 'update', 'destroy'])
-                        || Str::startsWith($accionRuta, 'editar')
-                        || Str::startsWith($accionRuta, 'actualizar')
-                        || Str::startsWith($accionRuta, 'update')
-                        || Str::startsWith($accionRuta, 'destroy')
-                        || Str::startsWith($accionRuta, 'delete')
-                        || Str::startsWith($accionRuta, 'eliminar')
-                        || Str::startsWith($accionRuta, 'activar')
-                    ) && $permiso->puede_editar
-                ) {
-                    $autorizado = true;
-                    break;
+        // === 2) RESPONSABLES: Acceso a todo EXCEPTO configuración ===
+        if ($usuario->esResponsableDepartamento()) {
+            // Verificar si intenta acceder a rutas de configuración
+            foreach ($this->rutasConfiguracion as $rutaConfig) {
+                if (Str::startsWith($nombreRuta, $rutaConfig)) {
+                    return $this->denegarAcceso($request, 'No tienes acceso a la configuración del sistema.');
                 }
             }
-            if (!$autorizado) {
-                Log::warning('❌ Acción no autorizada', [
-                    'usuario' => $usuarioAutenticado->email,
-                    'ruta' => $nombreRutaActual,
-                    'accion' => $accionRuta,
-                    'seccion' => $seccionBase,
-                ]);
-                return $this->denegarAcceso($request, 'No tienes permisos suficientes para realizar esta acción.');
-            }
-
+            // Tiene acceso a todo lo demás
             return $next($request);
         }
 
-        // === 5) Denegación por defecto (rol no reconocido) ===
-        Log::warning('🚫 Ruta denegada - rol no reconocido', [
-            'usuario' => $usuarioAutenticado->email,
-            'ruta' => $nombreRutaActual,
-            'rol' => $rolUsuario,
-        ]);
-        return $this->denegarAcceso($request, 'No tienes permiso para acceder.');
+        // === 3) USUARIOS BÁSICOS: Solo mi-perfil y alertas ===
+        // Verificar si la ruta está en las permitidas
+        foreach ($this->rutasBasicas as $rutaPermitida) {
+            if ($nombreRuta === $rutaPermitida || Str::startsWith($nombreRuta, $rutaPermitida . '.')) {
+                return $next($request);
+            }
+        }
+
+        // Si llegamos aquí, el usuario no tiene permiso
+        return $this->denegarAcceso($request, 'No tienes permiso para acceder a esta sección.');
     }
 }
