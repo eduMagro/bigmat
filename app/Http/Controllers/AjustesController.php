@@ -23,7 +23,6 @@ class AjustesController extends Controller
         $obras = Obra::all();
         $categorias = Categoria::withCount('users')->get();
         $agrupaciones = AgrupacionTurno::ordenadas()
-            ->withCount('usuarios')
             ->with(['dias.turno'])
             ->get();
 

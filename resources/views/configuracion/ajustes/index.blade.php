@@ -803,7 +803,6 @@
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Nombre</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Dias</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Empleados</th>
                                     <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Estado</th>
                                     <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Acciones</th>
                                 </tr>
@@ -840,11 +839,6 @@
                                             </div>
                                         </td>
                                         <td class="px-4 py-3 text-center">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $agrupacion->usuarios_count > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                                {{ $agrupacion->usuarios_count }}
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
                                             <button @click="toggleAgrupacion({{ $agrupacion->id }})"
                                                 class="px-2 py-1 rounded-full text-xs font-semibold {{ $agrupacion->activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                                                 {{ $agrupacion->activo ? 'Activo' : 'Inactivo' }}
@@ -862,9 +856,8 @@
                                                     Editar
                                                 </button>
                                                 <button @click="deleteAgrupacion({{ $agrupacion->id }})"
-                                                    class="inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors {{ $agrupacion->usuarios_count > 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                                    {{ $agrupacion->usuarios_count > 0 ? 'disabled' : '' }}
-                                                    title="{{ $agrupacion->usuarios_count > 0 ? 'Tiene empleados asignados' : 'Eliminar plantilla' }}">
+                                                    class="inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                                                    title="Eliminar plantilla">
                                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
