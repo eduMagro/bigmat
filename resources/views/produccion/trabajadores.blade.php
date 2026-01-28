@@ -306,19 +306,13 @@
                         };
                     }
 
-                    // Fichajes de entrada/salida
-                    const entrada = p.entrada || '--';
-                    const salida = p.salida || '--';
-                    const fichaje2 = (p.entrada2 || p.salida2)
-                        ? `<div class="text-[10px] opacity-80">${p.entrada2 || '--'}/${p.salida2 || '--'}</div>`
-                        : '';
+                    // Horas del turno establecidas
+                    const horaInicio = p.hora_inicio || '--';
+                    const horaFin = p.hora_fin || '--';
 
                     return {
                         html: `<div class="flex items-center justify-center h-full px-1">
-                            <div class="text-center leading-tight">
-                                <div class="text-xs font-semibold">${entrada} / ${salida}</div>
-                                ${fichaje2}
-                            </div>
+                            <div class="text-xs font-semibold">${horaInicio} - ${horaFin}</div>
                         </div>`
                     };
                 },
