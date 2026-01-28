@@ -603,14 +603,30 @@ $ordenablesAlertas = [];
                     : redirect()->back()->with('success', 'Alerta enviada correctamente.');
             }
 
-            // CASO 3: USUARIO OPERARIO ENVÍA MENSAJE Y LLEGA A DEPARTAMENTOS PROGRAMADOR Y ADMINISTRADOR
+            // CASO 3: USUARIO OPERARIO ENVÍA MENSAJE Y LLEGA A:
+            // - Departamentos Programador y Administrador
+            // - Responsables de los departamentos del usuario emisor
             if (!$esOficina && !$request->has('enviar_a_departamentos')) {
+                // Usuarios de departamentos Programador/Administrador
                 $usuariosDestino = User::whereHas('departamentos', function ($q) {
                     $q->whereRaw('LOWER(nombre) IN (?, ?)', ['programador', 'administrador']);
                 })->get();
 
+                // Añadir responsables de los departamentos del usuario emisor
+                $departamentosUsuario = $user->departamentos()->pluck('departamentos.id');
+                if ($departamentosUsuario->isNotEmpty()) {
+                    $responsables = Departamento::whereIn('id', $departamentosUsuario)
+                        ->whereNotNull('responsable_id')
+                        ->pluck('responsable_id');
+
+                    if ($responsables->isNotEmpty()) {
+                        $usuariosResponsables = User::whereIn('id', $responsables)->get();
+                        $usuariosDestino = $usuariosDestino->merge($usuariosResponsables)->unique('id');
+                    }
+                }
+
                 if ($usuariosDestino->isEmpty()) {
-                    throw new \Exception('No hay usuarios en los departamentos Programador/Administrador para recibir el mensaje.');
+                    throw new \Exception('No hay usuarios disponibles para recibir el mensaje.');
                 }
 
                 $alerta = Alerta::create([

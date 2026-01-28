@@ -18,8 +18,12 @@ class ProduccionController extends Controller
      */
     public function trabajadores()
     {
+        // Filtrar por visibilidad del usuario actual
+        $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
+
         // Obtener trabajadores activos - seran los recursos (filas) del calendario
         $trabajadores = User::where('estado', 'activo')
+            ->visiblesPara(auth()->user())
             ->with('categoria')
             ->orderBy('name')
             ->get();
@@ -42,9 +46,10 @@ class ProduccionController extends Controller
         $fechaHoy = Carbon::today()->subWeek();
         $fechaLimite = $fechaHoy->copy()->addDays(60);
 
-        // Obtener asignaciones
+        // Obtener asignaciones (filtradas por visibilidad)
         $asignaciones = AsignacionTurno::with(['user.categoria', 'turno'])
             ->whereBetween('fecha', [$fechaHoy, $fechaLimite])
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
         $eventos = [];

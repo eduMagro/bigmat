@@ -199,15 +199,17 @@ class AsignacionTurnoController extends Controller
 
     public function index(Request $request)
     {
+        // Filtrar por visibilidad del usuario actual
+        $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
+
         // 1. QUERY BASE (filtros normales con empleado)
         $query = AsignacionTurno::with(['user', 'turno', 'obra'])
             ->whereDate('fecha', '<=', Carbon::tomorrow())
             ->where('estado', 'activo')
             ->whereHas('turno', fn($q) => $q->where('nombre', '!=', 'vacaciones'))
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->join('turnos', 'asignaciones_turnos.turno_id', '=', 'turnos.id')
             ->select('asignaciones_turnos.*');
-
-
 
         // aplicar filtros
         $query = $this->aplicarFiltros($query, $request);

@@ -8,6 +8,7 @@ use App\Models\Festivo;
 use App\Models\User;
 use App\Models\VacacionesSolicitud;
 use App\Models\Alerta;
+use App\Models\Departamento;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Log;
@@ -21,15 +22,20 @@ class VacacionesController extends Controller
 
     public function index()
     {
-        // Todas las solicitudes pendientes
+        // Obtener IDs de usuarios visibles para el usuario actual
+        $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
+
+        // Solicitudes pendientes (filtradas por visibilidad)
         $solicitudesPendientes = VacacionesSolicitud::with('user')
             ->where('estado', 'pendiente')
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->orderBy('fecha_inicio')
             ->get();
 
-        // Todas las vacaciones asignadas
+        // Vacaciones asignadas (filtradas por visibilidad)
         $vacaciones = AsignacionTurno::with(['user', 'turno'])
             ->where('estado', 'vacaciones')
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
         // Festivos
@@ -256,25 +262,49 @@ class VacacionesController extends Controller
                 return $solicitudPrincipal;
             });
 
-            // 5) Intentar crear la alerta a RRHH
+            // 5) Intentar crear la alerta a RRHH y responsables
             $alertaEnviada = false;
             try {
+                $mensaje = auth()->user()->name . ' ha solicitado vacaciones del ' .
+                    $solicitud->fecha_inicio . ' al ' . $solicitud->fecha_fin;
+
+                // Enviar a RRHH
                 $rrhh = User::where('email', 'josemanuel.amuedo@pacoreyes.com')->first();
 
                 if ($rrhh) {
                     Alerta::create([
                         'user_id_1' => auth()->id(),
                         'destinatario_id' => $rrhh->id,
-                        'mensaje' => auth()->user()->name . ' ha solicitado vacaciones del ' .
-                            $solicitud->fecha_inicio . ' al ' . $solicitud->fecha_fin,
+                        'mensaje' => $mensaje,
                         'tipo' => 'vacaciones',
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                     $alertaEnviada = true;
                 }
+
+                // Enviar a los responsables de los departamentos del usuario
+                $departamentosUsuario = auth()->user()->departamentos()->pluck('departamentos.id');
+                if ($departamentosUsuario->isNotEmpty()) {
+                    $responsablesIds = Departamento::whereIn('id', $departamentosUsuario)
+                        ->whereNotNull('responsable_id')
+                        ->where('responsable_id', '!=', $rrhh?->id) // Evitar duplicado si RRHH es responsable
+                        ->pluck('responsable_id')
+                        ->unique();
+
+                    foreach ($responsablesIds as $responsableId) {
+                        Alerta::create([
+                            'user_id_1' => auth()->id(),
+                            'destinatario_id' => $responsableId,
+                            'mensaje' => $mensaje,
+                            'tipo' => 'vacaciones',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
             } catch (Throwable $e) {
-                Log::warning('Fallo creando la alerta de RRHH para vacaciones.', [
+                Log::warning('Fallo creando la alerta de RRHH/responsables para vacaciones.', [
                     'error' => $e->getMessage(),
                     'user_id' => auth()->id(),
                 ]);

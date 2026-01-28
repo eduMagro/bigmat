@@ -25,8 +25,20 @@ class IncorporacionController extends Controller
 {
     public function index(Request $request)
     {
+        $usuarioActual = auth()->user();
+        $usuariosVisiblesIds = $usuarioActual->getUsuariosVisiblesIds();
+
         $query = Incorporacion::with(['creador', 'formaciones', 'documentos'])
             ->orderBy('created_at', 'desc');
+
+        // Filtrar por visibilidad (si no tiene acceso total)
+        if ($usuariosVisiblesIds !== null) {
+            $query->where(function ($q) use ($usuariosVisiblesIds, $usuarioActual) {
+                $q->whereIn('user_id', $usuariosVisiblesIds)
+                  ->orWhere('created_by', $usuarioActual->id)
+                  ->orWhereNull('user_id'); // Pendientes sin asignar
+            });
+        }
 
         // Filtros
         if ($request->filled('estado')) {
@@ -55,12 +67,20 @@ class IncorporacionController extends Controller
 
         $incorporaciones = $query->paginate(15);
 
-        // Estadísticas
+        // Estadísticas (también filtradas)
+        $statsQuery = Incorporacion::query();
+        if ($usuariosVisiblesIds !== null) {
+            $statsQuery->where(function ($q) use ($usuariosVisiblesIds, $usuarioActual) {
+                $q->whereIn('user_id', $usuariosVisiblesIds)
+                  ->orWhere('created_by', $usuarioActual->id)
+                  ->orWhereNull('user_id');
+            });
+        }
         $stats = [
-            'pendientes' => Incorporacion::where('estado', 'pendiente')->count(),
-            'datos_recibidos' => Incorporacion::where('estado', 'datos_recibidos')->count(),
-            'en_proceso' => Incorporacion::where('estado', 'en_proceso')->count(),
-            'completadas' => Incorporacion::where('estado', 'completada')->count(),
+            'pendientes' => (clone $statsQuery)->where('estado', 'pendiente')->count(),
+            'datos_recibidos' => (clone $statsQuery)->where('estado', 'datos_recibidos')->count(),
+            'en_proceso' => (clone $statsQuery)->where('estado', 'en_proceso')->count(),
+            'completadas' => (clone $statsQuery)->where('estado', 'completada')->count(),
         ];
 
         $empresas = Empresa::orderBy('nombre')->get();
