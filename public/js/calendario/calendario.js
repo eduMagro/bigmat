@@ -106,6 +106,7 @@
             },
             turnos = [], // opcional
             userId = null,
+            initialEvents = null, // eventos precargados del mes actual
         } = cfg;
 
         let {
@@ -113,9 +114,12 @@
             diasVacacionesAsignados = 0,
         } = cfg;
 
+        // Flag para controlar si usamos eventos precargados o AJAX
+        let usedInitialEvents = false;
+
         if (typeof fechaIncorporacion === 'undefined') fechaIncorporacion = null; // Safety check
 
-        console.log('Config Calendario:', { userId, permissions, fechaIncorporacion, diasVacacionesAsignados });
+        console.log('Config Calendario:', { userId, permissions, fechaIncorporacion, diasVacacionesAsignados, hasInitialEvents: !!initialEvents });
 
         // Estado de selección "clic-clic"
         let startClick = null;
@@ -1027,6 +1031,20 @@
             },
 
             events: function (fetchInfo, success, failure) {
+                // Usar eventos precargados en la primera carga (evita AJAX inicial)
+                if (initialEvents && !usedInitialEvents) {
+                    usedInitialEvents = true;
+                    console.log('Usando eventos precargados:', initialEvents.length);
+
+                    const allDayEvents = initialEvents.filter(ev => ev.allDay !== false);
+                    const timedEvents = initialEvents.filter(ev => ev.allDay === false);
+                    const normalized = normalizeDailyEvents(allDayEvents);
+                    const final = [...normalized, ...timedEvents];
+
+                    success(final);
+                    return;
+                }
+
                 if (!routes.eventosUrl) {
                     success([]);
                     return;

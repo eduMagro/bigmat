@@ -421,11 +421,12 @@
                             </path>
                         </svg>
                     </button>
-                    <div x-cloak x-show="seccionJustificante" x-collapse>
+                    {{-- Usar x-if para cargar Livewire solo cuando se necesite --}}
+                    <template x-if="seccionJustificante">
                         <div class="p-3 pt-0">
                             @livewire('subir-justificante', ['userId' => $user->id])
                         </div>
-                    </div>
+                    </template>
                 </div>
             @endif
 

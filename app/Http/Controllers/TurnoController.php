@@ -88,6 +88,9 @@ class TurnoController extends Controller
 
         Turno::create($data);
 
+        // Invalidar caché de turnos
+        cache()->forget('turnos_nombres_config');
+
         return redirect()->route('ajustes.index')
             ->with('success', 'Turno creado exitosamente');
     }
@@ -162,6 +165,9 @@ class TurnoController extends Controller
 
         $turno->update($data);
 
+        // Invalidar caché de turnos
+        cache()->forget('turnos_nombres_config');
+
         return redirect()->route('ajustes.index')
             ->with('success', 'Turno actualizado exitosamente');
     }
@@ -173,6 +179,9 @@ class TurnoController extends Controller
     {
         $turno->delete();
 
+        // Invalidar caché de turnos
+        cache()->forget('turnos_nombres_config');
+
         return redirect()->route('ajustes.index')
             ->with('success', 'Turno eliminado exitosamente');
     }
@@ -183,6 +192,9 @@ class TurnoController extends Controller
     public function toggleActivo(Request $request, Turno $turno)
     {
         $turno->update(['activo' => !$turno->activo]);
+
+        // Invalidar caché de turnos
+        cache()->forget('turnos_nombres_config');
 
         $estado = $turno->activo ? 'activado' : 'desactivado';
 

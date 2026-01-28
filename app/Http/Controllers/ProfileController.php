@@ -343,13 +343,24 @@ class ProfileController extends Controller
             return back()->with('error', 'No tienes permiso para ver este perfil.');
         }
 
-        $user = User::with(['asignacionesTurnos.turno'])->findOrFail($id);
-        $turnos = Turno::all();
+        // Cargar solo las relaciones necesarias para la ficha (NO asignacionesTurnos - el calendario las carga via AJAX)
+        $user = User::with(['categoria', 'empresa', 'departamentos', 'incorporacion'])->findOrFail($id);
 
+        // Cargar nombres de turnos con caché (raramente cambian)
+        $turnosNombres = cache()->remember('turnos_nombres_config', 3600, function () {
+            return Turno::activos()->ordenados()->pluck('nombre')->map(fn($n) => ['nombre' => $n])->values()->toArray();
+        });
+
+        // Obtener resumen y conteo de vacaciones en una sola consulta optimizada
         $resumen = $this->getResumenAsistencia($user);
+
+        // Horas mensuales - consulta optimizada
         $horasMensuales = $this->getHorasMensuales($user);
 
         $esOficina = $auth->rol === 'oficina';
+
+        // Precargar eventos del mes actual para evitar AJAX inicial
+        $initialEvents = $this->getEventosRangoOptimizado($user, Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth());
 
         $config = [
             'userId' => $user->id,
@@ -378,13 +389,16 @@ class ProfileController extends Controller
                 'canAssignShifts' => $esOficina,
                 'canAssignStates' => $esOficina,
             ],
-            'turnos' => $turnos->map(fn($t) => ['nombre' => $t->nombre])->values()->toArray(),
+            'turnos' => $turnosNombres,
             'fechaIncorporacion' => $user->fecha_incorporacion_efectiva ? $user->fecha_incorporacion_efectiva->format('Y-m-d') : null,
-            'diasVacacionesAsignados' => $user->asignacionesTurnos()
-                ->where('estado', 'vacaciones')
-                // ->whereYear('fecha', now()->year) // Opcional: si solo cuentan las del año en curso
-                ->count(),
+            // Usar el conteo del resumen en lugar de consulta adicional
+            'diasVacacionesAsignados' => $resumen['diasVacaciones'],
+            // Eventos precargados para evitar AJAX inicial
+            'initialEvents' => $initialEvents,
         ];
+
+        // Variable turnos para compatibilidad con la vista (ya no se usa para iterar)
+        $turnos = collect();
 
         return view('User.show', compact(
             'user',
@@ -397,55 +411,46 @@ class ProfileController extends Controller
 
     private function getHorasMensuales(User $user): array
     {
-        $inicioMes = Carbon::now()->startOfMonth();
+        $inicioMes = Carbon::now()->startOfMonth()->toDateString();
         $hoy = Carbon::now()->toDateString();
-        $finMes = Carbon::now()->endOfMonth();
+        $finMes = Carbon::now()->endOfMonth()->toDateString();
 
-        // Todas las asignaciones activas del mes
-        $asignacionesMes = $user->asignacionesTurnos()
-            ->whereBetween('fecha', [$inicioMes->toDateString(), $finMes->toDateString()])
+        // Consulta optimizada: solo campos necesarios
+        $asignacionesMes = AsignacionTurno::where('user_id', $user->id)
+            ->whereBetween('fecha', [$inicioMes, $finMes])
             ->where('estado', 'activo')
+            ->select('fecha', 'entrada', 'salida')
             ->get();
 
         $horasTrabajadas = 0;
         $diasConErrores = 0;
         $diasHastaHoy = 0;
-        $totalAsignacionesMes = $asignacionesMes->count(); // todas las asignaciones activas del mes
+        $totalAsignacionesMes = $asignacionesMes->count();
 
         foreach ($asignacionesMes as $asignacion) {
-            // Solo para horas hasta hoy
-            if ($asignacion->fecha <= $hoy) {
+            $fechaStr = $asignacion->fecha instanceof \Carbon\Carbon
+                ? $asignacion->fecha->toDateString()
+                : $asignacion->fecha;
+
+            if ($fechaStr <= $hoy) {
                 $diasHastaHoy++;
             }
 
-            $horaEntrada = $asignacion->entrada ? Carbon::parse($asignacion->entrada) : null;
-            $horaSalida = $asignacion->salida ? Carbon::parse($asignacion->salida) : null;
-
-            if ($horaEntrada && $horaSalida) {
+            if ($asignacion->entrada && $asignacion->salida) {
+                $horaEntrada = Carbon::parse($asignacion->entrada);
+                $horaSalida = Carbon::parse($asignacion->salida);
                 $horasDia = $horaSalida->diffInMinutes($horaEntrada) / 60;
-                if ($horasDia < 8) {
-                    $horasDia = 8;
-                }
-                $horasTrabajadas += $horasDia;
-            } else {
-                // 👉 Sólo contar error si la fecha ya pasó o es hoy
-                if ($asignacion->fecha < $hoy) {
-                    $diasConErrores++;
-                }
+                $horasTrabajadas += max($horasDia, 8);
+            } elseif ($fechaStr < $hoy) {
+                $diasConErrores++;
             }
         }
 
-        // Horas que debería llevar hasta hoy
-        $horasDeberiaLlevar = ($diasHastaHoy) * 8;
-
-        // Horas planificadas en el mes completo (todas las asignaciones activas × 8)
-        $horasPlanificadasMes = $totalAsignacionesMes * 8;
-
         return [
             'horas_trabajadas' => $horasTrabajadas,
-            'horas_deberia_llevar' => $horasDeberiaLlevar,
+            'horas_deberia_llevar' => $diasHastaHoy * 8,
             'dias_con_errores' => $diasConErrores,
-            'horas_planificadas_mes' => $horasPlanificadasMes,
+            'horas_planificadas_mes' => $totalAsignacionesMes * 8,
         ];
     }
 
@@ -1037,7 +1042,6 @@ class ProfileController extends Controller
         // 2. Turnos - usar color de la tabla turnos
         foreach ($user->asignacionesTurnos as $asig) {
             if ($asig->turno) {
-                $nombre = $asig->turno->nombre;
                 // Usar el color del turno desde la BD, con fallback a azul
                 $colorTurno = $asig->turno->color ?? '#3b82f6';
                 $colorTexto = $asig->turno->color_texto ?? '#ffffff';
@@ -1048,9 +1052,14 @@ class ProfileController extends Controller
                 // Formatear fecha como string YYYY-MM-DD para evitar problemas de timezone
                 $fechaStr = Carbon::parse($asig->fecha)->format('Y-m-d');
 
+                // Mostrar horas del turno en lugar del nombre
+                $horaInicio = $asig->turno->hora_inicio ? substr($asig->turno->hora_inicio, 0, 5) : null;
+                $horaFin = $asig->turno->hora_fin ? substr($asig->turno->hora_fin, 0, 5) : null;
+                $tituloTurno = ($horaInicio && $horaFin) ? "{$horaInicio}-{$horaFin}" : ucfirst($asig->turno->nombre);
+
                 $eventos->push([
                     'id' => 'turno-' . $asig->id,
-                    'title' => ucfirst($nombre),
+                    'title' => $tituloTurno,
                     'start' => $fechaStr,
                     'allDay' => true,
                     'backgroundColor' => $colorTurno,
@@ -1109,6 +1118,170 @@ class ProfileController extends Controller
         $eventos = $eventos->merge($vacaciones);
 
         return response()->json($eventos);
+    }
+
+    /**
+     * Obtiene eventos optimizados para un rango de fechas (precarga inicial)
+     */
+    private function getEventosRangoOptimizado(User $user, Carbon $fechaInicio, Carbon $fechaFin): array
+    {
+        $eventos = [];
+        $colores = $this->getColoresTurnosYEstado();
+
+        // Consulta optimizada: solo asignaciones del rango con relaciones necesarias
+        $asignaciones = AsignacionTurno::with(['turno', 'obra'])
+            ->where('user_id', $user->id)
+            ->whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()])
+            ->get();
+
+        foreach ($asignaciones as $asig) {
+            $fechaStr = Carbon::parse($asig->fecha)->format('Y-m-d');
+
+            // Estados (vacaciones, baja, etc.)
+            if ($asig->estado && strtolower($asig->estado) !== 'activo') {
+                $nombre = strtolower($asig->estado);
+                $color = $colores[$nombre] ?? ['bg' => '#6b7280', 'border' => '#4b5563', 'text' => '#ffffff'];
+
+                $eventos[] = [
+                    'id' => 'estado-' . $asig->id,
+                    'title' => ucfirst($nombre),
+                    'start' => $fechaStr,
+                    'allDay' => true,
+                    'backgroundColor' => $color['bg'],
+                    'borderColor' => $color['border'],
+                    'textColor' => $color['text'],
+                    'extendedProps' => [
+                        'asignacion_id' => $asig->id,
+                        'fecha' => $fechaStr,
+                        'entrada' => $asig->entrada,
+                        'salida' => $asig->salida,
+                        'es_turno' => false,
+                        'obra_id' => $asig->obra_id,
+                        'obra_nombre' => $asig->obra?->obra,
+                    ],
+                ];
+            }
+
+            // Turnos
+            if ($asig->turno) {
+                $colorTurno = $asig->turno->color ?? '#3b82f6';
+                $colorTexto = $asig->turno->color_texto ?? '#ffffff';
+                $borderColor = $this->darkenColor($colorTurno, 20);
+
+                $horaInicio = $asig->turno->hora_inicio ? substr($asig->turno->hora_inicio, 0, 5) : null;
+                $horaFin = $asig->turno->hora_fin ? substr($asig->turno->hora_fin, 0, 5) : null;
+                $tituloTurno = ($horaInicio && $horaFin) ? "{$horaInicio}-{$horaFin}" : ucfirst($asig->turno->nombre);
+
+                $eventos[] = [
+                    'id' => 'turno-' . $asig->id,
+                    'title' => $tituloTurno,
+                    'start' => $fechaStr,
+                    'allDay' => true,
+                    'backgroundColor' => $colorTurno,
+                    'borderColor' => $borderColor,
+                    'textColor' => $colorTexto,
+                    'extendedProps' => [
+                        'asignacion_id' => $asig->id,
+                        'fecha' => $fechaStr,
+                        'entrada' => $asig->entrada,
+                        'salida' => $asig->salida,
+                        'es_turno' => true,
+                        'obra_id' => $asig->obra_id,
+                        'obra_nombre' => $asig->obra?->obra,
+                    ],
+                ];
+            }
+
+            // Fichajes
+            $formatHora = fn($hora) => $hora ? substr(trim($hora), 0, 5) : null;
+            $entrada1 = $formatHora($asig->entrada);
+            $salida1 = $formatHora($asig->salida);
+            $entrada2 = $formatHora($asig->entrada2 ?? null);
+            $salida2 = $formatHora($asig->salida2 ?? null);
+
+            if ($entrada1 || $salida1 || $entrada2 || $salida2) {
+                $eventos[] = [
+                    'id' => "fichajes-{$asig->id}",
+                    'start' => $fechaStr,
+                    'allDay' => true,
+                    'display' => 'block',
+                    'order' => 10,
+                    'classNames' => ['fichaje-evento'],
+                    'backgroundColor' => 'transparent',
+                    'borderColor' => 'transparent',
+                    'extendedProps' => [
+                        'tipo' => 'fichajes',
+                        'asignacion_id' => $asig->id,
+                        'fecha' => $fechaStr,
+                        'entrada1' => $entrada1,
+                        'salida1' => $salida1,
+                        'entrada2' => $entrada2,
+                        'salida2' => $salida2,
+                        'tieneSegundaJornada' => ($entrada2 || $salida2) ? true : false,
+                    ],
+                ];
+            }
+        }
+
+        // Festivos del rango
+        $festivos = Festivo::whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()])
+            ->get()
+            ->map(fn($f) => [
+                'id' => 'festivo-' . $f->id,
+                'title' => $f->nombre ?? 'Festivo',
+                'start' => Carbon::parse($f->fecha)->format('Y-m-d'),
+                'allDay' => true,
+                'backgroundColor' => '#ff0000',
+                'borderColor' => '#b91c1c',
+                'textColor' => 'white',
+                'extendedProps' => ['es_festivo' => true],
+            ])
+            ->toArray();
+
+        $eventos = array_merge($eventos, $festivos);
+
+        // Vacaciones pendientes/denegadas del rango
+        $vacaciones = VacacionesSolicitud::where('user_id', $user->id)
+            ->whereIn('estado', ['pendiente', 'denegada'])
+            ->where(function ($q) use ($fechaInicio, $fechaFin) {
+                $q->whereBetween('fecha_inicio', [$fechaInicio, $fechaFin])
+                    ->orWhereBetween('fecha_fin', [$fechaInicio, $fechaFin])
+                    ->orWhere(function ($q2) use ($fechaInicio, $fechaFin) {
+                        $q2->where('fecha_inicio', '<=', $fechaInicio)
+                            ->where('fecha_fin', '>=', $fechaFin);
+                    });
+            })
+            ->get();
+
+        foreach ($vacaciones as $solicitud) {
+            $title = $solicitud->estado === 'pendiente' ? 'V. pendiente' : 'V. denegadas';
+            $color = $solicitud->estado === 'pendiente' ? '#fcdde8' : '#000000';
+            $textColor = $solicitud->estado === 'pendiente' ? 'black' : 'white';
+
+            foreach (CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin) as $fecha) {
+                if ($fecha->between($fechaInicio, $fechaFin)) {
+                    $fechaStr = $fecha->format('Y-m-d');
+                    $eventos[] = [
+                        'id' => 'vac-' . $solicitud->id . '-' . $fechaStr,
+                        'title' => $title,
+                        'start' => $fechaStr,
+                        'allDay' => true,
+                        'backgroundColor' => $color,
+                        'borderColor' => $color,
+                        'textColor' => $textColor,
+                        'extendedProps' => [
+                            'solicitud_id' => $solicitud->id,
+                            'estado' => $solicitud->estado,
+                            'fecha_inicio' => $solicitud->fecha_inicio,
+                            'fecha_fin' => $solicitud->fecha_fin,
+                            'es_solicitud_vacaciones' => true,
+                        ],
+                    ];
+                }
+            }
+        }
+
+        return $eventos;
     }
 
     public function destroy(Request $request, $id)
