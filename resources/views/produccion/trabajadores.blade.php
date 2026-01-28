@@ -297,27 +297,27 @@
                         return { html: `<div class="px-2 py-1 text-xs font-bold">${arg.event.title}</div>` };
                     }
 
-                    // Foto del trabajador
-                    const fotoHtml = p.foto
-                        ? `<img src="${p.foto}" alt="" class="w-6 h-6 rounded-full object-cover border border-white/50 flex-shrink-0">`
-                        : `<div class="w-6 h-6 rounded-full bg-white/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0">${(arg.event.title || '?')[0].toUpperCase()}</div>`;
+                    // Estado especial (vacaciones, baja, etc.)
+                    if (p.estado && p.estado !== 'activo') {
+                        return {
+                            html: `<div class="flex items-center justify-center h-full px-2">
+                                <span class="text-xs font-semibold">${p.entrada || p.estado}</span>
+                            </div>`
+                        };
+                    }
 
-                    const estado = p.estado !== 'activo' ? ` <span class="text-[9px] opacity-70">(${p.estado})</span>` : '';
-
-                    // Fichajes - siempre mostrar
-                    const entrada1 = p.entrada || '--';
-                    const salida1 = p.salida || '--';
-                    const fichaje1 = `${entrada1}/${salida1}`;
+                    // Fichajes de entrada/salida
+                    const entrada = p.entrada || '--';
+                    const salida = p.salida || '--';
                     const fichaje2 = (p.entrada2 || p.salida2)
-                        ? ` | ${p.entrada2 || '--'}/${p.salida2 || '--'}`
+                        ? `<div class="text-[10px] opacity-80">${p.entrada2 || '--'}/${p.salida2 || '--'}</div>`
                         : '';
 
                     return {
-                        html: `<div class="flex items-center gap-1.5 px-1 py-0.5 h-full">
-                            ${fotoHtml}
-                            <div class="flex flex-col justify-center min-w-0 leading-tight">
-                                <div class="text-xs font-semibold truncate">${arg.event.title}${estado}</div>
-                                <div class="text-[10px] opacity-80 truncate">${fichaje1}${fichaje2}</div>
+                        html: `<div class="flex items-center justify-center h-full px-1">
+                            <div class="text-center leading-tight">
+                                <div class="text-xs font-semibold">${entrada} / ${salida}</div>
+                                ${fichaje2}
                             </div>
                         </div>`
                     };
