@@ -716,6 +716,9 @@ class VacacionesController extends Controller
      */
     public function eventos()
     {
+        // Obtener IDs de usuarios visibles para el usuario actual
+        $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
+
         // Obtener festivos
         $festivos = Festivo::select('fecha', 'titulo')->get()->map(function ($festivo) {
             return [
@@ -730,9 +733,10 @@ class VacacionesController extends Controller
             ];
         })->toArray();
 
-        // Todas las vacaciones aprobadas
+        // Vacaciones aprobadas (filtradas por visibilidad)
         $vacaciones = AsignacionTurno::with(['user', 'turno'])
             ->where('estado', 'vacaciones')
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
         $eventos = $vacaciones->map(function ($asignacion) {
@@ -749,9 +753,10 @@ class VacacionesController extends Controller
             ];
         })->toArray();
 
-        // Solicitudes pendientes
+        // Solicitudes pendientes (filtradas por visibilidad)
         $solicitudesPendientes = VacacionesSolicitud::with('user')
             ->where('estado', 'pendiente')
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
         $eventosSolicitudes = $solicitudesPendientes->flatMap(function ($solicitud) {
@@ -786,9 +791,13 @@ class VacacionesController extends Controller
     {
         $inicioAño = Carbon::now()->startOfYear();
 
-        // Cargar incorporacion para calcular vacaciones_correspondientes
+        // Obtener IDs de usuarios visibles para el usuario actual
+        $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
+
+        // Cargar incorporacion para calcular vacaciones_correspondientes (filtrado por visibilidad)
         $usuarios = User::with('incorporacion')
             ->where('estado', 'activo')
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('id', $usuariosVisiblesIds))
             ->orderBy('name')
             ->get();
 
