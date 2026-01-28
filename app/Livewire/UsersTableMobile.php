@@ -4,23 +4,35 @@ namespace App\Livewire;
 
 use App\Models\User;
 use Livewire\Component;
+use Livewire\Attributes\Lazy;
+use Illuminate\Support\Facades\Cache;
 
+#[Lazy]
 class UsersTableMobile extends Component
 {
+    public function placeholder()
+    {
+        return view('livewire.placeholders.users-mobile');
+    }
+
     public function render()
     {
-        $contactosAgenda = User::with(['empresa', 'categoria'])
-            ->orderBy('name')
-            ->orderBy('primer_apellido')
-            ->orderBy('segundo_apellido')
-            ->get()
-            ->map(function ($user) {
-                return [
+        $contactosAgenda = Cache::remember('users_mobile_contactos', 600, function () {
+            return User::select([
+                    'id', 'name', 'primer_apellido', 'segundo_apellido',
+                    'email', 'movil_personal', 'movil_empresa', 'numero_corto',
+                    'dni', 'empresa_id', 'categoria_id', 'rol', 'turno', 'imagen'
+                ])
+                ->with(['empresa:id,nombre', 'categoria:id,nombre'])
+                ->orderBy('name')
+                ->orderBy('primer_apellido')
+                ->get()
+                ->map(fn($user) => [
                     'id' => $user->id,
                     'nombre' => $user->name,
                     'primer_apellido' => $user->primer_apellido,
                     'segundo_apellido' => $user->segundo_apellido,
-                    'nombre_completo' => $user->nombre_completo,
+                    'nombre_completo' => trim("{$user->name} {$user->primer_apellido} {$user->segundo_apellido}"),
                     'email' => $user->email,
                     'movil_personal' => $user->movil_personal,
                     'movil_empresa' => $user->movil_empresa,
@@ -31,9 +43,9 @@ class UsersTableMobile extends Component
                     'rol' => $user->rol,
                     'turno' => $user->turno,
                     'imagen' => $user->rutaImagen,
-                ];
-            })
-            ->values();
+                ])
+                ->values();
+        });
 
         return view('livewire.users-table-mobile', [
             'contactosAgenda' => $contactosAgenda,

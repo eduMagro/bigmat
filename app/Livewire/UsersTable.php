@@ -187,45 +187,6 @@ class UsersTable extends Component
         });
     }
 
-    /**
-     * Obtener contactos para agenda mobile (cacheado por más tiempo)
-     */
-    private function getContactosAgenda()
-    {
-        return Cache::remember('users_table_contactos_agenda', 600, function () { // 10 minutos
-            return User::select([
-                    'id', 'name', 'primer_apellido', 'segundo_apellido',
-                    'email', 'movil_personal', 'movil_empresa', 'numero_corto',
-                    'dni', 'empresa_id', 'categoria_id', 'rol', 'turno', 'imagen'
-                ])
-                ->with(['empresa:id,nombre', 'categoria:id,nombre'])
-                ->orderBy('name')
-                ->orderBy('primer_apellido')
-                ->orderBy('segundo_apellido')
-                ->get()
-                ->map(function ($user) {
-                    return [
-                        'id' => $user->id,
-                        'nombre' => $user->name,
-                        'primer_apellido' => $user->primer_apellido,
-                        'segundo_apellido' => $user->segundo_apellido,
-                        'nombre_completo' => trim("{$user->name} {$user->primer_apellido} {$user->segundo_apellido}"),
-                        'email' => $user->email,
-                        'movil_personal' => $user->movil_personal,
-                        'movil_empresa' => $user->movil_empresa,
-                        'numero_corto' => $user->numero_corto,
-                        'dni' => $user->dni,
-                        'empresa' => $user->empresa->nombre ?? null,
-                        'categoria' => $user->categoria->nombre ?? null,
-                        'rol' => $user->rol,
-                        'turno' => $user->turno,
-                        'imagen' => $user->rutaImagen,
-                    ];
-                })
-                ->values();
-        });
-    }
-
     public function getFiltrosActivos()
     {
         $filtros = [];
@@ -424,28 +385,18 @@ class UsersTable extends Component
                 break;
         }
 
-        // Paginar con eager loading incluido
+        // Paginar con eager loading optimizado
         $registrosUsuarios = $query->with(['empresa:id,nombre', 'categoria:id,nombre'])->paginate($this->perPage);
-
-        // Usar datos cacheados para los selects y datos estáticos
-        $empresas = $this->getEmpresas();
-        $categorias = $this->getCategorias();
-        $roles = ['operario', 'oficina', 'transportista', 'visitante'];
-        $obras = $this->getObras();
-        $plantillasParaModal = $this->getPlantillasParaModal();
-        $contactosAgenda = $this->getContactosAgenda();
 
         return view('livewire.users-table', [
             'registrosUsuarios' => $registrosUsuarios,
-            'empresas' => $empresas,
-            'categorias' => $categorias,
-            'roles' => $roles,
+            'empresas' => $this->getEmpresas(),
+            'categorias' => $this->getCategorias(),
+            'roles' => ['operario', 'oficina', 'transportista', 'visitante'],
             'turnos' => $this->getTurnos(),
-            'agrupacionesTurnos' => $this->getAgrupacionesTurnos(),
-            'plantillasParaModal' => $plantillasParaModal,
+            'plantillasParaModal' => $this->getPlantillasParaModal(),
             'filtrosActivos' => $this->getFiltrosActivos(),
-            'contactosAgenda' => $contactosAgenda,
-            'obras' => $obras,
+            'obras' => $this->getObras(),
         ]);
     }
 }
