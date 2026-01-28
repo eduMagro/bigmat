@@ -186,6 +186,170 @@ class ProduccionController extends Controller
     }
 
     /**
+     * Obtiene los datos del calendario via AJAX (para refrescar sin recargar)
+     */
+    public function datosCalendario()
+    {
+        $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
+
+        $trabajadores = User::where('estado', 'activo')
+            ->visiblesPara(auth()->user())
+            ->with('categoria')
+            ->orderBy('name')
+            ->get();
+
+        $turnos = Turno::activos()->ordenados()->get();
+
+        $recursos = $trabajadores->map(function ($trabajador, $index) {
+            return [
+                'id' => $trabajador->id,
+                'title' => $trabajador->nombre_completo ?? $trabajador->name,
+                'orden' => $index,
+                'foto' => $trabajador->ruta_imagen ?? null,
+                'categoria' => $trabajador->categoria?->nombre,
+            ];
+        })->values();
+
+        $fechaHoy = Carbon::today()->subWeek();
+        $fechaLimite = $fechaHoy->copy()->addDays(60);
+
+        $asignaciones = AsignacionTurno::with(['user.categoria', 'turno'])
+            ->whereBetween('fecha', [$fechaHoy, $fechaLimite])
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
+            ->get();
+
+        $eventos = [];
+
+        $coloresEstado = [
+            'vacaciones'    => ['bg' => '#f87171', 'border' => '#dc2626'],
+            'baja'          => ['bg' => '#FF8C00', 'border' => '#FF6600'],
+            'justificada'   => ['bg' => '#32CD32', 'border' => '#228B22'],
+            'injustificada' => ['bg' => '#DC143C', 'border' => '#B22222'],
+            'curso'         => ['bg' => '#8B5CF6', 'border' => '#7C3AED'],
+        ];
+
+        $coloresPorTurno = [];
+        $coloresPastel = [
+            ['bg' => '#93C5FD', 'border' => '#60A5FA'],
+            ['bg' => '#86EFAC', 'border' => '#4ADE80'],
+            ['bg' => '#FDE047', 'border' => '#FACC15'],
+            ['bg' => '#FDA4AF', 'border' => '#FB7185'],
+            ['bg' => '#C4B5FD', 'border' => '#A78BFA'],
+            ['bg' => '#67E8F9', 'border' => '#22D3EE'],
+            ['bg' => '#FDBA74', 'border' => '#FB923C'],
+        ];
+
+        foreach ($turnos as $index => $turno) {
+            $coloresPorTurno[$turno->id] = $turno->color
+                ? ['bg' => $turno->color, 'border' => $this->darkenColor($turno->color)]
+                : $coloresPastel[$index % count($coloresPastel)];
+        }
+
+        foreach ($asignaciones as $asignacion) {
+            $trabajador = $asignacion->user;
+            $turno = $asignacion->turno;
+
+            if (!$trabajador || !$turno) continue;
+
+            $fechaStr = $asignacion->fecha->format('Y-m-d');
+            $estado = $asignacion->estado ?? 'activo';
+            $resourceId = $trabajador->id;
+
+            $mostrarEstado = $estado !== 'activo';
+            if ($mostrarEstado && isset($coloresEstado[$estado])) {
+                $color = $coloresEstado[$estado];
+            } else {
+                $color = $coloresPorTurno[$turno->id] ?? $coloresPastel[0];
+            }
+
+            $entrada = $mostrarEstado
+                ? ucfirst($estado)
+                : ($asignacion->entrada ? Carbon::parse($asignacion->entrada)->format('H:i') : null);
+
+            $salida = $mostrarEstado
+                ? null
+                : ($asignacion->salida ? Carbon::parse($asignacion->salida)->format('H:i') : null);
+
+            $entrada2 = $asignacion->entrada2 ? Carbon::parse($asignacion->entrada2)->format('H:i') : null;
+            $salida2 = $asignacion->salida2 ? Carbon::parse($asignacion->salida2)->format('H:i') : null;
+
+            $horaInicio = $turno->hora_inicio ?? '00:00:00';
+            $horaFin = $turno->hora_fin ?? '23:59:59';
+
+            $startDateTime = $fechaStr . 'T' . substr($horaInicio, 0, 5) . ':00';
+            if ($horaFin < $horaInicio) {
+                $fechaSiguiente = $asignacion->fecha->copy()->addDay()->format('Y-m-d');
+                $endDateTime = $fechaSiguiente . 'T' . substr($horaFin, 0, 5) . ':00';
+            } else {
+                $endDateTime = $fechaStr . 'T' . substr($horaFin, 0, 5) . ':00';
+            }
+
+            $eventos[] = [
+                'id' => 'asig-' . $asignacion->id,
+                'title' => $turno->nombre,
+                'start' => $startDateTime,
+                'end' => $endDateTime,
+                'resourceId' => $resourceId,
+                'backgroundColor' => $color['bg'],
+                'borderColor' => $color['border'],
+                'textColor' => '#000000',
+                'extendedProps' => [
+                    'asignacion_id' => $asignacion->id,
+                    'user_id' => $trabajador->id,
+                    'turno_id' => $asignacion->turno_id,
+                    'turno_nombre' => $turno->nombre,
+                    'estado' => $estado,
+                    'entrada' => $entrada,
+                    'salida' => $salida,
+                    'entrada2' => $entrada2,
+                    'salida2' => $salida2,
+                    'foto' => $trabajador->ruta_imagen ?? null,
+                    'categoria' => $trabajador->categoria?->nombre,
+                    'hora_inicio' => substr($horaInicio, 0, 5),
+                    'hora_fin' => substr($horaFin, 0, 5),
+                ],
+            ];
+        }
+
+        $resourceIds = $recursos->pluck('id')->toArray();
+        $festivosEventos = collect(Festivo::eventosCalendario())
+            ->map(function ($e) use ($resourceIds) {
+                $fecha = Carbon::parse($e['start'])->format('Y-m-d');
+                return [
+                    'id'              => $e['id'],
+                    'title'           => $e['title'],
+                    'start'           => $fecha,
+                    'end'             => $fecha,
+                    'resourceIds'     => $resourceIds,
+                    'backgroundColor' => '#ef4444',
+                    'borderColor'     => '#dc2626',
+                    'textColor'       => '#ffffff',
+                    'editable'        => false,
+                    'classNames'      => ['evento-festivo'],
+                    'extendedProps'   => [
+                        'es_festivo' => true,
+                        'festivo_id' => $e['extendedProps']['festivo_id'] ?? null,
+                    ],
+                ];
+            })
+            ->toArray();
+
+        $todosEventos = array_merge($eventos, $festivosEventos);
+
+        return response()->json([
+            'recursos' => $recursos,
+            'eventos' => $todosEventos,
+            'turnos' => $turnos->map(fn($t) => [
+                'id' => $t->id,
+                'nombre' => $t->nombre,
+                'hora_inicio' => $t->hora_inicio,
+                'hora_fin' => $t->hora_fin,
+                'color' => $t->color ?? '#93C5FD',
+            ])->values(),
+        ]);
+    }
+
+    /**
      * Oscurecer un color hex para el borde
      */
     private function darkenColor($hex, $percent = 20)

@@ -71,16 +71,8 @@
                 'crearAsignacion' => route('planificacion.crearAsignacion'),
                 'moverAsignacion' => route('planificacion.moverAsignacion'),
                 'datosFormulario' => route('planificacion.datosFormulario'),
+                'datosCalendario' => route('planificacion.datosCalendario'),
             ],
-            'recursos' => $recursos,
-            'eventos' => $todosEventos,
-            'turnos' => $turnos->map(fn($t) => [
-                'id' => $t->id,
-                'nombre' => $t->nombre,
-                'hora_inicio' => $t->hora_inicio,
-                'hora_fin' => $t->hora_fin,
-                'color' => $t->color ?? '#93C5FD',
-            ])->values(),
         ];
     @endphp
 
@@ -89,6 +81,7 @@
     (function() {
         const CONFIG = @json($config);
         let menuActual = null;
+        let datosCalendario = null; // Se carga via AJAX
 
         function cerrarMenu() {
             if (menuActual) { menuActual.remove(); menuActual = null; }
@@ -274,7 +267,7 @@
         // Menu para celda vacia
         function menuCelda(x, y, fechaISO, resourceId, calendar) {
             // resourceId ahora es el user_id (trabajador)
-            const trabajador = CONFIG.recursos.find(r => r.id == resourceId);
+            const trabajador = datosCalendario.recursos.find(r => r.id == resourceId);
             const trabajadorNombre = trabajador?.title || 'Trabajador';
 
             // Calcular fechas vecinas
@@ -436,7 +429,7 @@
                     const data = await res.json();
                     if (data.id || data.festivo) {
                         const festivo = data.festivo || data;
-                        const resourceIds = CONFIG.recursos.map(r => r.id);
+                        const resourceIds = datosCalendario.recursos.map(r => r.id);
                         calendar.addEvent({
                             id: 'festivo-' + festivo.id,
                             title: festivo.titulo,
@@ -465,14 +458,23 @@
             };
         }
 
-        function inicializarCalendario() {
+        async function inicializarCalendario() {
             const el = document.getElementById('calendario');
             if (!el || typeof FullCalendar === 'undefined') return;
 
             if (window.calendarioPlanif) { try { window.calendarioPlanif.destroy(); } catch(e){} }
 
+            // Cargar datos frescos via AJAX
+            try {
+                const response = await fetch(CONFIG.routes.datosCalendario);
+                datosCalendario = await response.json();
+            } catch (e) {
+                console.error('Error cargando datos del calendario:', e);
+                return;
+            }
+
             // Ordenar turnos por hora de inicio para vista diaria
-            const turnosOrdenados = [...CONFIG.turnos].sort((a, b) => {
+            const turnosOrdenados = [...datosCalendario.turnos].sort((a, b) => {
                 const horaA = a.hora_inicio || '00:00';
                 const horaB = b.hora_inicio || '00:00';
                 return horaA.localeCompare(horaB);
@@ -508,7 +510,7 @@
             const primeraHora = turnosOrdenados[0]?.hora_inicio?.substring(0, 5) || '06:00';
 
             // Calcular duracion promedio de turnos
-            const numTurnos = CONFIG.turnos.length || 3;
+            const numTurnos = datosCalendario.turnos.length || 3;
             const horasPorSlot = Math.max(1, Math.floor(24 / numTurnos));
             const slotDurationDay = `${String(horasPorSlot).padStart(2, '0')}:00:00`;
 
@@ -554,11 +556,11 @@
                     },
                     resourceTimelineWeek: { slotDuration: { days: 1 }, slotLabelFormat: { weekday: 'short', day: 'numeric' } }
                 },
-                resources: CONFIG.recursos,
+                resources: datosCalendario.recursos,
                 resourceOrder: 'orden',
                 resourceAreaWidth: '180px',
                 resourceAreaColumns: [{ field: 'title', headerContent: 'Trabajadores' }],
-                events: CONFIG.eventos,
+                events: datosCalendario.eventos,
                 eventDidMount(info) {
                     const p = info.event.extendedProps || {};
                     if (p.es_festivo) return;

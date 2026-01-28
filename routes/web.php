@@ -217,6 +217,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::post('/planificacion/crear-asignacion', [ProduccionController::class, 'crearAsignacion'])->name('planificacion.crearAsignacion');
     Route::post('/planificacion/mover-asignacion', [ProduccionController::class, 'moverAsignacion'])->name('planificacion.moverAsignacion');
     Route::get('/planificacion/datos-formulario', [ProduccionController::class, 'datosFormulario'])->name('planificacion.datosFormulario');
+    Route::get('/planificacion/datos-calendario', [ProduccionController::class, 'datosCalendario'])->name('planificacion.datosCalendario');
 
 });
 
