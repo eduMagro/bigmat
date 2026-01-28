@@ -17,12 +17,16 @@ class UsersTableMobile extends Component
 
     public function render()
     {
-        $contactosAgenda = Cache::remember('users_mobile_contactos', 600, function () {
+        $usuarioActual = auth()->user();
+        $cacheKey = 'users_mobile_' . ($usuarioActual?->id ?? 'guest');
+
+        $contactosAgenda = Cache::remember($cacheKey, 300, function () use ($usuarioActual) {
             return User::select([
                     'id', 'name', 'primer_apellido', 'segundo_apellido',
                     'email', 'movil_personal', 'movil_empresa', 'numero_corto',
                     'dni', 'empresa_id', 'categoria_id', 'rol', 'turno', 'imagen'
                 ])
+                ->visiblesPara($usuarioActual)
                 ->with(['empresa:id,nombre', 'categoria:id,nombre'])
                 ->orderBy('name')
                 ->orderBy('primer_apellido')

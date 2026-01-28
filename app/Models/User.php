@@ -358,4 +358,87 @@ class User extends Authenticatable
     {
         return $this->hasMany(EpiUsuario::class, 'user_id');
     }
+
+    /**
+     * Departamentos con acceso total (pueden ver todos los usuarios)
+     */
+    private const DEPARTAMENTOS_ACCESO_TOTAL = ['Programador', 'Administrador', 'Administración'];
+
+    /**
+     * Verifica si el usuario tiene acceso total (pertenece a departamentos administrativos)
+     */
+    public function tieneAccesoTotal(): bool
+    {
+        return $this->departamentos()
+            ->whereIn('nombre', self::DEPARTAMENTOS_ACCESO_TOTAL)
+            ->exists();
+    }
+
+    /**
+     * Obtiene los departamentos donde el usuario es responsable
+     */
+    public function departamentosComoResponsable()
+    {
+        return Departamento::where('responsable_id', $this->id)->get();
+    }
+
+    /**
+     * Verifica si el usuario es responsable de algún departamento
+     */
+    public function esResponsableDepartamento(): bool
+    {
+        return Departamento::where('responsable_id', $this->id)->exists();
+    }
+
+    /**
+     * Obtiene los IDs de usuarios que este usuario puede ver
+     * - Si tiene acceso total: null (puede ver todos)
+     * - Si es responsable: usuarios de sus departamentos + él mismo
+     * - Si no es responsable: solo él mismo
+     */
+    public function getUsuariosVisiblesIds(): ?array
+    {
+        // Acceso total = puede ver todos
+        if ($this->tieneAccesoTotal()) {
+            return null;
+        }
+
+        // Obtener departamentos donde es responsable
+        $departamentosResponsable = $this->departamentosComoResponsable();
+
+        if ($departamentosResponsable->isEmpty()) {
+            // No es responsable, solo puede verse a sí mismo
+            return [$this->id];
+        }
+
+        // Obtener usuarios de los departamentos donde es responsable
+        $usuariosIds = collect([$this->id]);
+
+        foreach ($departamentosResponsable as $departamento) {
+            $usuariosDepartamento = $departamento->usuarios()->pluck('users.id');
+            $usuariosIds = $usuariosIds->merge($usuariosDepartamento);
+        }
+
+        return $usuariosIds->unique()->values()->toArray();
+    }
+
+    /**
+     * Scope para filtrar usuarios según permisos de visibilidad
+     */
+    public function scopeVisiblesPara($query, ?User $usuario = null)
+    {
+        $usuario = $usuario ?? auth()->user();
+
+        if (!$usuario) {
+            return $query->whereRaw('1 = 0'); // No autenticado, no ve nada
+        }
+
+        $idsVisibles = $usuario->getUsuariosVisiblesIds();
+
+        if ($idsVisibles === null) {
+            return $query; // Acceso total
+        }
+
+        return $query->whereIn('users.id', $idsVisibles);
+    }
 }

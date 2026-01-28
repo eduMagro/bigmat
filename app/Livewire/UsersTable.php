@@ -338,6 +338,9 @@ class UsersTable extends Component
     {
         $query = User::query()->select('users.*');
 
+        // Filtrar según permisos de visibilidad del usuario actual
+        $query->visiblesPara(auth()->user());
+
         $query = $this->aplicarFiltros($query);
 
         // Joins necesarios para ordenamiento
