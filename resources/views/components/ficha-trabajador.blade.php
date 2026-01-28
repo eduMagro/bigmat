@@ -165,6 +165,7 @@
 
             {{-- Información laboral --}}
             @php
+                $hoy = now();
                 // Usar accessor del modelo (calcula dinámicamente según fecha incorporación)
                 $vacacionesCorrespondientes = $user->vacaciones_correspondientes;
                 $vacacionesRestantes = max(0, $vacacionesCorrespondientes - $resumen['diasVacaciones']);
