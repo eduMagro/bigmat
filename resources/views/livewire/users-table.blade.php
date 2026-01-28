@@ -470,8 +470,8 @@
             });
 
             Swal.fire({
-                title: "Seleccionar obra",
-                html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Obra asignada para los turnos:</p><select id="select-obra" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">' + opcionesObra + '</select>',
+                title: "Seleccionar lugar de trabajo",
+                html: '<p style="margin-bottom:10px;color:#6b7280;font-size:13px;">Lugar de trabajo asignado para los turnos:</p><select id="select-obra" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">' + opcionesObra + '</select>',
                 icon: "info",
                 showCancelButton: true,
                 confirmButtonText: "Generar turnos",
@@ -480,7 +480,7 @@
                 preConfirm: function() {
                     const obraId = document.getElementById("select-obra").value;
                     if (!obraId) {
-                        Swal.showValidationMessage("Selecciona una obra");
+                        Swal.showValidationMessage("Selecciona un lugar de trabajo");
                     }
                     return obraId;
                 }
