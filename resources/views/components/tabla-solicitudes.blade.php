@@ -8,6 +8,7 @@
             <thead class="bg-gray-100">
                 <tr>
                     <th class="px-4 py-2 text-left">Empleado</th>
+                    <th class="px-4 py-2 text-left">Vacaciones</th>
                     <th class="px-4 py-2 text-left">Desde</th>
                     <th class="px-4 py-2 text-left">Hasta</th>
                     <th class="px-4 py-2 text-left">Acciones</th>
@@ -15,10 +16,30 @@
             </thead>
             <tbody>
                 @foreach ($solicitudes as $solicitud)
+                    @php
+                        $usadas = $solicitud->vacaciones_usadas ?? 0;
+                        $totales = $solicitud->vacaciones_totales ?? 30;
+                        $restantes = $solicitud->vacaciones_restantes ?? ($totales - $usadas);
+
+                        // Clase de color según disponibilidad
+                        if ($restantes <= 0) {
+                            $badgeClass = 'bg-red-100 text-red-800';
+                        } elseif ($restantes <= 5) {
+                            $badgeClass = 'bg-yellow-100 text-yellow-800';
+                        } else {
+                            $badgeClass = 'bg-green-100 text-green-800';
+                        }
+                    @endphp
                     <tr class="border-t solicitud-row" data-solicitud-id="{{ $solicitud->id }}">
-                        <td class="px-4 py-2">{{ $solicitud->user->nombre_completo }}</td>
-                        <td class="px-4 py-2">{{ $solicitud->fecha_inicio }}</td>
-                        <td class="px-4 py-2">{{ $solicitud->fecha_fin }}</td>
+                        <td class="px-4 py-2 font-medium">{{ $solicitud->user->nombre_completo }}</td>
+                        <td class="px-4 py-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">
+                                {{ $usadas }}/{{ $totales }}
+                            </span>
+                            <span class="text-xs text-gray-500 ml-1">({{ $restantes }} disp.)</span>
+                        </td>
+                        <td class="px-4 py-2">{{ \Carbon\Carbon::parse($solicitud->fecha_inicio)->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2">{{ \Carbon\Carbon::parse($solicitud->fecha_fin)->format('d/m/Y') }}</td>
                         <td class="px-4 py-2">
                             <button type="button"
                                 onclick="aprobarSolicitud({{ $solicitud->id }}, this)"

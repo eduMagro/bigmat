@@ -27,11 +27,31 @@ class VacacionesController extends Controller
         $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
 
         // Solicitudes pendientes (filtradas por visibilidad)
-        $solicitudesPendientes = VacacionesSolicitud::with('user')
+        $solicitudesPendientes = VacacionesSolicitud::with('user.incorporacion')
             ->where('estado', 'pendiente')
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->orderBy('fecha_inicio')
             ->get();
+
+        // Añadir datos de vacaciones a cada solicitud
+        $inicioAño = Carbon::now()->startOfYear();
+        $userIds = $solicitudesPendientes->pluck('user_id')->unique();
+
+        // Obtener vacaciones usadas por usuario
+        $vacacionesUsadas = AsignacionTurno::whereIn('user_id', $userIds)
+            ->where('estado', 'vacaciones')
+            ->where('fecha', '>=', $inicioAño)
+            ->selectRaw('user_id, COUNT(*) as total')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+
+        // Añadir info de vacaciones a cada solicitud
+        $solicitudesPendientes->each(function ($solicitud) use ($vacacionesUsadas) {
+            $user = $solicitud->user;
+            $solicitud->vacaciones_totales = $user->vacaciones_correspondientes ?? 30;
+            $solicitud->vacaciones_usadas = $vacacionesUsadas[$user->id] ?? 0;
+            $solicitud->vacaciones_restantes = max(0, $solicitud->vacaciones_totales - $solicitud->vacaciones_usadas);
+        });
 
         // Vacaciones asignadas (filtradas por visibilidad)
         $vacaciones = AsignacionTurno::with(['user', 'turno'])
