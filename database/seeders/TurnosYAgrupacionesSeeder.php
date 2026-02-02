@@ -11,18 +11,20 @@ class TurnosYAgrupacionesSeeder extends Seeder
 {
     /**
      * Seed de turnos y agrupaciones de turnos.
+     * Basado en: turnos y responsables.xlsx
      */
     public function run(): void
     {
         // =====================================================
-        // TURNOS
+        // TURNOS BASE (horarios individuales)
         // =====================================================
 
         $turnos = [
+            // Turno 1: L-V 7:00-15:00
             [
-                'nombre' => 'Mañana',
-                'hora_inicio' => '06:00:00',
-                'hora_fin' => '14:00:00',
+                'nombre' => 'Mañana 7-15',
+                'hora_inicio' => '07:00:00',
+                'hora_fin' => '15:00:00',
                 'offset_dias_inicio' => 0,
                 'offset_dias_fin' => 0,
                 'activo' => true,
@@ -31,70 +33,50 @@ class TurnosYAgrupacionesSeeder extends Seeder
                 'color_texto' => '#000000',
                 'es_partido' => false,
             ],
+            // Turno 2 y 3 L-V: 7:00-14:00 + 15:00-20:00 (partido)
             [
-                'nombre' => 'Tarde',
-                'hora_inicio' => '14:00:00',
-                'hora_fin' => '22:00:00',
-                'offset_dias_inicio' => 0,
-                'offset_dias_fin' => 0,
-                'activo' => true,
-                'orden' => 2,
-                'color' => '#F97316', // Naranja
-                'color_texto' => '#FFFFFF',
-                'es_partido' => false,
-            ],
-            [
-                'nombre' => 'Noche',
-                'hora_inicio' => '22:00:00',
-                'hora_fin' => '06:00:00',
-                'offset_dias_inicio' => 0,
-                'offset_dias_fin' => 1, // Termina al día siguiente
-                'activo' => true,
-                'orden' => 3,
-                'color' => '#1E3A8A', // Azul oscuro
-                'color_texto' => '#FFFFFF',
-                'es_partido' => false,
-            ],
-            [
-                'nombre' => 'Partido',
-                'hora_inicio' => '08:00:00',
+                'nombre' => 'Partido 7-14/15-20',
+                'hora_inicio' => '07:00:00',
                 'hora_fin' => '14:00:00',
                 'offset_dias_inicio' => 0,
                 'offset_dias_fin' => 0,
                 'activo' => true,
-                'orden' => 4,
+                'orden' => 2,
                 'color' => '#10B981', // Verde
                 'color_texto' => '#FFFFFF',
                 'es_partido' => true,
-                'hora_inicio2' => '16:00:00',
+                'hora_inicio2' => '15:00:00',
                 'hora_fin2' => '20:00:00',
                 'offset_dias_inicio2' => 0,
                 'offset_dias_fin2' => 0,
             ],
+            // Turno 3 Sábado: 8:00-13:00
             [
-                'nombre' => 'Oficina',
+                'nombre' => 'Mañana Sábado 8-13',
                 'hora_inicio' => '08:00:00',
-                'hora_fin' => '17:00:00',
+                'hora_fin' => '13:00:00',
                 'offset_dias_inicio' => 0,
                 'offset_dias_fin' => 0,
                 'activo' => true,
-                'orden' => 5,
+                'orden' => 3,
+                'color' => '#F97316', // Naranja
+                'color_texto' => '#FFFFFF',
+                'es_partido' => false,
+            ],
+            // Turno 4: L-V 8:00-12:00
+            [
+                'nombre' => 'Mañana 8-12',
+                'hora_inicio' => '08:00:00',
+                'hora_fin' => '12:00:00',
+                'offset_dias_inicio' => 0,
+                'offset_dias_fin' => 0,
+                'activo' => true,
+                'orden' => 4,
                 'color' => '#6366F1', // Indigo
                 'color_texto' => '#FFFFFF',
                 'es_partido' => false,
             ],
-            [
-                'nombre' => 'Flexible',
-                'hora_inicio' => '07:00:00',
-                'hora_fin' => '15:00:00',
-                'offset_dias_inicio' => 0,
-                'offset_dias_fin' => 0,
-                'activo' => true,
-                'orden' => 6,
-                'color' => '#8B5CF6', // Violeta
-                'color_texto' => '#FFFFFF',
-                'es_partido' => false,
-            ],
+            // Vacaciones
             [
                 'nombre' => 'Vacaciones',
                 'hora_inicio' => '00:00:00',
@@ -103,7 +85,7 @@ class TurnosYAgrupacionesSeeder extends Seeder
                 'offset_dias_fin' => 0,
                 'activo' => true,
                 'orden' => 99,
-                'color' => '#22C55E', // Verde
+                'color' => '#22C55E', // Verde claro
                 'color_texto' => '#FFFFFF',
                 'es_partido' => false,
             ],
@@ -121,126 +103,71 @@ class TurnosYAgrupacionesSeeder extends Seeder
         $this->command->info('Turnos creados: ' . count($turnosCreados));
 
         // =====================================================
-        // AGRUPACIONES DE TURNOS
+        // AGRUPACIONES DE TURNOS (plantillas semanales)
+        // Basado en: turnos y responsables.xlsx
         // =====================================================
 
         $agrupaciones = [
+            // TURNO 1: L-V 7:00-15:00
             [
-                'nombre' => 'Turno Mañana L-V',
-                'descripcion' => 'Turno de mañana de lunes a viernes',
+                'nombre' => 'Turno 1',
+                'descripcion' => 'L-V 7:00-15:00',
                 'activo' => true,
                 'orden' => 1,
                 'dias' => [
-                    1 => 'Mañana', // Lunes
-                    2 => 'Mañana', // Martes
-                    3 => 'Mañana', // Miércoles
-                    4 => 'Mañana', // Jueves
-                    5 => 'Mañana', // Viernes
-                    6 => null,     // Sábado - libre
-                    0 => null,     // Domingo - libre
+                    1 => 'Mañana 7-15', // Lunes
+                    2 => 'Mañana 7-15', // Martes
+                    3 => 'Mañana 7-15', // Miércoles
+                    4 => 'Mañana 7-15', // Jueves
+                    5 => 'Mañana 7-15', // Viernes
+                    6 => null,          // Sábado - libre
+                    0 => null,          // Domingo - libre
                 ],
             ],
+            // TURNO 2: L-V 7:00-14:00 + 15:00-20:00
             [
-                'nombre' => 'Turno Tarde L-V',
-                'descripcion' => 'Turno de tarde de lunes a viernes',
+                'nombre' => 'Turno 2',
+                'descripcion' => 'L-V 7:00-14:00 + 15:00-20:00 (partido)',
                 'activo' => true,
                 'orden' => 2,
                 'dias' => [
-                    1 => 'Tarde',
-                    2 => 'Tarde',
-                    3 => 'Tarde',
-                    4 => 'Tarde',
-                    5 => 'Tarde',
+                    1 => 'Partido 7-14/15-20',
+                    2 => 'Partido 7-14/15-20',
+                    3 => 'Partido 7-14/15-20',
+                    4 => 'Partido 7-14/15-20',
+                    5 => 'Partido 7-14/15-20',
                     6 => null,
                     0 => null,
                 ],
             ],
+            // TURNO 3: L-V 7:00-14:00 + 15:00-20:00, Sábado 8:00-13:00
             [
-                'nombre' => 'Turno Noche L-V',
-                'descripcion' => 'Turno de noche de lunes a viernes',
+                'nombre' => 'Turno 3',
+                'descripcion' => 'L-V 7:00-14:00 + 15:00-20:00 (partido), Sáb 8:00-13:00',
                 'activo' => true,
                 'orden' => 3,
                 'dias' => [
-                    1 => 'Noche',
-                    2 => 'Noche',
-                    3 => 'Noche',
-                    4 => 'Noche',
-                    5 => 'Noche',
-                    6 => null,
+                    1 => 'Partido 7-14/15-20',
+                    2 => 'Partido 7-14/15-20',
+                    3 => 'Partido 7-14/15-20',
+                    4 => 'Partido 7-14/15-20',
+                    5 => 'Partido 7-14/15-20',
+                    6 => 'Mañana Sábado 8-13', // Sábado
                     0 => null,
                 ],
             ],
+            // TURNO 4: L-V 8:00-12:00
             [
-                'nombre' => 'Turno Mañana L-S',
-                'descripcion' => 'Turno de mañana de lunes a sábado',
+                'nombre' => 'Turno 4',
+                'descripcion' => 'L-V 8:00-12:00',
                 'activo' => true,
                 'orden' => 4,
                 'dias' => [
-                    1 => 'Mañana',
-                    2 => 'Mañana',
-                    3 => 'Mañana',
-                    4 => 'Mañana',
-                    5 => 'Mañana',
-                    6 => 'Mañana', // Sábado también
-                    0 => null,
-                ],
-            ],
-            [
-                'nombre' => 'Turno Partido L-V',
-                'descripcion' => 'Turno partido (mañana y tarde) de lunes a viernes',
-                'activo' => true,
-                'orden' => 5,
-                'dias' => [
-                    1 => 'Partido',
-                    2 => 'Partido',
-                    3 => 'Partido',
-                    4 => 'Partido',
-                    5 => 'Partido',
-                    6 => null,
-                    0 => null,
-                ],
-            ],
-            [
-                'nombre' => 'Oficina L-V',
-                'descripcion' => 'Horario de oficina estándar de lunes a viernes',
-                'activo' => true,
-                'orden' => 6,
-                'dias' => [
-                    1 => 'Oficina',
-                    2 => 'Oficina',
-                    3 => 'Oficina',
-                    4 => 'Oficina',
-                    5 => 'Oficina',
-                    6 => null,
-                    0 => null,
-                ],
-            ],
-            [
-                'nombre' => 'Rotativo M-T',
-                'descripcion' => 'Alterna semana mañana y semana tarde',
-                'activo' => true,
-                'orden' => 7,
-                'dias' => [
-                    1 => 'Mañana',
-                    2 => 'Mañana',
-                    3 => 'Mañana',
-                    4 => 'Tarde',
-                    5 => 'Tarde',
-                    6 => null,
-                    0 => null,
-                ],
-            ],
-            [
-                'nombre' => 'Flexible L-V',
-                'descripcion' => 'Horario flexible de lunes a viernes',
-                'activo' => true,
-                'orden' => 8,
-                'dias' => [
-                    1 => 'Flexible',
-                    2 => 'Flexible',
-                    3 => 'Flexible',
-                    4 => 'Flexible',
-                    5 => 'Flexible',
+                    1 => 'Mañana 8-12',
+                    2 => 'Mañana 8-12',
+                    3 => 'Mañana 8-12',
+                    4 => 'Mañana 8-12',
+                    5 => 'Mañana 8-12',
                     6 => null,
                     0 => null,
                 ],

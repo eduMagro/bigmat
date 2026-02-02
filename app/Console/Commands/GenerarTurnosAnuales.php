@@ -6,19 +6,33 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use App\Models\Turno;
 use App\Models\AsignacionTurno;
+use App\Models\AgrupacionTurno;
 use App\Models\Festivo;
 use Carbon\Carbon;
-use Carbon\CarbonPeriod;
 
 class GenerarTurnosAnuales extends Command
 {
-    protected $signature = 'turnos:generar-anuales {--user= : ID de usuario específico para generar turnos}';
-    protected $description = 'Genera turnos para trabajadores basándose en sus plantillas de turnos asignadas, excluyendo festivos y vacaciones';
+    protected $signature = 'turnos:generar-anuales
+                            {--user= : ID de usuario específico (opcional)}
+                            {--desde= : Fecha inicio (YYYY-MM-DD), por defecto mañana}
+                            {--hasta= : Fecha fin (YYYY-MM-DD), por defecto fin de año}';
+
+    protected $description = 'Genera turnos para todos los trabajadores según su agrupación asignada (campo turno: TURNO 1, TURNO 2, etc.)';
+
+    protected $agrupacionesCache = [];
 
     public function handle()
     {
-        $userId = $this->option('user');
+        // Precargar agrupaciones
+        $this->precargarAgrupaciones();
 
+        if (empty($this->agrupacionesCache)) {
+            $this->error('No hay agrupaciones de turnos. Ejecuta: php artisan db:seed --class=TurnosYAgrupacionesSeeder');
+            return 1;
+        }
+
+        // Obtener usuarios
+        $userId = $this->option('user');
         if ($userId) {
             $usuarios = User::where('id', $userId)->get();
             if ($usuarios->isEmpty()) {
@@ -29,131 +43,162 @@ class GenerarTurnosAnuales extends Command
             $usuarios = User::all();
         }
 
-        // Rango: desde mañana hasta fin de año
-        $inicio = Carbon::now()->addDay()->startOfDay();
-        $fin    = Carbon::now()->endOfYear();
+        // Rango de fechas
+        $inicio = $this->option('desde')
+            ? Carbon::parse($this->option('desde'))->startOfDay()
+            : Carbon::now()->addDay()->startOfDay();
 
-        // ID del turno de vacaciones (para excluirlo de la limpieza)
+        $fin = $this->option('hasta')
+            ? Carbon::parse($this->option('hasta'))->endOfDay()
+            : Carbon::now()->endOfYear();
+
+        $this->info("Rango: {$inicio->toDateString()} a {$fin->toDateString()}");
+        $this->info("Usuarios a procesar: {$usuarios->count()}");
+
+        // ID del turno de vacaciones
         $turnoVacacionesId = $this->buscarTurnoPorNombre('vacaciones');
 
-        // Eliminar asignaciones existentes en el rango que NO sean vacaciones
-        // Solo para los usuarios que vamos a procesar
-        $queryEliminar = AsignacionTurno::withTrashed()
-            ->whereDate('fecha', '>=', $inicio->toDateString())
-            ->whereDate('fecha', '<=', $fin->toDateString())
-            ->where(function ($query) use ($turnoVacacionesId) {
-                $query->where('turno_id', '!=', $turnoVacacionesId)
-                      ->orWhereNull('turno_id');
-            });
-
-        if ($userId) {
-            $queryEliminar->where('user_id', $userId);
-        }
-
-        $eliminadas = $queryEliminar->forceDelete();
-
-        $this->info("Asignaciones previas eliminadas (excepto vacaciones): {$eliminadas}");
-
-        // Festivos desde BD por rango
+        // Festivos
         $festivosArray = $this->getFestivosEntre($inicio, $fin);
+        $this->info("Festivos en el rango: " . count($festivosArray));
 
         $procesados = 0;
-        $sinPlantilla = 0;
+        $sinAgrupacion = 0;
+        $asignacionesCreadas = 0;
 
         foreach ($usuarios as $user) {
-            if ($user->turno) {
-                $this->generarTurnosLegacy($user, $inicio, $fin, $festivosArray);
-                $procesados++;
-            } else {
-                $sinPlantilla++;
+            // Obtener agrupación del usuario según su campo 'turno'
+            $agrupacion = $this->obtenerAgrupacionUsuario($user);
+
+            if (!$agrupacion) {
+                $sinAgrupacion++;
+                continue;
             }
+
+            // Eliminar asignaciones previas de este usuario (excepto vacaciones)
+            $this->eliminarAsignacionesPrevias($user->id, $inicio, $fin, $turnoVacacionesId);
+
+            // Generar turnos
+            $diasAgrupacion = $agrupacion->dias()->with('turno')->get()->keyBy('dia_semana');
+            $creadas = $this->generarTurnosParaUsuario($user, $diasAgrupacion, $inicio, $fin, $festivosArray, $turnoVacacionesId);
+
+            $asignacionesCreadas += $creadas;
+            $procesados++;
         }
 
         $this->info("Usuarios procesados: {$procesados}");
-        if ($sinPlantilla > 0) {
-            $this->warn("Usuarios sin turno asignado: {$sinPlantilla}");
+        if ($sinAgrupacion > 0) {
+            $this->warn("Usuarios sin agrupación válida (campo turno vacío o no coincide): {$sinAgrupacion}");
         }
-        $this->info("Proceso completado correctamente.");
+        $this->info("Asignaciones creadas: {$asignacionesCreadas}");
+        $this->info("Proceso completado.");
 
         return 0;
     }
 
-    /**
-     * Genera turnos basándose en el campo 'turno' del usuario
-     */
-    protected function generarTurnosLegacy(User $user, Carbon $inicio, Carbon $fin, array $festivosArray): void
+    protected function eliminarAsignacionesPrevias(int $userId, Carbon $inicio, Carbon $fin, ?int $turnoVacacionesId): void
     {
-        $turnoMananaId     = $this->buscarTurnoPorNombre('mañana');
-        $turnoTardeId      = $this->buscarTurnoPorNombre('tarde');
-        $turnoNocheId      = $this->buscarTurnoPorNombre('noche');
-        $turnoVacacionesId = $this->buscarTurnoPorNombre('vacaciones');
+        $query = AsignacionTurno::withTrashed()
+            ->where('user_id', $userId)
+            ->whereDate('fecha', '>=', $inicio->toDateString())
+            ->whereDate('fecha', '<=', $fin->toDateString());
 
-        // Días con turno de vacaciones ya asignados
-        $diasVacaciones = AsignacionTurno::where('user_id', $user->id)
-            ->where('turno_id', $turnoVacacionesId)
-            ->pluck('fecha')
-            ->map(fn($f) => Carbon::parse($f)->toDateString())
-            ->toArray();
-
-        // Qué turno toca según su modalidad actual
-        if ($user->turno === 'nocturno') {
-            $turnoAsignado = $turnoNocheId;
-        } elseif ($user->turno === 'mañana') {
-            $turnoAsignado = $turnoMananaId;
-        } elseif ($user->turno === 'diurno') {
-            $turnoAsignado = $turnoMananaId;
-        } else {
-            return;
+        if ($turnoVacacionesId) {
+            $query->where(function ($q) use ($turnoVacacionesId) {
+                $q->where('turno_id', '!=', $turnoVacacionesId)
+                  ->orWhereNull('turno_id');
+            });
         }
 
-        // Iterar por cada día del rango
-        for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
+        $query->forceDelete();
+    }
 
-            $esSabado   = $fecha->dayOfWeek === Carbon::SATURDAY;
-            $esDomingo  = $fecha->dayOfWeek === Carbon::SUNDAY;
-            $esViernes  = $fecha->dayOfWeek === Carbon::FRIDAY;
-            $fechaStr   = $fecha->toDateString();
+    protected function obtenerAgrupacionUsuario(User $user): ?AgrupacionTurno
+    {
+        if (!$user->turno) {
+            return null;
+        }
 
-            // Saltar días no laborables (finde, festivos, vacaciones)
-            $esNoLaborable = $esSabado
-                || $esDomingo
-                || in_array($fechaStr, $festivosArray, true)
-                || in_array($fechaStr, $diasVacaciones, true);
+        $turnoUsuario = $this->normalizarTexto($user->turno);
 
-            if ($esNoLaborable) {
-                if ($user->turno === 'diurno' && $esViernes) {
-                    $turnoAsignado = ($turnoAsignado === $turnoMananaId) ? $turnoTardeId : $turnoMananaId;
+        foreach ($this->agrupacionesCache as $agrupacion) {
+            $nombreAgrupacion = $this->normalizarTexto($agrupacion->nombre);
+
+            // Coincidencia exacta
+            if ($nombreAgrupacion === $turnoUsuario) {
+                return $agrupacion;
+            }
+
+            // Coincidencia por número: "turno 1" con "1", "TURNO 2" con "2", etc.
+            if (preg_match('/(\d+)/', $turnoUsuario, $matchUser) &&
+                preg_match('/(\d+)/', $nombreAgrupacion, $matchAgrupacion)) {
+                if ($matchUser[1] === $matchAgrupacion[1]) {
+                    return $agrupacion;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    protected function precargarAgrupaciones(): void
+    {
+        $this->agrupacionesCache = AgrupacionTurno::where('activo', true)->orderBy('orden')->get()->all();
+    }
+
+    protected function generarTurnosParaUsuario(
+        User $user,
+        $diasAgrupacion,
+        Carbon $inicio,
+        Carbon $fin,
+        array $festivosArray,
+        ?int $turnoVacacionesId
+    ): int {
+        $diasVacaciones = [];
+        if ($turnoVacacionesId) {
+            $diasVacaciones = AsignacionTurno::where('user_id', $user->id)
+                ->where('turno_id', $turnoVacacionesId)
+                ->pluck('fecha')
+                ->map(fn($f) => Carbon::parse($f)->toDateString())
+                ->toArray();
+        }
+
+        $asignacionesCreadas = 0;
+
+        for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
+            $fechaStr = $fecha->toDateString();
+            $diaSemana = $fecha->dayOfWeek;
+
+            if (in_array($fechaStr, $festivosArray, true) || in_array($fechaStr, $diasVacaciones, true)) {
+                continue;
+            }
+
+            $diaAgrupacion = $diasAgrupacion->get($diaSemana);
+
+            if (!$diaAgrupacion || !$diaAgrupacion->turno_id) {
                 continue;
             }
 
             AsignacionTurno::updateOrCreate(
                 ['user_id' => $user->id, 'fecha' => $fechaStr],
-                ['turno_id' => $turnoAsignado]
+                ['turno_id' => $diaAgrupacion->turno_id]
             );
 
-            if ($user->turno === 'diurno' && $esViernes) {
-                $turnoAsignado = ($turnoAsignado === $turnoMananaId) ? $turnoTardeId : $turnoMananaId;
-            }
+            $asignacionesCreadas++;
         }
+
+        return $asignacionesCreadas;
     }
 
-    /**
-     * Devuelve un array de fechas festivas (Y-m-d) entre dos fechas
-     */
     protected function getFestivosEntre(Carbon $inicio, Carbon $fin): array
     {
         return Festivo::whereDate('fecha', '>=', $inicio->toDateString())
             ->whereDate('fecha', '<=', $fin->toDateString())
-            ->orderBy('fecha')
             ->pluck('fecha')
             ->map(fn($f) => Carbon::parse($f)->toDateString())
             ->toArray();
     }
 
-    /**
-     * Busca un turno por nombre ignorando mayúsculas/minúsculas y tildes
-     */
     protected function buscarTurnoPorNombre(string $nombre): ?int
     {
         $nombreNormalizado = $this->normalizarTexto($nombre);
@@ -163,9 +208,6 @@ class GenerarTurnosAnuales extends Command
         })?->id;
     }
 
-    /**
-     * Normaliza un texto: minúsculas y sin tildes
-     */
     protected function normalizarTexto(string $texto): string
     {
         $texto = mb_strtolower($texto);
