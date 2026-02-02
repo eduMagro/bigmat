@@ -34,7 +34,7 @@ class GenerarTurnosAnuales extends Command
         $fin    = Carbon::now()->endOfYear();
 
         // ID del turno de vacaciones (para excluirlo de la limpieza)
-        $turnoVacacionesId = Turno::where('nombre', 'vacaciones')->value('id');
+        $turnoVacacionesId = $this->buscarTurnoPorNombre('vacaciones');
 
         // Eliminar asignaciones existentes en el rango que NO sean vacaciones
         // Solo para los usuarios que vamos a procesar
@@ -83,10 +83,10 @@ class GenerarTurnosAnuales extends Command
      */
     protected function generarTurnosLegacy(User $user, Carbon $inicio, Carbon $fin, array $festivosArray): void
     {
-        $turnoMananaId     = Turno::where('nombre', 'mañana')->value('id');
-        $turnoTardeId      = Turno::where('nombre', 'tarde')->value('id');
-        $turnoNocheId      = Turno::where('nombre', 'noche')->value('id');
-        $turnoVacacionesId = Turno::where('nombre', 'vacaciones')->value('id');
+        $turnoMananaId     = $this->buscarTurnoPorNombre('mañana');
+        $turnoTardeId      = $this->buscarTurnoPorNombre('tarde');
+        $turnoNocheId      = $this->buscarTurnoPorNombre('noche');
+        $turnoVacacionesId = $this->buscarTurnoPorNombre('vacaciones');
 
         // Días con turno de vacaciones ya asignados
         $diasVacaciones = AsignacionTurno::where('user_id', $user->id)
@@ -149,5 +149,31 @@ class GenerarTurnosAnuales extends Command
             ->pluck('fecha')
             ->map(fn($f) => Carbon::parse($f)->toDateString())
             ->toArray();
+    }
+
+    /**
+     * Busca un turno por nombre ignorando mayúsculas/minúsculas y tildes
+     */
+    protected function buscarTurnoPorNombre(string $nombre): ?int
+    {
+        $nombreNormalizado = $this->normalizarTexto($nombre);
+
+        return Turno::get()->first(function ($turno) use ($nombreNormalizado) {
+            return $this->normalizarTexto($turno->nombre) === $nombreNormalizado;
+        })?->id;
+    }
+
+    /**
+     * Normaliza un texto: minúsculas y sin tildes
+     */
+    protected function normalizarTexto(string $texto): string
+    {
+        $texto = mb_strtolower($texto);
+        $texto = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ'],
+            ['a', 'e', 'i', 'o', 'u', 'u', 'n'],
+            $texto
+        );
+        return trim($texto);
     }
 }

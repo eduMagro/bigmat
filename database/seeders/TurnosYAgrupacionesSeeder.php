@@ -95,6 +95,18 @@ class TurnosYAgrupacionesSeeder extends Seeder
                 'color_texto' => '#FFFFFF',
                 'es_partido' => false,
             ],
+            [
+                'nombre' => 'Vacaciones',
+                'hora_inicio' => '00:00:00',
+                'hora_fin' => '23:59:00',
+                'offset_dias_inicio' => 0,
+                'offset_dias_fin' => 0,
+                'activo' => true,
+                'orden' => 99,
+                'color' => '#22C55E', // Verde
+                'color_texto' => '#FFFFFF',
+                'es_partido' => false,
+            ],
         ];
 
         $turnosCreados = [];
