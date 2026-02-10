@@ -47,7 +47,7 @@ class SincronizarTurnos extends Command
 
         // Extraer pares DNI → turno_id desde el xlsx
         $trabajadoresXlsx = [];
-        foreach ($sheet->getRowIterator(2) as $row) { // Empezar en fila 2 (saltar cabecera)
+        foreach ($sheet->getRowIterator(4) as $row) { // Empezar en fila 4 (cabecera en fila 3)
             $cellIterator = $row->getCellIterator('A', 'L');
             $cellIterator->setIterateOnlyExistingCells(false);
 
