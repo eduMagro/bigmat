@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BLmBNy4b.css",
+    "file": "assets/app-DAlgOpsK.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -8,6 +8,12 @@
     "file": "assets/app-CAiCLEjY.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/vistas/contactos/mobile.js": {
+    "file": "assets/mobile-DK2rsAzX.js",
+    "name": "mobile",
+    "src": "resources/js/vistas/contactos/mobile.js",
     "isEntry": true
   }
 }
