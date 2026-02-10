@@ -1,0 +1,15 @@
+
+> dev
+> vite --port 5176
+
+
+  VITE v5.4.21  ready in 100 ms
+
+  ➜  Local:   http://localhost:5176/
+  ➜  Network: http://192.168.0.107:5176/
+  ➜  Network: http://172.19.0.1:5176/
+  ➜  press h + enter to show help
+
+  LARAVEL v12.44.0  plugin v1.3.0
+
+  ➜  APP_URL: http://bigmat.test

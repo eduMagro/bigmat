@@ -29,7 +29,8 @@
             </div>
 
             <!-- Contenido scrollable -->
-            <div class="h-40 md:h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2 mb-3 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700">
+            <div
+                class="h-40 md:h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2 mb-3 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700">
                 <div x-show="tab === 'privacidad'">
                     @include('politicas.contenido.privacidad')
                 </div>
@@ -46,7 +47,8 @@
                 <label class="flex items-center cursor-pointer">
                     <input type="checkbox" name="acepta_privacidad" value="1"
                         class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:bg-gray-700">
-                    <span class="ml-2 text-xs text-gray-700 dark:text-gray-300">Acepto <strong>Privacidad</strong></span>
+                    <span class="ml-2 text-xs text-gray-700 dark:text-gray-300">Acepto
+                        <strong>Privacidad</strong></span>
                 </label>
                 <label class="flex items-center cursor-pointer">
                     <input type="checkbox" name="acepta_cookies" value="1"
@@ -61,7 +63,7 @@
             </div>
 
             @if ($errors->any())
-                <p class="text-xs text-red-600 dark:text-red-400 mb-3">Debes aceptar todas las politicas</p>
+            <p class="text-xs text-red-600 dark:text-red-400 mb-3">Debes aceptar todas las politicas</p>
             @endif
 
             <!-- Botones -->
@@ -86,7 +88,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
             const btnAceptar = document.getElementById('btnAceptar');
             const checkCount = document.getElementById('checkCount');
