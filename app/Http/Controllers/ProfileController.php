@@ -553,7 +553,9 @@ class ProfileController extends Controller
                         'fecha' => $asignacion->fecha,
                         'entrada' => $asignacion->entrada,
                         'salida' => $asignacion->salida,
-                        'es_turno' => true
+                        'es_turno' => true,
+                        'obra_nombre' => $asignacion->obra?->obra,
+                        'turno_nombre' => $asignacion->turno?->nombre,
                     ],
                 ];
             }
@@ -1070,6 +1072,7 @@ class ProfileController extends Controller
                         'es_turno' => true,
                         'obra_id' => $asig->obra_id,
                         'obra_nombre' => $asig->obra?->obra,
+                        'turno_nombre' => $asig->turno->nombre,
                     ],
                 ]);
             }
@@ -1185,6 +1188,7 @@ class ProfileController extends Controller
                         'es_turno' => true,
                         'obra_id' => $asig->obra_id,
                         'obra_nombre' => $asig->obra?->obra,
+                        'turno_nombre' => $asig->turno->nombre,
                     ],
                 ];
             }

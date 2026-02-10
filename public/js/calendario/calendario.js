@@ -1616,11 +1616,12 @@
                 if (existente) existente.remove();
 
                 const obraNombre = props.obra_nombre || null;
+                const turnoNombre = props.turno_nombre || null;
                 const entrada = props.entrada ? props.entrada.substring(0, 5) : null;
                 const salida = props.salida ? props.salida.substring(0, 5) : null;
 
                 // Si no hay datos que mostrar, no hacer nada
-                if (!obraNombre && !entrada && !salida) return;
+                if (!obraNombre && !turnoNombre && !entrada && !salida) return;
 
                 // Crear tooltip
                 const tooltip = document.createElement('div');
@@ -1639,8 +1640,11 @@
                 `;
 
                 let html = '';
+                if (turnoNombre) {
+                    html += `<div style="margin-bottom: 4px;"><strong>Turno:</strong> ${turnoNombre}</div>`;
+                }
                 if (obraNombre) {
-                    html += `<div style="margin-bottom: 4px;"><strong>Obra:</strong> ${obraNombre}</div>`;
+                    html += `<div style="margin-bottom: 4px;"><strong>Zona:</strong> ${obraNombre}</div>`;
                 }
                 if (entrada || salida) {
                     html += `<div><strong>Horario:</strong> `;
