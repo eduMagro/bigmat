@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'planificacion_trabajadores_taller' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/planificacion_trabajadores_taller.log'),
+            'level' => 'debug',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

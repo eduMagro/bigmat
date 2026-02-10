@@ -64,7 +64,8 @@ class VacacionesController extends Controller
         $festivos = $this->getFestivosCached();
 
         // Eventos de vacaciones
-        $eventos = $vacaciones->map(function ($asignacion) {
+        $eventos = $vacaciones->filter(fn($asignacion) => $asignacion->user !== null)
+            ->map(function ($asignacion) {
             return [
                 'title' => $asignacion->user->nombre_completo,
                 'start' => Carbon::parse($asignacion->fecha)->toIso8601String(),
