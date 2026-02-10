@@ -63,15 +63,21 @@ class SincronizarTurnos extends Command
                 continue;
             }
 
-            // Soporta "TURNO 1", "TURNO 2", etc. o solo el número
+            // Mapeo TURNO X del xlsx → turno_id real en BD
+            $mapeoTurnos = [1 => 10, 2 => 11, 3 => 12, 4 => 13];
+
+            // Extraer número de "TURNO 1", "TURNO 2", etc.
             if (preg_match('/(\d+)/', $turnoId, $m)) {
-                $turnoId = (int) $m[1];
+                $turnoNum = (int) $m[1];
             } else {
-                $turnoId = (int) $turnoId;
+                $turnoNum = (int) $turnoId;
             }
-            if ($turnoId <= 0) {
+
+            if (!isset($mapeoTurnos[$turnoNum])) {
                 continue;
             }
+
+            $turnoId = $mapeoTurnos[$turnoNum];
 
             $trabajadoresXlsx[] = [
                 'dni' => strtoupper($dni),
