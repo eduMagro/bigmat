@@ -666,8 +666,8 @@ class ProfileController extends Controller
         // Buscar el usuario que se quiere editar
         $user = User::findOrFail($id);
 
-        // 🔒 Verificar si el usuario autenticado pertenece al departamento de programador (solo para nota informativa)
-        $esProgramador = $authUser->departamentos()->where('nombre', 'Programador')->exists();
+        // 🔒 Verificar si el usuario autenticado pertenece al departamento de programador o administrador (solo para nota informativa)
+        $puedeEditarDniEmail = $authUser->departamentos()->whereIn('nombre', ['Programador', 'Administrador'])->exists();
         $sesiones = Session::where('user_id', $user->id)
             ->orderByDesc('last_activity')
             ->get()
@@ -691,21 +691,21 @@ class ProfileController extends Controller
         // Obtener el usuario autenticado
         $authUser = auth()->user();
 
-        // 🔒 Verificar si el usuario autenticado pertenece al departamento de programador
-        $esProgramador = $authUser->departamentos()->where('nombre', 'Programador')->exists();
+        // 🔒 Verificar si el usuario autenticado pertenece al departamento de programador o administrador
+        $puedeEditarDniEmail = $authUser->departamentos()->whereIn('nombre', ['Programador', 'Administrador'])->exists();
 
         // Buscar el usuario que se quiere actualizar
         $user = User::findOrFail($id);
 
-        // 🔒 Si NO es programador y está intentando editar DNI o email, denegar
-        if (!$esProgramador && ($request->has('dni') || $request->has('email'))) {
+        // 🔒 Si NO es programador/administrador y está intentando editar DNI o email, denegar
+        if (!$puedeEditarDniEmail && ($request->has('dni') || $request->has('email'))) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permiso para editar DNI y email. Solo el departamento de Programador puede editar estos campos.'
+                    'message' => 'No tienes permiso para editar DNI y email. Solo los departamentos de Programador y Administrador pueden editar estos campos.'
                 ], 403);
             }
-            return redirect()->route('dashboard')->with('error', 'No tienes permiso para editar DNI y email. Solo el departamento de Programador puede editar estos campos.');
+            return redirect()->route('dashboard')->with('error', 'No tienes permiso para editar DNI y email. Solo los departamentos de Programador y Administrador pueden editar estos campos.');
         }
 
         // Validación inline para peticiones JSON
@@ -807,9 +807,9 @@ class ProfileController extends Controller
     public function actualizarUsuario(Request $request, $id)
     {
         try {
-            // 🔒 Verificar que el usuario autenticado pertenece al departamento de programador para editar DNI y email
+            // 🔒 Verificar que el usuario autenticado pertenece al departamento de programador o administrador para editar DNI y email
             $authUser = auth()->user();
-            $isProgramador = $authUser->departamentos()->where('nombre', 'Programador')->exists();
+            $puedeEditarDniEmail = $authUser->departamentos()->whereIn('nombre', ['Programador', 'Administrador'])->exists();
 
             // ✅ Validar los datos con mensajes personalizados
             $validationRules = [
@@ -830,8 +830,8 @@ class ProfileController extends Controller
                 'turno' => 'nullable|string|in:nocturno,diurno,mañana,flexible',
             ];
 
-            // Solo programador puede editar email y dni
-            if ($isProgramador) {
+            // Solo programador o administrador puede editar email y dni
+            if ($puedeEditarDniEmail) {
                 $validationRules['email'] = 'required|email|max:255|unique:users,email,' . $id;
                 $validationRules['dni'] = [
                     'nullable',
@@ -877,8 +877,8 @@ class ProfileController extends Controller
                 'updated_by' => auth()->id(),
             ];
 
-            // Solo programador puede actualizar email y dni
-            if ($isProgramador) {
+            // Solo programador o administrador puede actualizar email y dni
+            if ($puedeEditarDniEmail) {
                 $datosActualizar['email'] = strtolower($request->email);
                 $datosActualizar['dni'] = $request->dni ? strtoupper($request->dni) : null;
             }

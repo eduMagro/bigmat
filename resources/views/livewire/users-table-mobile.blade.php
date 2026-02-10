@@ -1,4 +1,13 @@
-<div x-data="agendaUsuarios()" class="users-mobile md:hidden mt-4 space-y-3">
+<div x-data="agendaUsuarios(@js($contactosAgenda ?? []))" class="users-mobile md:hidden mt-4 space-y-3">
+    <style>
+        /* Evitar zoom en iOS al enfocar inputs en la vista móvil */
+        .users-mobile input,
+        .users-mobile textarea,
+        .users-mobile select,
+        .users-mobile button {
+            font-size: 16px;
+        }
+    </style>
     <div class="sticky top-0 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
         <div class="flex items-center gap-2 px-4 py-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -242,129 +251,7 @@
 
 </div>
 
-@push('styles')
-<style>
-    /* Evitar zoom en iOS al enfocar inputs en la vista móvil */
-    .users-mobile input,
-    .users-mobile textarea,
-    .users-mobile select,
-    .users-mobile button {
-        font-size: 16px;
-    }
-</style>
-@endpush
 
-@push('scripts')
 <script>
-    window.contactosAgendaData = @json($contactosAgenda ?? []);
     window.usersBaseUrlMobile = '{{ url("/users") }}';
-
-    function agendaUsuarios() {
-        return {
-            filtro: '',
-            contactos: window.contactosAgendaData,
-            modalAbierto: false,
-            seleccionado: {},
-            editando: false,
-            touchStartY: null,
-            offsetY: 0,
-            cerrandoPorDrag: false,
-            get filtrados() {
-                if (!this.filtro) return this.contactos;
-                const termino = this.filtro.toLowerCase();
-                return this.contactos.filter((c) => (c.nombre_completo || '').toLowerCase().includes(termino));
-            },
-            abrirModal(contacto) {
-                this.seleccionado = JSON.parse(JSON.stringify(contacto || {}));
-                this.editando = false;
-                this.modalAbierto = true;
-                document.body.classList.add('overflow-hidden');
-            },
-            cerrarModal() {
-                this.modalAbierto = false;
-                this.seleccionado = {};
-                this.editando = false;
-                this.cerrandoPorDrag = false;
-                this.offsetY = 0;
-                this.touchStartY = null;
-                document.body.classList.remove('overflow-hidden');
-            },
-            limpiarTelefono(numero) {
-                return (numero || '').toString().replace(/\s+/g, '');
-            },
-            onTouchStart(e) {
-                this.touchStartY = e.touches?.[0]?.clientY ?? null;
-                this.offsetY = 0;
-            },
-            onTouchMove(e) {
-                if (this.touchStartY === null) return;
-                const currentY = e.touches?.[0]?.clientY ?? 0;
-                const delta = currentY - this.touchStartY;
-                this.offsetY = delta > 0 ? delta : 0;
-            },
-            onTouchEnd() {
-                if (this.offsetY > 80) {
-                    this.modalAbierto = false;
-                    this.cerrandoPorDrag = true;
-                    setTimeout(() => {
-                        this.cerrandoPorDrag = false;
-                        this.offsetY = 0;
-                        this.touchStartY = null;
-                        this.seleccionado = {};
-                        this.editando = false;
-                        document.body.classList.remove('overflow-hidden');
-                    }, 150);
-                } else {
-                    this.offsetY = 0;
-                    this.touchStartY = null;
-                }
-            },
-            async guardarSeleccionado() {
-                if (!this.seleccionado?.id) return;
-                try {
-                    const resp = await fetch(window.usersBaseUrlMobile + '/' + this.seleccionado.id, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            _method: 'PUT',
-                            name: this.seleccionado.nombre,
-                            primer_apellido: this.seleccionado.primer_apellido,
-                            segundo_apellido: this.seleccionado.segundo_apellido,
-                            email: this.seleccionado.email,
-                            movil_personal: this.seleccionado.movil_personal,
-                            movil_empresa: this.seleccionado.movil_empresa,
-                            numero_corto: this.seleccionado.numero_corto,
-                            dni: this.seleccionado.dni,
-                            empresa: this.seleccionado.empresa,
-                            categoria: this.seleccionado.categoria,
-                            maquina: this.seleccionado.maquina,
-                            turno: this.seleccionado.turno,
-                        })
-                    });
-                    const data = await resp.json();
-                    if (resp.ok && data.success) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Usuario actualizado",
-                            toast: true,
-                            position: "top-end",
-                            timer: 1800,
-                            showConfirmButton: false
-                        });
-                        this.editando = false;
-                    } else {
-                        const errMsg = data.message || 'No se pudo guardar el usuario.';
-                        mostrarError(errMsg);
-                    }
-                } catch (e) {
-                    mostrarError(e.message || "No se pudo guardar el usuario.", "Error de conexión");
-                }
-            },
-        };
-    }
 </script>
-@endpush
