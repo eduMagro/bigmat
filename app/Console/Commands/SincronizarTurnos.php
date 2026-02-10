@@ -36,7 +36,7 @@ class SincronizarTurnos extends Command
         $this->info("Rango: {$inicio->toDateString()} → {$hasta->toDateString()}");
 
         // 1. Leer xlsx
-        $archivoXlsx = base_path('base datos trabajadores.xlsx');
+        $archivoXlsx = base_path('base datos.xlsx');
         if (!file_exists($archivoXlsx)) {
             $this->error("No se encontró el archivo: {$archivoXlsx}");
             return 1;
