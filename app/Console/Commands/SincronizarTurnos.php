@@ -63,7 +63,12 @@ class SincronizarTurnos extends Command
                 continue;
             }
 
-            $turnoId = (int) $turnoId;
+            // Soporta "TURNO 1", "TURNO 2", etc. o solo el número
+            if (preg_match('/(\d+)/', $turnoId, $m)) {
+                $turnoId = (int) $m[1];
+            } else {
+                $turnoId = (int) $turnoId;
+            }
             if ($turnoId <= 0) {
                 continue;
             }
