@@ -74,6 +74,14 @@ return [
                         ['label' => 'Ver calendario', 'route' => 'planificacion.trabajadores', 'permission' => 'ver'],
                     ]
                 ],
+                [
+                    'label' => 'Recepción Compras',
+                    'route' => 'recepcion-solicitudes.index',
+                    'icon' => '📦',
+                    'actions' => [
+                        ['label' => 'Escanear y recepcionar', 'route' => 'recepcion-solicitudes.index', 'permission' => 'ver'],
+                    ]
+                ],
             ]
         ],
         [

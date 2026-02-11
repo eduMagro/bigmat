@@ -39,7 +39,7 @@
 
     <script>
         // Prevenir que errores de scripts externos rompan Livewire
-        window.addEventListener('error', function(e) {
+        window.addEventListener('error', function (e) {
             if (e.message && e.message.includes('browser is not defined')) {
                 console.warn('Error de browser API ignorado:', e.message);
                 e.preventDefault();
@@ -186,14 +186,14 @@
     <div class="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
         <!-- Sidebar Menu Enhanced (persiste entre navegaciones) -->
         @persist('sidebar')
-            <x-sidebar-menu-enhanced />
+        <x-sidebar-menu-enhanced />
         @endpersist
 
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Top Header Enhanced (persiste entre navegaciones) -->
             @persist('header')
-                <x-top-header-enhanced />
+            <x-top-header-enhanced />
             @endpersist
 
             <!-- Alerts -->
@@ -201,23 +201,23 @@
 
             <!-- Prompt para notificaciones push -->
             @auth
-                <x-notification-prompt />
+            <x-notification-prompt />
             @endauth
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto bg-neutral-100 dark:bg-gray-900 transition-colors">
+            <main class="flex-1 overflow-y-auto bg-blue-100/50 dark:bg-gray-900 transition-colors">
                 <div class="py-4 md:px-6 h-full">
                     <!-- Breadcrumbs -->
                     <x-breadcrumbs />
 
                     <!-- Page Heading -->
                     @isset($header)
-                        <header class="mb-6">
-                            <div
-                                class="bg-white dark:bg-gray-800 shadow-sm rounded-lg px-6 py-4 border border-gray-200 dark:border-gray-700 transition-colors">
-                                {{ $header }}
-                            </div>
-                        </header>
+                    <header class="mb-6">
+                        <div
+                            class="bg-white dark:bg-gray-800 shadow-sm rounded-lg px-6 py-4 border border-gray-200 dark:border-gray-700 transition-colors">
+                            {{ $header }}
+                        </div>
+                    </header>
                     @endisset
 
                     <!-- Main Content -->
@@ -226,13 +226,18 @@
                     </div>
 
                     <!-- Footer con enlaces legales -->
-                    <footer class="mt-8 pb-4 text-center text-xs text-gray-400 dark:text-gray-500">
+                    <footer id="footer-global" class="mt-8 pb-4 text-center text-xs text-gray-400 dark:text-gray-500">
                         <div class="flex justify-center items-center gap-2 flex-wrap">
-                            <a href="{{ route('politicas.privacidad') }}" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Politica de Privacidad</a>
+                            <a href="{{ route('politicas.privacidad') }}"
+                                class="hover:text-gray-600 dark:hover:text-gray-300 transition">Politica de
+                                Privacidad</a>
                             <span>|</span>
-                            <a href="{{ route('politicas.cookies') }}" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Politica de Cookies</a>
+                            <a href="{{ route('politicas.cookies') }}"
+                                class="hover:text-gray-600 dark:hover:text-gray-300 transition">Politica de Cookies</a>
                             <span>|</span>
-                            <a href="{{ route('politicas.terminos') }}" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Terminos y Condiciones</a>
+                            <a href="{{ route('politicas.terminos') }}"
+                                class="hover:text-gray-600 dark:hover:text-gray-300 transition">Terminos y
+                                Condiciones</a>
                         </div>
                     </footer>
                 </div>
@@ -242,11 +247,11 @@
     <!-- Livewire Scripts -->
     <script data-navigate-once>
         // Interceptar fetch para corregir URLs de Livewire en subdirectorio
-        (function() {
+        (function () {
             const originalFetch = window.fetch;
             const baseUrl = '{{ url("") }}';
 
-            window.fetch = function(url, options) {
+            window.fetch = function (url, options) {
                 // Si es una petición a /livewire/, añadir el prefijo correcto
                 if (typeof url === 'string' && url.startsWith('/livewire/')) {
                     url = baseUrl + url;
