@@ -462,9 +462,8 @@ class AsignacionTurnoController extends Controller
             $this->notificarProgramadores($user, "🆕 Turno creado automáticamente ({$turnoDetectado}) para {$user->nombre_completo} en {$fechaTurnoDetectado}.");
 
         } elseif (!$asignacion->entrada) {
-            // === CASO 2: Existe asignación sin entrada → Registrar entrada ===
+            // === CASO 2: Existe asignación sin entrada → Registrar entrada (sin cambiar turno) ===
             $asignacion->update([
-                'turno_id' => $turnoModelo->id,
                 'estado'   => 'activo',
                 'entrada'  => $horaActual,
                 'obra_id'  => $obraEncontrada->id,
