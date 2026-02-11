@@ -7,10 +7,13 @@ export default defineConfig(({ command, mode }) => {
     const serverHost = env.VITE_DEV_SERVER_HOST || "0.0.0.0";
     const envServerPort = env.VITE_DEV_SERVER_PORT || env.VITE_PORT;
     const serverPort = Number(envServerPort) || 5173;
-    const strictPort = Boolean(envServerPort);
+    const strictPort = String(env.VITE_STRICT_PORT || "").toLowerCase() === "true";
 
     const hmrHost = env.VITE_HMR_HOST || serverHost || "localhost";
-    const hmrPort = Number(env.VITE_HMR_PORT) || serverPort;
+    const hmrPort =
+        strictPort && env.VITE_HMR_PORT
+            ? Number(env.VITE_HMR_PORT)
+            : undefined;
 
     return {
         plugins: [
@@ -19,6 +22,7 @@ export default defineConfig(({ command, mode }) => {
                     "resources/css/app.css",
                     "resources/js/app.js",
                     "resources/js/vistas/contactos/mobile.js",
+                    "resources/js/vistas/recepcion-solicitudes/index.js",
                 ],
                 refresh: true,
             }),
@@ -38,7 +42,7 @@ export default defineConfig(({ command, mode }) => {
             strictPort,
             hmr: {
                 host: hmrHost,
-                port: hmrPort,
+                ...(hmrPort ? { port: hmrPort } : {}),
             },
         },
     };

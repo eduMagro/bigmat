@@ -21,10 +21,16 @@ sudo ./installation/setup.sh
 ./start.sh
 ```
 
+Nota: `start.sh` detecta puertos ocupados y aplica puertos libres de forma automatica para evitar conflictos con otros proyectos Docker.
+
 URLs:
 - Web: [http://bigmat.test](http://bigmat.test)
 - Fallback: [http://localhost:8082](http://localhost:8082)
 - Base de datos (phpMyAdmin): [http://localhost:8081](http://localhost:8081)
+
+Integración local con HPR:
+- Define `HPR_BASE_URL` y/o `HPR_SOLICITUDES_API_BASE_URL` en `.env`.
+- Si cambia el puerto de HPR, solo actualiza esas variables.
 
 ### Parar proyecto
 

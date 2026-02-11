@@ -54,6 +54,12 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400">Estructura organizativa</p>
                         </a>
 
+                        <!-- Recepción Solicitudes -->
+                        <a href="{{ route('recepcion-solicitudes.index') }}" class="block p-6 bg-cyan-50 dark:bg-cyan-900/30 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition">
+                            <h4 class="font-semibold text-cyan-700 dark:text-cyan-400">Recepción Compras</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Escaneo QR y recepcionado</p>
+                        </a>
+
                         <!-- Festivos -->
                         <a href="{{ route('festivos.index') }}" class="block p-6 bg-orange-50 dark:bg-orange-900/30 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition">
                             <h4 class="font-semibold text-orange-700 dark:text-orange-400">Festivos</h4>

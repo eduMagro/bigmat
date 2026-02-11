@@ -25,6 +25,7 @@ use App\Http\Controllers\AjustesController;
 use App\Http\Controllers\PoliticasController;
 use App\Http\Controllers\RevisionFichajeController;
 use App\Http\Controllers\AgrupacionTurnoController;
+use App\Http\Controllers\RecepcionSolicitudCompraController;
 
 // Ruta principal - redirige según permisos
 Route::get('/', function () {
@@ -218,6 +219,12 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::post('/planificacion/mover-asignacion', [ProduccionController::class, 'moverAsignacion'])->name('planificacion.moverAsignacion');
     Route::get('/planificacion/datos-formulario', [ProduccionController::class, 'datosFormulario'])->name('planificacion.datosFormulario');
     Route::get('/planificacion/datos-calendario', [ProduccionController::class, 'datosCalendario'])->name('planificacion.datosCalendario');
+
+    // === RECEPCION DE SOLICITUDES DE COMPRA (integración con HPR) ===
+    Route::get('/recepcion-solicitudes', [RecepcionSolicitudCompraController::class, 'index'])->name('recepcion-solicitudes.index');
+    Route::post('/recepcion-solicitudes/buscar', [RecepcionSolicitudCompraController::class, 'buscar'])->name('recepcion-solicitudes.buscar');
+    Route::post('/recepcion-solicitudes/recepcionar', [RecepcionSolicitudCompraController::class, 'recepcionar'])->name('recepcion-solicitudes.recepcionar');
+    Route::get('/recepcion-solicitudes/recepcionadas', [RecepcionSolicitudCompraController::class, 'recepcionadas'])->name('recepcion-solicitudes.recepcionadas');
 
 });
 
