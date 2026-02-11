@@ -16,10 +16,9 @@
             initialRecepcionadas: @js($recepcionadas ?? []),
         })" x-init="init()">
 
-        <div class="pointer-events-none absolute inset-0">
-        </div>
-        <div class="pointer-events-none absolute -top-16 -right-16 h-64 w-64 rounded-full"></div>
-        <div class="pointer-events-none absolute -bottom-20 -left-12 h-72 w-72 rounded-full">
+        <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+            <div class="absolute -top-16 -right-16 h-64 w-64 rounded-full"></div>
+            <div class="absolute -bottom-20 -left-12 h-72 w-72 rounded-full"></div>
         </div>
 
         <div class="relative">

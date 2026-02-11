@@ -79,7 +79,6 @@
             width: 100%;
             height: 100%;
             overflow-x: hidden;
-            background-color: #f9fafb;
         }
 
         .dark body {
@@ -177,20 +176,21 @@
     </style>
 </head>
 
-<body class="font-sans antialiased transition-colors duration-200" @auth data-user-id="{{ auth()->id() }}" @endauth>
+<body class="font-sans antialiased transition-colors duration-200 bg-blue-100/50 dark:bg-gray-900" @auth
+    data-user-id="{{ auth()->id() }}" @endauth>
     <!-- Overlay de navegación -->
     <div id="navigation-overlay" class="navigation-overlay">
         <div class="navigation-spinner"></div>
     </div>
 
-    <div class="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
+    <div class="flex h-[100dvh] overflow-hidden">
         <!-- Sidebar Menu Enhanced (persiste entre navegaciones) -->
         @persist('sidebar')
         <x-sidebar-menu-enhanced />
         @endpersist
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
             <!-- Top Header Enhanced (persiste entre navegaciones) -->
             @persist('header')
             <x-top-header-enhanced />
@@ -205,7 +205,7 @@
             @endauth
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto bg-blue-100/50 dark:bg-gray-900 transition-colors">
+            <main class="flex-1 min-h-0 overflow-y-auto transition-colors">
                 <div class="py-4 md:px-6 h-full">
                     <!-- Breadcrumbs -->
                     <x-breadcrumbs />
