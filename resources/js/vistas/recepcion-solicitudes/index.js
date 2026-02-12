@@ -21,7 +21,18 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
         isLoadingRecepcionadas: false,
 
         init() {
+            this.debug('info', 'Inicializando recepción de solicitudes', {
+                recepcionadas_iniciales: Array.isArray(this.recepcionadas) ? this.recepcionadas.length : 0,
+            });
             this.setupReveal();
+        },
+
+        debug(level, message, context = {}) {
+            if (!window.console || typeof window.console[level] !== 'function') {
+                return;
+            }
+
+            window.console[level]('[RecepcionSolicitudes]', message, context);
         },
 
         setupReveal() {
@@ -94,11 +105,13 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
         async openScannerModal() {
             this.showScannerModal = true;
             this.scannerError = '';
+            this.debug('info', 'Abriendo modal de escaneo');
 
             try {
                 await this.ensureScannerLibrary();
                 await this.startScanner();
             } catch (error) {
+                this.debug('error', 'No se pudo iniciar cámara', { error });
                 this.scannerError = error?.message || 'No fue posible iniciar la cámara.';
                 this.notify('error', this.scannerError);
             }
@@ -202,6 +215,9 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
 
             this.loadingSearch = true;
             this.statusMessage = 'Consultando solicitud en HPR...';
+            this.debug('info', 'Consultando solicitud', {
+                codigo_masked: `${code.slice(0, 4)}***${code.slice(-4)}`,
+            });
 
             try {
                 const response = await fetch(this.routes.buscar, {
@@ -218,6 +234,10 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
 
                 const json = await response.json();
                 if (!response.ok || !json.success) {
+                    this.debug('warn', 'Respuesta no exitosa al consultar solicitud', {
+                        status: response.status,
+                        response: json,
+                    });
                     throw new Error(json.message || json.error || 'No se encontró la solicitud.');
                 }
 
@@ -227,6 +247,7 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
                 this.activeSection = 'recepcionar';
                 this.notify('success', 'Solicitud encontrada');
             } catch (error) {
+                this.debug('error', 'Error consultando solicitud', { error });
                 this.solicitudActual = null;
                 this.statusMessage = error.message || 'Error al consultar la solicitud.';
                 this.notify('error', this.statusMessage);
@@ -247,6 +268,9 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
 
             this.loadingRecepcionar = true;
             this.statusMessage = 'Registrando recepción en HPR...';
+            this.debug('info', 'Recepcionando solicitud', {
+                codigo_masked: `${codigo.slice(0, 4)}***${codigo.slice(-4)}`,
+            });
 
             try {
                 const response = await fetch(this.routes.recepcionar, {
@@ -263,6 +287,10 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
 
                 const json = await response.json();
                 if (!response.ok || !json.success) {
+                    this.debug('warn', 'Respuesta no exitosa al recepcionar', {
+                        status: response.status,
+                        response: json,
+                    });
                     throw new Error(json.message || json.error || 'No se pudo recepcionar la solicitud.');
                 }
 
@@ -276,6 +304,7 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
                 await this.switchSection('lista');
                 this.notify('success', this.statusMessage);
             } catch (error) {
+                this.debug('error', 'Error recepcionando solicitud', { error });
                 this.statusMessage = error.message || 'Error al recepcionar.';
                 this.notify('error', this.statusMessage);
             } finally {
@@ -285,6 +314,7 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
 
         async refreshRecepcionadas(showMessage = true) {
             this.isLoadingRecepcionadas = true;
+            this.debug('info', 'Actualizando listado de recepcionadas');
             try {
                 const response = await fetch(`${this.routes.recepcionadas}?limit=120`, {
                     headers: {
@@ -294,6 +324,10 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
 
                 const json = await response.json();
                 if (!response.ok || !json.success) {
+                    this.debug('warn', 'Respuesta no exitosa al actualizar recepcionadas', {
+                        status: response.status,
+                        response: json,
+                    });
                     throw new Error(json.message || json.error || 'No se pudo actualizar la lista.');
                 }
 
@@ -307,6 +341,7 @@ window.recepcionSolicitudesApp = function recepcionSolicitudesApp(config) {
                     this.notify('success', this.statusMessage);
                 }
             } catch (error) {
+                this.debug('error', 'Error actualizando recepcionadas', { error });
                 if (showMessage) {
                     this.statusMessage = error.message || 'No se pudo cargar el listado.';
                     this.notify('error', this.statusMessage);
