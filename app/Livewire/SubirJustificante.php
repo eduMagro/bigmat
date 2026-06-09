@@ -223,7 +223,8 @@ class SubirJustificante extends Component
         }
 
         // Intentar con español, si no está disponible usar inglés
-        if (file_exists($spaFile)) {
+        // (se silencia con @ por la misma restricción open_basedir)
+        if (@file_exists($spaFile)) {
             $ocr->lang('spa');
         } else {
             $ocr->lang('eng');
@@ -258,7 +259,10 @@ class SubirJustificante extends Component
         }
 
         foreach ($posiblesRutas as $ruta) {
-            if (file_exists($ruta)) {
+            // Se silencia con @ porque file_exists() lanza un warning
+            // (convertido a excepción por Laravel) si la ruta queda fuera
+            // de open_basedir, p.ej. /usr/bin en hostings restringidos.
+            if (@file_exists($ruta)) {
                 return $ruta;
             }
         }
