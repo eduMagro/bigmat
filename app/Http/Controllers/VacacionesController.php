@@ -83,7 +83,9 @@ class VacacionesController extends Controller
         $eventos = array_merge($eventos, $festivos);
 
         // Eventos de solicitudes pendientes (mismo estilo que mi-perfil)
-        $eventosSolicitudes = $solicitudesPendientes->flatMap(function ($solicitud) {
+        $eventosSolicitudes = $solicitudesPendientes
+            ->filter(fn($solicitud) => $solicitud->user !== null)
+            ->flatMap(function ($solicitud) {
             return collect(CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin)->toArray())
                 ->map(function ($fecha) use ($solicitud) {
                     $fechaStr = $fecha->format('Y-m-d');
@@ -739,19 +741,23 @@ class VacacionesController extends Controller
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
-        $eventos = $vacaciones->map(function ($asignacion) {
-            return [
-                'title' => $asignacion->user->nombre_completo,
-                'start' => Carbon::parse($asignacion->fecha)->toIso8601String(),
-                'backgroundColor' => '#f87171',
-                'borderColor' => '#dc2626',
-                'textColor' => 'white',
-                'allDay' => true,
-                'extendedProps' => [
-                    'user_id' => $asignacion->user->id,
-                ],
-            ];
-        })->toArray();
+        $eventos = $vacaciones
+            ->filter(fn($asignacion) => $asignacion->user !== null)
+            ->map(function ($asignacion) {
+                return [
+                    'title' => $asignacion->user->nombre_completo,
+                    'start' => Carbon::parse($asignacion->fecha)->toIso8601String(),
+                    'backgroundColor' => '#f87171',
+                    'borderColor' => '#dc2626',
+                    'textColor' => 'white',
+                    'allDay' => true,
+                    'extendedProps' => [
+                        'user_id' => $asignacion->user->id,
+                    ],
+                ];
+            })
+            ->values()
+            ->toArray();
 
         // Solicitudes pendientes (filtradas por visibilidad)
         $solicitudesPendientes = VacacionesSolicitud::with('user')
@@ -759,7 +765,9 @@ class VacacionesController extends Controller
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
-        $eventosSolicitudes = $solicitudesPendientes->flatMap(function ($solicitud) {
+        $eventosSolicitudes = $solicitudesPendientes
+            ->filter(fn($solicitud) => $solicitud->user !== null)
+            ->flatMap(function ($solicitud) {
             return collect(CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin)->toArray())
                 ->map(function ($fecha) use ($solicitud) {
                     $fechaStr = $fecha->format('Y-m-d');
