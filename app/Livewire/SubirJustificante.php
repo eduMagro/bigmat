@@ -235,44 +235,77 @@ class SubirJustificante extends Component
 
     protected function detectarTesseract()
     {
-        // Verificar si shell_exec está disponible
-        if (!function_exists('shell_exec') || $this->shellExecDeshabilitado()) {
+        // Todo el cuerpo va dentro de try/catch porque en hostings con
+        // open_basedir restrictivo cualquier comprobación de rutas del
+        // sistema (file_exists, shell_exec) puede convertirse en excepción
+        // y romper el render del componente. Ante cualquier fallo, se
+        // considera que Tesseract no está disponible (OCR deshabilitado).
+        try {
+            // Verificar si shell_exec está disponible
+            if (!function_exists('shell_exec') || $this->shellExecDeshabilitado()) {
+                return null;
+            }
+
+            // Detectar sistema operativo
+            $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+            if ($esWindows) {
+                // Rutas comunes de Tesseract en Windows
+                $posiblesRutas = [
+                    'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                    'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+                    'C:\Tesseract-OCR\tesseract.exe',
+                ];
+            } else {
+                // Rutas comunes de Tesseract en Linux
+                $posiblesRutas = [
+                    '/usr/bin/tesseract',
+                    '/usr/local/bin/tesseract',
+                ];
+            }
+
+            foreach ($posiblesRutas as $ruta) {
+                // Se omiten las rutas fuera de open_basedir para no provocar
+                // el warning, y se silencia con @ por seguridad adicional.
+                if (!$this->rutaAccesible($ruta)) {
+                    continue;
+                }
+                if (@file_exists($ruta)) {
+                    return $ruta;
+                }
+            }
+
+            // Intentar encontrar en PATH
+            if ($this->comandoExiste('tesseract')) {
+                return 'tesseract';
+            }
+        } catch (\Throwable $e) {
             return null;
         }
 
-        // Detectar sistema operativo
-        $esWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        return null;
+    }
 
-        if ($esWindows) {
-            // Rutas comunes de Tesseract en Windows
-            $posiblesRutas = [
-                'C:\Program Files\Tesseract-OCR\tesseract.exe',
-                'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
-                'C:\Tesseract-OCR\tesseract.exe',
-            ];
-        } else {
-            // Rutas comunes de Tesseract en Linux
-            $posiblesRutas = [
-                '/usr/bin/tesseract',
-                '/usr/local/bin/tesseract',
-            ];
+    /**
+     * Comprueba si una ruta está dentro de las restricciones de open_basedir.
+     * Si open_basedir no está configurado, todas las rutas son accesibles.
+     */
+    protected function rutaAccesible($ruta)
+    {
+        $openBasedir = ini_get('open_basedir');
+        if (empty($openBasedir)) {
+            return true;
         }
 
-        foreach ($posiblesRutas as $ruta) {
-            // Se silencia con @ porque file_exists() lanza un warning
-            // (convertido a excepción por Laravel) si la ruta queda fuera
-            // de open_basedir, p.ej. /usr/bin en hostings restringidos.
-            if (@file_exists($ruta)) {
-                return $ruta;
+        $permitidas = preg_split('/[:;]/', $openBasedir);
+        foreach ($permitidas as $base) {
+            $base = trim($base);
+            if ($base !== '' && strpos($ruta, $base) === 0) {
+                return true;
             }
         }
 
-        // Intentar encontrar en PATH
-        if ($this->comandoExiste('tesseract')) {
-            return 'tesseract';
-        }
-
-        return null;
+        return false;
     }
 
     protected function shellExecDeshabilitado()
