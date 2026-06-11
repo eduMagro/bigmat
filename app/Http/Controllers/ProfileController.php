@@ -1055,6 +1055,8 @@ class ProfileController extends Controller
                         'entrada' => $asig->entrada,
                         'salida' => $asig->salida,
                         'es_turno' => false,
+                        'estado' => $nombre,
+                        'anio_vacacional' => $asig->anio_vacacional,
                         'obra_id' => $asig->obra_id,
                         'obra_nombre' => $asig->obra?->obra,
                     ],
@@ -1180,6 +1182,8 @@ class ProfileController extends Controller
                         'entrada' => $asig->entrada,
                         'salida' => $asig->salida,
                         'es_turno' => false,
+                        'estado' => $nombre,
+                        'anio_vacacional' => $asig->anio_vacacional,
                         'obra_id' => $asig->obra_id,
                         'obra_nombre' => $asig->obra?->obra,
                     ],
@@ -1380,11 +1384,33 @@ class ProfileController extends Controller
             ->groupBy('estado')
             ->pluck('total', 'estado');
 
+        // Desglose de vacaciones por año (anio_vacacional-aware) para actualización in-line
+        $anioActual = Carbon::now()->year;
+        $anioAnterior = $anioActual - 1;
+        $disfrutadasActual = $user->vacacionesImputadasEnAnio($anioActual);
+        $disfrutadasAnterior = $user->vacacionesImputadasEnAnio($anioAnterior);
+        $topeActual = $user->vacaciones_correspondientes ?? 30;
+        $topeAnterior = $user->topeVacacionesEnAnio($anioAnterior);
+
         return [
             'diasVacaciones' => $conteos['vacaciones'] ?? 0,
             'faltasInjustificadas' => $conteos['injustificada'] ?? 0,
             'faltasJustificadas' => $conteos['justificada'] ?? 0,
             'diasBaja' => $conteos['baja'] ?? 0,
+            'vacaciones' => [
+                'actual' => [
+                    'anio' => $anioActual,
+                    'totales' => $topeActual,
+                    'disfrutadas' => $disfrutadasActual,
+                    'disponibles' => max(0, $topeActual - $disfrutadasActual),
+                ],
+                'anterior' => [
+                    'anio' => $anioAnterior,
+                    'totales' => $topeAnterior,
+                    'disfrutadas' => $disfrutadasAnterior,
+                    'pendientes' => max(0, $topeAnterior - $disfrutadasAnterior),
+                ],
+            ],
         ];
     }
 

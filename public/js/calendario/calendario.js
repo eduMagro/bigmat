@@ -61,15 +61,29 @@
                 return r.json();
             })
             .then((data) => {
+                // Resumen de asistencia (faltas/baja) — si está presente
                 const div = document.getElementById("resumen-asistencia");
-                if (!div) return;
-                div.style.opacity = 0.5;
-                div.innerHTML = `
-                    <p><strong>Vacaciones asignadas: </strong> ${data.diasVacaciones}</p>
-                    <p><strong>Faltas injustificadas: </strong> ${data.faltasInjustificadas}</p>
-                    <p><strong>Faltas justificadas: </strong> ${data.faltasJustificadas}</p>
-                    <p><strong>Días de baja: </strong> ${data.diasBaja}</p>`;
-                setTimeout(() => (div.style.opacity = 1), 200);
+                if (div) {
+                    div.style.opacity = 0.5;
+                    div.innerHTML = `
+                        <p><strong>Vacaciones asignadas: </strong> ${data.diasVacaciones}</p>
+                        <p><strong>Faltas injustificadas: </strong> ${data.faltasInjustificadas}</p>
+                        <p><strong>Faltas justificadas: </strong> ${data.faltasJustificadas}</p>
+                        <p><strong>Días de baja: </strong> ${data.diasBaja}</p>`;
+                    setTimeout(() => (div.style.opacity = 1), 200);
+                }
+
+                // Resumen de vacaciones por año (Información laboral) — actualización in-line
+                if (data.vacaciones) {
+                    const setTxt = (id, val) => {
+                        const el = document.getElementById(id);
+                        if (el && val != null) el.textContent = val;
+                    };
+                    setTxt("vac-actual-disfrutadas", data.vacaciones.actual?.disfrutadas);
+                    setTxt("vac-actual-disponibles", data.vacaciones.actual?.disponibles);
+                    setTxt("vac-anterior-disfrutadas", data.vacaciones.anterior?.disfrutadas);
+                    setTxt("vac-anterior-pendientes", data.vacaciones.anterior?.pendientes);
+                }
             })
             .catch((e) => console.error("Error resumen asistencia:", e));
     }
@@ -1091,140 +1105,44 @@
                 Swal.fire("Listo", mensaje, "success");
             };
 
-            // Calcula el objeto vacationData a partir de la respuesta del endpoint.
-            // Misma lógica que el flujo de selección de rango del calendario (dateClick);
-            // si se cambia una, actualizar también la otra.
-            const calcularVacationData = (data, fechaRefStr) => {
-                const fechaIncorporacion = data.fecha_incorporacion;
-                if (!fechaIncorporacion) return null;
-
-                const incorpDate = new Date(fechaIncorporacion);
-                const refDate = new Date(fechaRefStr);
-                if (refDate < incorpDate) return null;
-
-                const clickYear = refDate.getFullYear();
-                const isGracePeriod = refDate.getMonth() <= 2; // ene-mar
-                const previousYear = clickYear - 1;
-
-                // Vacaciones generadas el año anterior (máx 22)
-                let generadasAnterior = 0;
-                if (incorpDate < new Date(clickYear, 0, 1)) {
-                    const endOfPrevYear = new Date(previousYear, 11, 31);
-                    const prevYearStart = incorpDate > new Date(previousYear, 0, 1) ? incorpDate : new Date(previousYear, 0, 1);
-                    const diffDaysPrev = Math.ceil(Math.max(0, endOfPrevYear - prevYearStart) / (1000 * 60 * 60 * 24)) + 1;
-                    generadasAnterior = Math.floor(Math.min((diffDaysPrev / 30) * 2.5, 22));
-                }
-
-                const usadasAnteriorDirec = (data.dias_asignados_anterior || 0) + (data.dias_solicitados_anterior || 0);
-                const saldoAnteriorAlFinalizar = generadasAnterior - usadasAnteriorDirec;
-                const usadasPeriodoGracia = (data.dias_usados_periodo_gracia || 0) + (data.dias_solicitados_periodo_gracia || 0);
-                const usadasPostGracia = (data.dias_usados_post_gracia || 0) + (data.dias_solicitados_post_gracia || 0);
-
-                if (isGracePeriod && incorpDate < new Date(clickYear, 0, 1)) {
-                    const saldoAnteriorPositivo = Math.max(0, saldoAnteriorAlFinalizar);
-                    const disponiblesAnterior = Math.max(0, saldoAnteriorPositivo - usadasPeriodoGracia);
-                    const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - saldoAnteriorPositivo);
-                    const disponiblesActual = 30 - excesoSobreAnterior - usadasPostGracia;
-                    return { disponiblesTotal: disponiblesAnterior + disponiblesActual, disponiblesAnterior, previousYear, clickYear };
-                } else if (!isGracePeriod && incorpDate < new Date(clickYear, 0, 1)) {
-                    const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - Math.max(0, saldoAnteriorAlFinalizar));
-                    const disponiblesActual = 30 - (excesoSobreAnterior + usadasPostGracia);
-                    return { disponiblesTotal: disponiblesActual, disponiblesAnterior: 0, previousYear, clickYear };
-                }
-
-                // Incorporado este año: cálculo proporcional progresivo
-                const diasUsadosEsteAnio = (data.dias_asignados_actual || 0) + (data.dias_solicitados_actual || 0);
-                const finDeAnio = new Date(clickYear, 11, 31);
-                const diasTotalesAnio = Math.ceil((finDeAnio - new Date(clickYear, 0, 1)) / (1000 * 60 * 60 * 24)) + 1;
-                const diasHastaFecha = Math.max(0, Math.ceil((refDate - incorpDate) / (1000 * 60 * 60 * 24)) + 1);
-                const diasIncorpHastaFin = Math.ceil((finDeAnio - incorpDate) / (1000 * 60 * 60 * 24)) + 1;
-                const generadasTotalesAnio = Math.floor((diasIncorpHastaFin / diasTotalesAnio) * 30);
-                const generadasHastaFecha = Math.floor(generadasTotalesAnio * Math.min(1, diasHastaFecha / diasIncorpHastaFin));
-                return { disponiblesTotal: Math.max(0, generadasHastaFecha - diasUsadosEsteAnio), disponiblesAnterior: 0, previousYear, clickYear };
-            };
-
-            // Carga vacationData bajo demanda (cuando no se pobló por el clic previo en el calendario).
-            const obtenerVacationData = async (fechaRefStr) => {
-                try {
-                    const baseUrl = routes.vacationDataUrl || `/usuarios/${userId}/vacation-data`;
-                    const r = await fetch(`${baseUrl}?fecha=${fechaRefStr}`, { headers: { Accept: "application/json" } });
-                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                    const data = await r.json();
-                    if (data.error) throw new Error(data.error);
-                    return calcularVacationData(data, fechaRefStr);
-                } catch (e) {
-                    console.error("Error cargando vacation-data on-demand:", e);
-                    return null;
-                }
-            };
-
-            // Vacaciones: lógica de año anterior + validación de días disponibles.
-            // Devuelve true para continuar, false para abortar.
+            // Vacaciones: preguntar a qué año imputar (sistema anio_vacacional, SIN caducidad).
+            // Reutiliza el endpoint de sobrantes de /vacaciones. Devuelve true para continuar, false para abortar.
             const prepararVacaciones = async (body) => {
-                // Cargar datos on-demand si el flujo de selección de rango no los pobló
-                // (p.ej. al asignar el estado "vacaciones" desde el modal sin clic previo en el calendario).
-                if (!vacationData) {
-                    vacationData = await obtenerVacationData(fechaInicio);
-                }
+                const anioActual = new Date(fechaInicio).getFullYear();
+                try {
+                    // Derivar la URL de sobrantes desde una ruta de vacaciones ya configurada
+                    const vacBase = (routes.vacacionesStoreUrl || `/vacaciones/solicitar`).replace(/\/solicitar$/, '');
+                    const r = await fetch(`${vacBase}/sobrantes-anio-anterior/${userId}`, { headers: { Accept: 'application/json' } });
+                    const sobrantes = r.ok ? await r.json() : null;
 
-                if (vacationData && vacationData.disponiblesAnterior > 0) {
-                    const fechaInicioDate = new Date(fechaInicio);
-                    const mes = fechaInicioDate.getMonth(); // 0=ene, 1=feb, 2=mar
-                    if (mes <= 2) {
-                        const anioActual = fechaInicioDate.getFullYear();
-                        const anioAnterior = anioActual - 1;
-                        const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
-
-                        const { isConfirmed: usarAnterior } = await Swal.fire({
-                            title: 'Días del año anterior',
-                            html: `
-                                <p class="text-sm text-gray-600 mb-4">Tiene <strong>${vacationData.disponiblesAnterior} días</strong> del año ${anioAnterior} que caducan el 31 de marzo.</p>
-                                <p class="text-sm text-gray-600 mb-4">Estás asignando <strong>${diasSeleccionados} días</strong> de vacaciones.</p>
-                                <p class="text-sm text-gray-600 mb-4">¿Quieres usar primero los días del año ${anioAnterior}?</p>
-                                ${diasSeleccionados > vacationData.disponiblesAnterior ?
-                                    `<p class="text-xs text-blue-600 mt-2"><em>Se asignarán ${Math.min(diasSeleccionados, vacationData.disponiblesAnterior)} días al ${anioAnterior} y ${diasSeleccionados - vacationData.disponiblesAnterior} días al ${anioActual}.</em></p>` :
-                                    ''}
-                            `,
-                            showCancelButton: true,
+                    if (sobrantes && sobrantes.sobrantes > 0) {
+                        const result = await Swal.fire({
+                            title: 'Vacaciones del año anterior',
+                            html: `<p class="text-sm text-gray-600 mb-3">Este trabajador tiene <strong>${sobrantes.sobrantes} días</strong> sin disfrutar de <strong>${sobrantes.anio_anterior}</strong>.</p><p class="text-sm text-gray-600">¿A qué año quieres imputar estas vacaciones?</p>`,
+                            icon: 'question',
                             showDenyButton: true,
-                            confirmButtonText: `Sí, usar días de ${anioAnterior}`,
-                            denyButtonText: `No, usar solo ${anioActual}`,
+                            showCancelButton: true,
+                            confirmButtonText: `Año actual (${anioActual})`,
+                            denyButtonText: `Año anterior (${sobrantes.anio_anterior})`,
                             cancelButtonText: 'Cancelar',
-                            confirmButtonColor: '#1e3a5f',
-                            denyButtonColor: '#6b7280',
+                            confirmButtonColor: '#2563EB',
+                            denyButtonColor: '#6B7280',
                         });
 
-                        if (usarAnterior === true) {
-                            body.usar_anterior_primero = true;
-                            body.dias_disponibles_anterior = vacationData.disponiblesAnterior;
-                            body.anio_anterior = anioAnterior;
+                        if (result.isDismissed) return false;
+                        if (result.isDenied) {
+                            body.anio_vacacional = sobrantes.anio_anterior;
+                            body.sobrantes_anterior = sobrantes.sobrantes;
                         } else {
-                            body.anio_cargo = anioActual;
+                            body.anio_vacacional = anioActual;
                         }
+                    } else {
+                        body.anio_vacacional = anioActual;
                     }
-                }
-
-                // Sin datos (usuario sin fecha de incorporación o fallo de carga):
-                // continuar y dejar que el backend valide el tope de vacaciones.
-                if (!vacationData) {
-                    return true;
-                }
-
-                const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
-                const restantes = vacationData.disponiblesTotal - diasSeleccionados;
-                if (restantes < 0) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Días insuficientes',
-                        html: `
-                            <p class="text-gray-600 mb-2">No tiene suficientes días de vacaciones disponibles.</p>
-                            <p class="text-gray-600">Disponibles: <strong>${vacationData.disponiblesTotal}</strong></p>
-                            <p class="text-gray-600">Solicitados: <strong>${diasSeleccionados}</strong></p>
-                            <p class="text-red-600 font-semibold mt-2">Faltan ${Math.abs(restantes)} día(s)</p>
-                        `,
-                        confirmButtonColor: '#1e3a5f',
-                    });
-                    return false;
+                } catch (e) {
+                    console.error('Error consultando sobrantes del año anterior:', e);
+                    // Si falla, imputar al año actual; el backend valida el tope.
+                    body.anio_vacacional = anioActual;
                 }
                 return true;
             };
@@ -1727,9 +1645,13 @@
                 }
 
                 // Renderizado minimalista para todos los eventos (incluyendo solicitudes pendientes)
-                return {
-                    html: `<div class="evento-simple">${event.title}</div>`
-                };
+                // En vacaciones, mostrar el año vacacional bajo el título (como en manager)
+                let htmlSimple = `<div class="evento-simple">${event.title}`;
+                if (props.estado === 'vacaciones' && props.anio_vacacional) {
+                    htmlSimple += `<span style="display:block;font-size:0.7em;opacity:0.85;line-height:1.2;">${props.anio_vacacional}</span>`;
+                }
+                htmlSimple += `</div>`;
+                return { html: htmlSimple };
             },
 
             // Click en evento para mostrar tooltip con detalles

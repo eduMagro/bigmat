@@ -235,16 +235,16 @@
                                 <span class="text-xs text-gray-600 dark:text-gray-300 font-medium">Vacaciones {{ $anioActual }}</span>
                                 <div class="flex items-center gap-4 text-xs">
                                     <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientes }}</span> <span class="text-gray-400">totales</span></span>
-                                    <span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadas }}</span> <span class="text-gray-400">disfrutadas</span></span>
-                                    <span><span class="font-semibold {{ $vacacionesRestantes > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">{{ $vacacionesRestantes }}</span> <span class="text-gray-400">disponibles</span></span>
+                                    <span><span id="vac-actual-disfrutadas" class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadas }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                    <span><span id="vac-actual-disponibles" class="font-semibold {{ $vacacionesRestantes > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">{{ $vacacionesRestantes }}</span> <span class="text-gray-400">disponibles</span></span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
                                 <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Vacaciones {{ $anioAnterior }} <span class="text-[10px] text-gray-400">(año anterior)</span></span>
                                 <div class="flex items-center gap-4 text-xs">
                                     <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientesAnterior }}</span> <span class="text-gray-400">totales</span></span>
-                                    <span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadasAnterior }}</span> <span class="text-gray-400">disfrutadas</span></span>
-                                    <span><span class="font-semibold {{ $vacacionesRestantesAnterior > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">{{ $vacacionesRestantesAnterior }}</span> <span class="text-gray-400">pendientes</span></span>
+                                    <span><span id="vac-anterior-disfrutadas" class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadasAnterior }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                    <span><span id="vac-anterior-pendientes" class="font-semibold {{ $vacacionesRestantesAnterior > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">{{ $vacacionesRestantesAnterior }}</span> <span class="text-gray-400">pendientes</span></span>
                                 </div>
                             </div>
                             @if ($solicitudesPendientesData->count() > 0)
