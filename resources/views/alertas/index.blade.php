@@ -613,7 +613,7 @@
                                         {{ $alerta->mensaje }}
                                     </p>
                                     @if (strlen($alerta->mensaje) > 100)
-                                        <button onclick="verMensajeCompleto(@js($alerta->mensaje))"
+                                        <button onclick="verMensajeCompleto(@js($alerta->mensaje), @js($alerta->tipo))"
                                             class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium mt-1">
                                             Ver completo →
                                         </button>
@@ -657,7 +657,7 @@
                             </td>
                             <td class="p-3 text-center">
                                 <div class="flex justify-center gap-2">
-                                    <button onclick="verMensajeCompleto(@js($alerta->mensaje))"
+                                    <button onclick="verMensajeCompleto(@js($alerta->mensaje), @js($alerta->tipo))"
                                         class="inline-flex items-center px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-150 shadow-sm hover:shadow-md"
                                         title="Ver mensaje completo">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -796,7 +796,7 @@
 
                         <!-- Acciones -->
                         <div class="flex gap-2 pt-2">
-                            <button onclick="verMensajeCompleto(@js($alerta->mensaje))"
+                            <button onclick="verMensajeCompleto(@js($alerta->mensaje), @js($alerta->tipo))"
                                 class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-lg transition-all duration-150 shadow-md hover:shadow-lg active:scale-95">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -1204,10 +1204,9 @@
                     // Limpiar los marcadores del mensaje visible
                     const mensajeLimpio = mensaje.replace(/\[REVISION_ID:\d+\]\[USER_ID:\d+\]\n?/, '');
 
-                    Swal.fire({
-                        title: 'Solicitud de Revision de Fichajes',
-                        html: `
-                            <div class="text-left whitespace-pre-wrap text-gray-700 p-4 mb-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">${mensajeLimpio}</div>
+                    // Los botones de gestion solo se muestran al receptor de la alerta,
+                    // nunca al trabajador que solicito la revision
+                    const botonesGestion = tipo === 'entrante' ? `
                             <div class="flex gap-2 justify-center flex-wrap">
                                 <button onclick="corregirFichajes(${solicitudId})" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
                                     Corregir Fichajes
@@ -1219,6 +1218,13 @@
                                     Ver Perfil
                                 </a>
                             </div>
+                        ` : '';
+
+                    Swal.fire({
+                        title: 'Solicitud de Revision de Fichajes',
+                        html: `
+                            <div class="text-left whitespace-pre-wrap text-gray-700 p-4 mb-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">${mensajeLimpio}</div>
+                            ${botonesGestion}
                         `,
                         showConfirmButton: false,
                         showCloseButton: true,
@@ -1484,12 +1490,18 @@
                 let mensajeTexto = mensaje.mensaje;
                 let botonesRevision = '';
 
-                // Mostrar botones de revision siempre que se detecte el patron
                 if (revisionMatch) {
                     const solicitudId = revisionMatch[1];
                     const userId = revisionMatch[2];
                     // Limpiar los marcadores del mensaje visible
                     mensajeTexto = mensaje.mensaje.replace(/\[REVISION_ID:\d+\]\[USER_ID:\d+\]\n?/, '');
+                }
+
+                // Los botones de gestion solo se muestran al receptor de la alerta,
+                // nunca al trabajador que solicito la revision (mensaje propio)
+                if (revisionMatch && !esPropio) {
+                    const solicitudId = revisionMatch[1];
+                    const userId = revisionMatch[2];
 
                     botonesRevision = `
                         <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200 flex-wrap">
