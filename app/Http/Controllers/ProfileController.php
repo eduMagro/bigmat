@@ -409,6 +409,30 @@ class ProfileController extends Controller
         ));
     }
 
+    /**
+     * Buscador rápido de usuarios para navegar de un perfil a otro (solo oficina).
+     */
+    public function buscar(Request $request)
+    {
+        $q = $request->input('q', '');
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $usuarios = User::where(function ($query) use ($q) {
+                $query->whereRaw("CONCAT(name, ' ', COALESCE(primer_apellido,''), ' ', COALESCE(segundo_apellido,'')) LIKE ?", ["%{$q}%"]);
+            })
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name', 'primer_apellido', 'segundo_apellido', 'imagen']);
+
+        return response()->json($usuarios->map(fn($u) => [
+            'id' => $u->id,
+            'nombre' => $u->nombre_completo,
+            'imagen' => $u->ruta_imagen,
+        ]));
+    }
+
     private function getHorasMensuales(User $user): array
     {
         $inicioMes = Carbon::now()->startOfMonth()->toDateString();

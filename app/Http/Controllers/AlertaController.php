@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Alerta;
 use App\Models\AlertaLeida;
+use App\Models\AlertaAdjunto;
+use App\Models\AlertaAdjuntoFirma;
 use App\Models\User;
 use App\Models\Departamento;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -211,7 +214,7 @@ class AlertaController extends Controller
                 })
                 ->orWhere('user_id_1', $user->id); // permite ver las enviadas por él mismo
             })
-            ->with(['respuestas', 'usuario1']) // Cargar respuestas y usuario
+            ->with(['respuestas', 'usuario1', 'adjuntos']) // Cargar respuestas, usuario y adjuntos
             ->withCount('respuestas') // Contar respuestas
             ->orderBy('updated_at', 'desc') // Ordenar por última actividad
             ->paginate($perPage);
@@ -222,7 +225,7 @@ class AlertaController extends Controller
             $esEmisor = $alerta->user_id_1 === $user->id;
 
             $esParaUsuario   = $alerta->destinatario_id === $user->id;
-            $esParaRol       = $alerta->destino === $user->rol;
+            $esParaRol       = $alerta->destino === $user->rol || $alerta->destino === 'todos';
             $esParaCategoria = $alerta->destinatario === $categoriaNombre;
 
             $esEntrante = $esParaUsuario || (!$esEmisor && ($esParaRol || $esParaCategoria));
@@ -271,7 +274,7 @@ $tiposAlerta = Alerta::distinct()->pluck('tipo')->filter()->values();
         $esAdministrador = $user->esAdminDepartamento();
 $ordenablesAlertas = [];
         if ($esAdministrador) {
-            $query = Alerta::with(['usuario1', 'usuario2', 'destinatarioUser']);
+            $query = Alerta::with(['usuario1', 'usuario2', 'destinatarioUser', 'adjuntos']);
             $query = $this->aplicarFiltrosAlertas($query, $request);
 
             // ordenamiento
@@ -535,7 +538,11 @@ $ordenablesAlertas = [];
             // CASO 2: USUARIO OFICINA CON FORMULARIO MANUAL
             if ($esOficina) {
                 $request->validate([
-                    'mensaje' => 'required|string',
+                    'mensaje' => 'nullable|string',
+                    'adjuntos' => 'nullable|array|max:5',
+                    'adjuntos.*' => 'file|mimes:pdf|max:10240',
+                    'requiere_firma' => 'nullable|array',
+                    'requiere_firma.*' => 'nullable|string',
                     'rol' => [
                         'nullable',
                         'string',
@@ -570,8 +577,13 @@ $ordenablesAlertas = [];
                     throw new \Exception('Debes elegir un destino: rol, categoría o destinatario específico.');
                 }
 
+                // Debe haber un mensaje o, al menos, un documento adjunto
+                if (empty($request->mensaje) && !$request->hasFile('adjuntos')) {
+                    throw new \Exception('Debes escribir un mensaje o adjuntar al menos un documento.');
+                }
+
                 $data = [
-                    'mensaje'   => $request->mensaje,
+                    'mensaje'   => $request->mensaje ?? '',
                     'user_id_1' => $user->id,
                     'user_id_2' => session()->get('companero_id', null),
                     'leida'     => false,
@@ -579,7 +591,10 @@ $ordenablesAlertas = [];
 
                 if (!empty($request->rol)) {
                     $data['destino'] = $request->rol;
-                    $usuariosDestino = User::where('rol', $request->rol)->get();
+                    // "todos" => todos los usuarios (excepto el emisor); en otro caso, por rol
+                    $usuariosDestino = $request->rol === 'todos'
+                        ? User::where('id', '!=', $user->id)->get()
+                        : User::where('rol', $request->rol)->get();
                 } elseif (!empty($request->categoria)) {
                     $data['destinatario'] = $request->categoria;
                     $usuariosDestino = User::where('categoria_id', $request->categoria)->get();
@@ -597,6 +612,49 @@ $ordenablesAlertas = [];
                         'user_id'   => $destinatario->id,
                         'leida_en'  => null,
                     ]);
+                }
+
+                // Procesar adjuntos PDF (con o sin requerimiento de firma)
+                if ($request->hasFile('adjuntos')) {
+                    $requiereFirma = $request->input('requiere_firma', []);
+                    $archivos = $request->file('adjuntos') ?? [];
+                    $nombresNormalizados = [];
+
+                    foreach ($archivos as $archivo) {
+                        $normalizado = mb_strtolower(trim((string) $archivo->getClientOriginalName()));
+                        if (in_array($normalizado, $nombresNormalizados, true)) {
+                            throw new \Exception('No se permiten archivos con el mismo nombre en la misma subida.');
+                        }
+                        $nombresNormalizados[] = $normalizado;
+                    }
+
+                    foreach ($archivos as $index => $archivo) {
+                        $nombreOriginal = $archivo->getClientOriginalName();
+                        $extension = strtolower($archivo->getClientOriginalExtension() ?: 'pdf');
+                        $base = pathinfo($nombreOriginal, PATHINFO_FILENAME);
+                        $baseLimpia = Str::slug($base) ?: 'documento';
+                        $nombreFisico = $baseLimpia . '_' . now()->format('Ymd_His_u') . '_' . Str::lower(Str::random(8)) . '.' . $extension;
+                        $ruta = $archivo->storeAs('alertas/adjuntos', $nombreFisico, 'public');
+                        $necesitaFirma = isset($requiereFirma[$index]);
+
+                        $adjunto = AlertaAdjunto::create([
+                            'alerta_id'       => $alerta->id,
+                            'nombre_original' => $nombreOriginal,
+                            'ruta'            => $ruta,
+                            'requiere_firma'  => $necesitaFirma,
+                        ]);
+
+                        // Si requiere firma, crear un registro pendiente por cada destinatario
+                        if ($necesitaFirma) {
+                            foreach ($usuariosDestino as $destinatario) {
+                                AlertaAdjuntoFirma::create([
+                                    'alerta_adjunto_id' => $adjunto->id,
+                                    'user_id'           => $destinatario->id,
+                                    'firmado'           => false,
+                                ]);
+                            }
+                        }
+                    }
                 }
 
                 return $request->wantsJson()
@@ -673,18 +731,41 @@ $ordenablesAlertas = [];
     public function obtenerHilo($id)
     {
         try {
-            $alerta = Alerta::with(['usuario1', 'usuario2', 'destinatarioUser'])->findOrFail($id);
+            $alerta = Alerta::with(['usuario1', 'usuario2', 'destinatarioUser', 'adjuntos'])->findOrFail($id);
             $user = auth()->user();
 
-            // Obtener el mensaje raíz
+            // Obtener el mensaje raíz con adjuntos y firmas
             $mensajeRaiz = $alerta->mensajeRaiz();
+            $mensajeRaiz->load('adjuntos.firmas');
 
             // Obtener todas las respuestas recursivamente
             $hilo = $this->construirHilo($mensajeRaiz, $user);
 
+            // Verificar si el usuario tiene firmas pendientes en este mensaje
+            $pendienteFirma = false;
+            $adjuntosConFirmaPendiente = [];
+            foreach ($mensajeRaiz->adjuntos as $adj) {
+                if ($adj->requiere_firma) {
+                    $firmaPendiente = $adj->firmas
+                        ->where('user_id', $user->id)
+                        ->where('firmado', false)
+                        ->first();
+                    if ($firmaPendiente) {
+                        $pendienteFirma = true;
+                        $adjuntosConFirmaPendiente[] = [
+                            'id' => $adj->id,
+                            'nombre_original' => $adj->nombre_original,
+                            'ver_url' => route('alertas.adjuntos.ver', $adj->id),
+                        ];
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'hilo' => $hilo
+                'hilo' => $hilo,
+                'pendiente_firma' => $pendienteFirma,
+                'adjuntos_pendientes_firma' => $adjuntosConFirmaPendiente,
             ]);
         } catch (\Throwable $e) {
             Log::error('Error al obtener hilo: ' . $e->getMessage());
@@ -700,9 +781,18 @@ $ordenablesAlertas = [];
      */
     private function construirHilo($mensaje, $user, $incluirMensajeRaiz = true)
     {
+        $adjuntos = $mensaje->adjuntos->map(fn($adj) => [
+            'id' => $adj->id,
+            'nombre_original' => $adj->nombre_original,
+            'requiere_firma' => $adj->requiere_firma,
+            'ver_url' => route('alertas.adjuntos.ver', $adj->id),
+            'descargar_url' => route('alertas.adjuntos.descargar', $adj->id),
+        ])->toArray();
+
         $data = [
             'id' => $mensaje->id,
             'mensaje' => $mensaje->mensaje,
+            'adjuntos' => $adjuntos,
             'created_at' => $mensaje->created_at->format('d/m/Y H:i'),
             'user_id_1' => $mensaje->user_id_1,
             'emisor' => $mensaje->nombre_emisor,
@@ -716,5 +806,103 @@ $ordenablesAlertas = [];
         }
 
         return $data;
+    }
+
+    /**
+     * Firmar todos los adjuntos pendientes del usuario autenticado
+     */
+    public function firmarAdjuntos(Request $request)
+    {
+        $data = $request->validate([
+            'firma' => ['required', 'string'], // imagen base64 del canvas
+        ]);
+
+        $user = auth()->user();
+
+        // Decodificar la firma (base64) y guardarla como PNG
+        $image = $data['firma'];
+        if (strpos($image, ',') !== false) {
+            $image = explode(',', $image)[1];
+        }
+        $image = str_replace(' ', '+', $image);
+        $imageName = 'alertas/firmas/firma_doc_' . $user->id . '_' . time() . '.png';
+
+        Storage::disk('public')->put($imageName, base64_decode($image));
+
+        // Alertas asociadas a las firmas pendientes (antes de firmar)
+        $alertaIds = AlertaAdjuntoFirma::where('user_id', $user->id)
+            ->where('firmado', false)
+            ->with('adjunto')
+            ->get()
+            ->pluck('adjunto.alerta_id')
+            ->unique()
+            ->filter()
+            ->values();
+
+        // Marcar todas las firmas pendientes del usuario como firmadas
+        AlertaAdjuntoFirma::where('user_id', $user->id)
+            ->where('firmado', false)
+            ->update([
+                'firmado' => true,
+                'firmado_dia' => now(),
+                'firma_ruta' => $imageName,
+            ]);
+
+        // Marcar como leídas las alertas asociadas
+        if ($alertaIds->isNotEmpty()) {
+            AlertaLeida::where('user_id', $user->id)
+                ->whereIn('alerta_id', $alertaIds)
+                ->whereNull('leida_en')
+                ->update(['leida_en' => now()]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Ver un adjunto PDF (inline en el navegador)
+     */
+    public function verAdjunto($id)
+    {
+        $adjunto = AlertaAdjunto::findOrFail($id);
+        $path = Storage::disk('public')->path($adjunto->ruta);
+
+        if (!file_exists($path)) {
+            abort(404, 'Archivo no encontrado');
+        }
+
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $adjunto->nombre_original . '"',
+        ]);
+    }
+
+    /**
+     * Descargar un adjunto PDF
+     */
+    public function descargarAdjunto($id)
+    {
+        $adjunto = AlertaAdjunto::findOrFail($id);
+
+        if (!Storage::disk('public')->exists($adjunto->ruta)) {
+            abort(404, 'Archivo no encontrado');
+        }
+
+        return Storage::disk('public')->download($adjunto->ruta, $adjunto->nombre_original);
+    }
+
+    /**
+     * Servir la imagen de una firma de adjunto
+     */
+    public function verFirmaAdjunto(string $filename)
+    {
+        $path = 'alertas/firmas/' . basename($filename);
+        $disk = Storage::disk('public');
+
+        if (!$disk->exists($path)) {
+            abort(404);
+        }
+
+        return response()->file($disk->path($path));
     }
 }

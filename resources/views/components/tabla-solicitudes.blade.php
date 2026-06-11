@@ -30,7 +30,7 @@
                             $badgeClass = 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
                         }
                     @endphp
-                    <tr class="border-t border-gray-200 dark:border-gray-700 solicitud-row" data-solicitud-id="{{ $solicitud->id }}">
+                    <tr class="border-t border-gray-200 dark:border-gray-700 solicitud-row" data-solicitud-id="{{ $solicitud->id }}" data-user-id="{{ $solicitud->user_id }}">
                         <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">{{ $solicitud->user->nombre_completo }}</td>
                         <td class="px-4 py-2">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">

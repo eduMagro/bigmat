@@ -77,6 +77,26 @@
                                 {{ $user->nombre_completo }}</h1>
                             <p class="text-xs sm:text-sm text-gray-300 mt-1">{{ $user->categoria->nombre ?? 'N/A' }}</p>
                         </div>
+
+                        {{-- Buscador de usuarios (solo oficina) --}}
+                        @if(auth()->user()->rol === 'oficina')
+                        <div class="relative w-full sm:w-64" x-data="buscadorUsuarios()" @click.outside="resultados = []">
+                            <div class="relative" x-ref="inputWrap">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                                <input type="text"
+                                    x-model="query"
+                                    @input.debounce.300ms="buscar()"
+                                    @keydown.escape="resultados = []; query = ''"
+                                    @keydown.arrow-down.prevent="seleccionado = Math.min(seleccionado + 1, resultados.length - 1)"
+                                    @keydown.arrow-up.prevent="seleccionado = Math.max(seleccionado - 1, 0)"
+                                    @keydown.enter.prevent="if(resultados[seleccionado]) irA(resultados[seleccionado].id)"
+                                    placeholder="Buscar trabajador..."
+                                    class="w-full pl-9 pr-3 py-2 text-sm rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -166,9 +186,18 @@
             {{-- Información laboral --}}
             @php
                 $hoy = now();
-                // Usar accessor del modelo (calcula dinámicamente según fecha incorporación)
+                $anioActual = $hoy->year;
+                $anioAnterior = $anioActual - 1;
+
+                // Año actual: tope (accessor) y días disfrutados imputados a ese año (anio_vacacional-aware)
                 $vacacionesCorrespondientes = $user->vacaciones_correspondientes;
-                $vacacionesRestantes = max(0, $vacacionesCorrespondientes - $resumen['diasVacaciones']);
+                $vacacionesDisfrutadas = $user->vacacionesImputadasEnAnio($anioActual);
+                $vacacionesRestantes = max(0, $vacacionesCorrespondientes - $vacacionesDisfrutadas);
+
+                // Año anterior
+                $vacacionesCorrespondientesAnterior = $user->topeVacacionesEnAnio($anioAnterior);
+                $vacacionesDisfrutadasAnterior = $user->vacacionesImputadasEnAnio($anioAnterior);
+                $vacacionesRestantesAnterior = max(0, $vacacionesCorrespondientesAnterior - $vacacionesDisfrutadasAnterior);
 
                 $solicitudesPendientesData = \App\Models\VacacionesSolicitud::where('user_id', $user->id)
                     ->where('estado', 'pendiente')
@@ -203,11 +232,19 @@
                         {{-- Vacaciones --}}
                         <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs text-gray-600 dark:text-gray-300 font-medium">Vacaciones {{ $hoy->year }}</span>
+                                <span class="text-xs text-gray-600 dark:text-gray-300 font-medium">Vacaciones {{ $anioActual }}</span>
                                 <div class="flex items-center gap-4 text-xs">
                                     <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientes }}</span> <span class="text-gray-400">totales</span></span>
-                                    <span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ $resumen['diasVacaciones'] }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                    <span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadas }}</span> <span class="text-gray-400">disfrutadas</span></span>
                                     <span><span class="font-semibold {{ $vacacionesRestantes > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">{{ $vacacionesRestantes }}</span> <span class="text-gray-400">disponibles</span></span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Vacaciones {{ $anioAnterior }} <span class="text-[10px] text-gray-400">(año anterior)</span></span>
+                                <div class="flex items-center gap-4 text-xs">
+                                    <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientesAnterior }}</span> <span class="text-gray-400">totales</span></span>
+                                    <span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadasAnterior }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                    <span><span class="font-semibold {{ $vacacionesRestantesAnterior > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">{{ $vacacionesRestantesAnterior }}</span> <span class="text-gray-400">pendientes</span></span>
                                 </div>
                             </div>
                             @if ($solicitudesPendientesData->count() > 0)
@@ -569,3 +606,99 @@
         </div>
     </div>
 </div>
+
+@if(auth()->user()->rol === 'oficina')
+<script>
+    function buscadorUsuarios() {
+        let dropdown = null;
+        return {
+            query: '',
+            resultados: [],
+            seleccionado: 0,
+            buscando: false,
+            init() {
+                // Crear dropdown en el body para evitar stacking context
+                dropdown = document.createElement('div');
+                dropdown.className = 'buscador-usuarios-dropdown';
+                dropdown.style.cssText = 'position:fixed;z-index:99999;display:none;';
+                dropdown.innerHTML = '';
+                document.body.appendChild(dropdown);
+
+                // Cerrar al hacer click fuera
+                document.addEventListener('click', (e) => {
+                    if (!this.$el.contains(e.target) && !dropdown.contains(e.target)) {
+                        this.resultados = [];
+                    }
+                });
+
+                this.$watch('resultados', () => this.renderDropdown());
+                this.$watch('seleccionado', () => this.renderDropdown());
+            },
+            destroy() {
+                if (dropdown) dropdown.remove();
+            },
+            renderDropdown() {
+                if (!dropdown) return;
+                const rect = this.$refs.inputWrap.getBoundingClientRect();
+                dropdown.style.top = (rect.bottom + 4) + 'px';
+                dropdown.style.left = rect.left + 'px';
+                dropdown.style.width = rect.width + 'px';
+
+                if (this.resultados.length > 0) {
+                    const isDark = document.documentElement.classList.contains('dark');
+                    let html = `<div class="rounded-xl shadow-2xl border overflow-hidden max-h-64 overflow-y-auto ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}">`;
+                    this.resultados.forEach((u, i) => {
+                        const sel = i === this.seleccionado;
+                        const bgClass = sel ? (isDark ? 'bg-gray-700' : 'bg-blue-50') : '';
+                        const hoverClass = isDark ? 'hover:bg-gray-700' : 'hover:bg-blue-50';
+                        const avatar = u.imagen
+                            ? `<img src="${u.imagen}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">`
+                            : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isDark ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-600'}">${u.nombre.charAt(0).toUpperCase()}</div>`;
+                        html += `<a href="{{ url('users') }}/${u.id}" class="flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer ${hoverClass} ${bgClass}">
+                            ${avatar}
+                            <span class="text-sm truncate ${isDark ? 'text-gray-200' : 'text-gray-800'}">${u.nombre}</span>
+                        </a>`;
+                    });
+                    html += '</div>';
+                    dropdown.innerHTML = html;
+                    dropdown.style.display = 'block';
+                } else if (this.query.length >= 2 && !this.buscando) {
+                    const isDark = document.documentElement.classList.contains('dark');
+                    dropdown.innerHTML = `<div class="rounded-xl shadow-2xl border p-3 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}">
+                        <p class="text-sm text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}">Sin resultados</p>
+                    </div>`;
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            },
+            async buscar() {
+                if (this.query.length < 2) {
+                    this.resultados = [];
+                    return;
+                }
+                this.buscando = true;
+                try {
+                    const res = await fetch(`{{ route('users.buscar') }}?q=${encodeURIComponent(this.query)}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+                    if (!res.ok) throw new Error(res.status);
+                    this.resultados = await res.json();
+                    this.seleccionado = 0;
+                } catch (e) {
+                    console.error('Buscar usuarios:', e);
+                    this.resultados = [];
+                } finally {
+                    this.buscando = false;
+                }
+            },
+            irA(id) {
+                window.location.href = '{{ url('users') }}/' + id;
+            }
+        };
+    }
+</script>
+@endif

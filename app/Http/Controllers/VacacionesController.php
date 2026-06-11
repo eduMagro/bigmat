@@ -35,13 +35,19 @@ class VacacionesController extends Controller
             ->get();
 
         // Añadir datos de vacaciones a cada solicitud
-        $inicioAño = Carbon::now()->startOfYear();
         $userIds = $solicitudesPendientes->pluck('user_id')->unique();
 
-        // Obtener vacaciones usadas por usuario
+        // Obtener vacaciones usadas por usuario (imputadas al año actual: anio_vacacional o año natural)
+        $anioActual = Carbon::now()->year;
         $vacacionesUsadas = AsignacionTurno::whereIn('user_id', $userIds)
             ->where('estado', 'vacaciones')
-            ->where('fecha', '>=', $inicioAño)
+            ->where(function ($q) use ($anioActual) {
+                $q->where('anio_vacacional', $anioActual)
+                    ->orWhere(function ($q2) use ($anioActual) {
+                        $q2->whereNull('anio_vacacional')
+                            ->whereYear('fecha', $anioActual);
+                    });
+            })
             ->selectRaw('user_id, COUNT(*) as total')
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
@@ -357,27 +363,62 @@ class VacacionesController extends Controller
         }
     }
 
+    /**
+     * Consultar vacaciones sobrantes del año anterior para un usuario.
+     * Días que correspondían el año pasado (prorrateados si se incorporó ese año, base 30)
+     * menos los ya imputados a ese año.
+     */
+    public function sobrantesAnioAnterior(User $user)
+    {
+        $anioActual = Carbon::now()->year;
+        $anioAnterior = $anioActual - 1;
+
+        $diasCorrespondian = $this->topeAnio($user, $anioAnterior);
+        $diasUsados = $this->contarVacacionesAnio($user->id, $anioAnterior);
+        $sobrantes = max(0, $diasCorrespondian - $diasUsados);
+
+        return response()->json([
+            'anio_anterior' => $anioAnterior,
+            'dias_correspondian' => $diasCorrespondian,
+            'dias_usados' => $diasUsados,
+            'sobrantes' => $sobrantes,
+        ]);
+    }
+
+    /**
+     * Contar días de vacaciones imputados a un año concreto (anio_vacacional-aware).
+     * Delega en el modelo (fuente única de verdad).
+     */
+    private function contarVacacionesAnio(int $userId, int $anio): int
+    {
+        $user = User::find($userId);
+        return $user ? $user->vacacionesImputadasEnAnio($anio) : 0;
+    }
+
+    /**
+     * Tope de vacaciones (días naturales, base 30) para un año concreto.
+     * Delega en el modelo (fuente única de verdad).
+     */
+    private function topeAnio(User $user, int $anio): int
+    {
+        return $user->topeVacacionesEnAnio($anio);
+    }
+
     public function aprobar(Request $request, $id)
     {
         $isAjax = request()->ajax() || request()->wantsJson();
+        $anioVacacional = $request->input('anio_vacacional'); // null = año natural actual
+        $sobrantesAnterior = $request->input('sobrantes_anterior') !== null
+            ? (int) $request->input('sobrantes_anterior')
+            : null;
 
         try {
             $solicitud = VacacionesSolicitud::with('user.incorporacion')->findOrFail($id);
             $user = $solicitud->user;
 
-            // Obtener año de cargo (del request o año de la fecha de inicio)
-            $fechaInicio = Carbon::parse($solicitud->fecha_inicio);
-            $anioCargo = $request->input('anio_cargo', $fechaInicio->year);
-
             $rango = CarbonPeriod::create($solicitud->fecha_inicio, $solicitud->fecha_fin);
             $diasNuevos = 0;
             $fechasAsignables = [];
-
-            // Contar días ya asignados para el año de cargo seleccionado
-            $diasYaAsignados = $user->asignacionesTurnos()
-                ->where('estado', 'vacaciones')
-                ->where('anio_cargo', $anioCargo)
-                ->count();
 
             foreach ($rango as $fecha) {
                 $fechaStr = $fecha->format('Y-m-d');
@@ -393,17 +434,52 @@ class VacacionesController extends Controller
                 }
             }
 
-            $tope = $user->vacaciones_correspondientes ?? 30;
+            // Año destino de imputación y detección de reparto con el año anterior
+            $anioActual = Carbon::now()->year;
+            $anioTarget = $anioVacacional ? (int) $anioVacacional : $anioActual;
+            $esSplitAnterior = $anioVacacional && (int) $anioVacacional < $anioActual && $sobrantesAnterior !== null;
 
-            if (($diasYaAsignados + $diasNuevos) > $tope) {
-                $errorMsg = "No se puede aprobar. El usuario ya tiene {$diasYaAsignados} días asignados en {$anioCargo} y esta solicitud añade {$diasNuevos}, superando el tope de {$tope} días.";
-                if ($isAjax) {
-                    return response()->json(['success' => false, 'error' => $errorMsg], 400);
+            // Validar tope (repartiendo entre año anterior y actual si procede)
+            if ($esSplitAnterior) {
+                $diasAlAnterior = min($diasNuevos, $sobrantesAnterior);
+                $diasAlActual = $diasNuevos - $diasAlAnterior;
+
+                $yaAnterior = $this->contarVacacionesAnio($user->id, $anioTarget);
+                $topeAnterior = $this->topeAnio($user, $anioTarget);
+                if (($yaAnterior + $diasAlAnterior) > $topeAnterior) {
+                    $errorMsg = "No se puede aprobar. El usuario tiene {$yaAnterior} días imputados a {$anioTarget} y se añadirían {$diasAlAnterior}, superando el tope de {$topeAnterior}.";
+                    return $isAjax
+                        ? response()->json(['success' => false, 'error' => $errorMsg], 400)
+                        : redirect()->back()->with('error', $errorMsg);
                 }
-                return redirect()->back()->with('error', $errorMsg);
+
+                if ($diasAlActual > 0) {
+                    $yaActual = $this->contarVacacionesAnio($user->id, $anioActual);
+                    $topeActual = $user->vacaciones_correspondientes ?? 30;
+                    if (($yaActual + $diasAlActual) > $topeActual) {
+                        $errorMsg = "No se puede aprobar. Los días excedentes ({$diasAlActual}) irían a {$anioActual}, pero el usuario ya tiene {$yaActual} de {$topeActual}.";
+                        return $isAjax
+                            ? response()->json(['success' => false, 'error' => $errorMsg], 400)
+                            : redirect()->back()->with('error', $errorMsg);
+                    }
+                }
+            } else {
+                $diasYaAsignados = $this->contarVacacionesAnio($user->id, $anioTarget);
+                $tope = ($anioTarget === $anioActual)
+                    ? ($user->vacaciones_correspondientes ?? 30)
+                    : $this->topeAnio($user, $anioTarget);
+
+                if (($diasYaAsignados + $diasNuevos) > $tope) {
+                    $errorMsg = "No se puede aprobar. El usuario ya tiene {$diasYaAsignados} días imputados a {$anioTarget} y esta solicitud añade {$diasNuevos}, superando el tope de {$tope} días.";
+                    if ($isAjax) {
+                        return response()->json(['success' => false, 'error' => $errorMsg], 400);
+                    }
+                    return redirect()->back()->with('error', $errorMsg);
+                }
             }
 
-            // Asignación real (todos los días del rango)
+            // Asignación real (todos los días del rango) con reparto automático por año
+            $contadorAnterior = 0;
             foreach ($fechasAsignables as $fechaStr) {
                 $asignacion = AsignacionTurno::firstOrNew([
                     'user_id' => $user->id,
@@ -413,11 +489,22 @@ class VacacionesController extends Controller
                 $estadoAnterior = $asignacion->estado;
 
                 $asignacion->estado = 'vacaciones';
-                $asignacion->anio_cargo = $anioCargo;
+
+                if ($esSplitAnterior) {
+                    if ($contadorAnterior < $sobrantesAnterior) {
+                        $asignacion->anio_vacacional = (int) $anioVacacional;
+                        $contadorAnterior++;
+                    } else {
+                        $asignacion->anio_vacacional = $anioActual;
+                    }
+                } else {
+                    $asignacion->anio_vacacional = $anioTarget;
+                }
+
                 $asignacion->maquina_id = $user->maquina_id;
                 $asignacion->save();
 
-                Log::info("Asignación vacaciones para $fechaStr - año cargo: $anioCargo - estado anterior: " . ($estadoAnterior ?? 'ninguno'));
+                Log::info("Asignación vacaciones para $fechaStr - año vacacional: {$asignacion->anio_vacacional} - estado anterior: " . ($estadoAnterior ?? 'ninguno'));
             }
 
             // Marcar solicitud como aprobada
@@ -434,7 +521,8 @@ class VacacionesController extends Controller
                 'updated_at' => now(),
             ]);
 
-            $successMsg = "Solicitud aprobada. Se asignaron {$diasNuevos} días de vacaciones.";
+            $labelAnio = $anioVacacional ? " (imputadas a {$anioVacacional})" : "";
+            $successMsg = "Solicitud aprobada. Se asignaron {$diasNuevos} días de vacaciones{$labelAnio}.";
 
             if ($isAjax) {
                 return response()->json([
@@ -797,8 +885,6 @@ class VacacionesController extends Controller
      */
     public function usuariosConVacaciones()
     {
-        $inicioAño = Carbon::now()->startOfYear();
-
         // Obtener IDs de usuarios visibles para el usuario actual
         $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
 
@@ -809,11 +895,18 @@ class VacacionesController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Contar vacaciones asignadas para cada usuario
+        // Contar vacaciones asignadas para cada usuario (imputadas al año actual: anio_vacacional o año natural)
+        $anioActual = Carbon::now()->year;
         $usuarioIds = $usuarios->pluck('id');
         $vacacionesPorUsuario = AsignacionTurno::whereIn('user_id', $usuarioIds)
             ->where('estado', 'vacaciones')
-            ->where('fecha', '>=', $inicioAño)
+            ->where(function ($q) use ($anioActual) {
+                $q->where('anio_vacacional', $anioActual)
+                    ->orWhere(function ($q2) use ($anioActual) {
+                        $q2->whereNull('anio_vacacional')
+                            ->whereYear('fecha', $anioActual);
+                    });
+            })
             ->selectRaw('user_id, COUNT(*) as total_vacaciones')
             ->groupBy('user_id')
             ->pluck('total_vacaciones', 'user_id');
@@ -843,16 +936,15 @@ class VacacionesController extends Controller
                 'user_id' => 'required|exists:users,id',
                 'fecha_inicio' => 'required|date',
                 'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+                'anio_vacacional' => 'nullable|integer|min:2020|max:2099',
             ]);
 
             $user = User::with('incorporacion')->findOrFail($validated['user_id']);
+            $anioVacacional = $validated['anio_vacacional'] ?? null;
+            $sobrantesAnterior = $request->input('sobrantes_anterior') !== null
+                ? (int) $request->input('sobrantes_anterior')
+                : null;
             $rango = CarbonPeriod::create($validated['fecha_inicio'], $validated['fecha_fin']);
-
-            $inicioAño = Carbon::now()->startOfYear();
-            $diasYaAsignados = $user->asignacionesTurnos()
-                ->where('estado', 'vacaciones')
-                ->where('fecha', '>=', $inicioAño)
-                ->count();
 
             $diasNuevos = 0;
             $fechasAsignables = [];
@@ -878,15 +970,51 @@ class VacacionesController extends Controller
                 ], 400);
             }
 
-            $tope = $user->vacaciones_correspondientes ?? 30;
-            if (($diasYaAsignados + $diasNuevos) > $tope) {
-                return response()->json([
-                    'error' => "El usuario ya tiene {$diasYaAsignados} días asignados. Añadir {$diasNuevos} días supera el tope de {$tope}."
-                ], 400);
+            // Validar tope (repartiendo entre año anterior y actual si procede)
+            $anioActual = Carbon::now()->year;
+            $anioTarget = $anioVacacional ? (int) $anioVacacional : $anioActual;
+            $esSplitAnterior = $anioVacacional && (int) $anioVacacional < $anioActual && $sobrantesAnterior !== null;
+
+            if ($esSplitAnterior) {
+                $diasAlAnterior = min($diasNuevos, $sobrantesAnterior);
+                $diasAlActual = $diasNuevos - $diasAlAnterior;
+
+                $yaAnterior = $this->contarVacacionesAnio($user->id, $anioTarget);
+                $topeAnterior = $this->topeAnio($user, $anioTarget);
+                if (($yaAnterior + $diasAlAnterior) > $topeAnterior) {
+                    return response()->json([
+                        'error' => "El usuario tiene {$yaAnterior} días imputados a {$anioTarget} y se añadirían {$diasAlAnterior}, superando el tope de {$topeAnterior}."
+                    ], 400);
+                }
+
+                if ($diasAlActual > 0) {
+                    $yaActual = $this->contarVacacionesAnio($user->id, $anioActual);
+                    $topeActual = $user->vacaciones_correspondientes ?? 30;
+                    if (($yaActual + $diasAlActual) > $topeActual) {
+                        return response()->json([
+                            'error' => "Los días excedentes ({$diasAlActual}) irían a {$anioActual}, pero ya tiene {$yaActual} de {$topeActual}."
+                        ], 400);
+                    }
+                }
+
+                $diasYaAsignados = $yaAnterior;
+            } else {
+                $diasYaAsignados = $this->contarVacacionesAnio($user->id, $anioTarget);
+                $tope = ($anioTarget === $anioActual)
+                    ? ($user->vacaciones_correspondientes ?? 30)
+                    : $this->topeAnio($user, $anioTarget);
+
+                if (($diasYaAsignados + $diasNuevos) > $tope) {
+                    return response()->json([
+                        'error' => "El usuario ya tiene {$diasYaAsignados} días imputados a {$anioTarget}. Añadir {$diasNuevos} días supera el tope de {$tope}."
+                    ], 400);
+                }
             }
 
-            // Asignar vacaciones
-            DB::transaction(function () use ($fechasAsignables, $user) {
+            // Asignar vacaciones con reparto automático por año
+            DB::transaction(function () use ($fechasAsignables, $user, $anioVacacional, $sobrantesAnterior, $anioActual, $anioTarget, $esSplitAnterior) {
+                $contadorAnterior = 0;
+
                 foreach ($fechasAsignables as $fechaStr) {
                     $asignacion = AsignacionTurno::firstOrNew([
                         'user_id' => $user->id,
@@ -894,14 +1022,27 @@ class VacacionesController extends Controller
                     ]);
 
                     $asignacion->estado = 'vacaciones';
+
+                    if ($esSplitAnterior) {
+                        if ($contadorAnterior < $sobrantesAnterior) {
+                            $asignacion->anio_vacacional = (int) $anioVacacional;
+                            $contadorAnterior++;
+                        } else {
+                            $asignacion->anio_vacacional = $anioActual;
+                        }
+                    } else {
+                        $asignacion->anio_vacacional = $anioTarget;
+                    }
+
                     $asignacion->maquina_id = $user->maquina_id;
                     $asignacion->save();
                 }
             });
 
+            $labelAnio = $anioVacacional ? " (imputadas a {$anioVacacional})" : "";
             return response()->json([
                 'success' => true,
-                'message' => "Se asignaron {$diasNuevos} días de vacaciones a {$user->nombre_completo}.",
+                'message' => "Se asignaron {$diasNuevos} días de vacaciones a {$user->nombre_completo}{$labelAnio}.",
                 'dias_asignados' => $diasNuevos,
                 'total_vacaciones' => $diasYaAsignados + $diasNuevos,
             ]);

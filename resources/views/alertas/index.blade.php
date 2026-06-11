@@ -46,7 +46,7 @@
                         <div class="mb-4">
                             <label for="mensaje" class="block text-sm font-semibold dark:text-gray-200">Mensaje:</label>
                             <textarea id="mensaje" name="mensaje" rows="3"
-                                class="w-full border border-gray-200 dark:border-gray-700 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" required>{{ old('mensaje') }}</textarea>
+                                class="w-full border border-gray-200 dark:border-gray-700 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" @if(auth()->user()->rol !== 'oficina') required @endif>{{ old('mensaje') }}</textarea>
                         </div>
                         {{-- <div class="mb-4">
                             <label for="imagen" class="block text-sm font-semibold">Imagen (opcional):</label>
@@ -59,6 +59,7 @@
                                 <label for="rol" class="block text-sm font-semibold dark:text-gray-200">Rol</label>
                                 <select id="rol" name="rol" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                                     <option value="">-- Seleccionar un Rol --</option>
+                                    <option value="todos">Todos los roles</option>
                                     @foreach ($roles as $rol)
                                         <option value="{{ $rol }}">{{ ucfirst($rol) }}</option>
                                     @endforeach
@@ -85,6 +86,35 @@
                                         <option value="{{ $usuario->id }}">{{ $usuario->nombre_completo }}</option>
                                     @endforeach
                                 </select>
+                            </div>
+
+                            <!-- Adjuntar documentos PDF (con opción de requerir firma) -->
+                            <div class="mb-4" x-data="adjuntosManager()">
+                                <label class="block text-sm font-semibold dark:text-gray-200 mb-2">Adjuntar PDFs (opcional, máx. 5):</label>
+                                <input type="file" accept=".pdf" multiple x-ref="inputPdf" @change="agregarArchivos($event)"
+                                    class="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg p-1 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-200"
+                                    :disabled="archivos.length >= 5">
+
+                                <template x-for="(archivo, index) in archivos" :key="index">
+                                    <div class="flex items-center gap-2 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+                                        <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span class="flex-1 truncate dark:text-gray-200" x-text="archivo.name"></span>
+                                        <label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                            <input type="checkbox" :name="'requiere_firma[' + index + ']'" value="1"
+                                                class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                                            Requiere firma
+                                        </label>
+                                        <button type="button" @click="eliminarArchivo(index)" class="text-red-500 hover:text-red-700 p-1">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <p x-show="archivos.length >= 5" class="text-xs text-amber-600 dark:text-amber-400 mt-1">Máximo 5 archivos alcanzado.</p>
                             </div>
                         @else
                             <!-- Para usuarios que no son de oficina: ocultamos los campos -->
@@ -204,17 +234,27 @@
                                                 </span>
                                             @endif
                                         </div>
-                                        @if ($alerta->total_respuestas > 0)
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
-                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd"
-                                                        d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                                                        clip-rule="evenodd" />
-                                                </svg>
-                                                {{ $alerta->total_respuestas }}
-                                            </span>
-                                        @endif
+                                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                            @if ($alerta->adjuntos->count() > 0)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 whitespace-nowrap">
+                                                    <svg class="w-3 h-3 mr-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    {{ $alerta->adjuntos->count() }}
+                                                </span>
+                                            @endif
+                                            @if ($alerta->total_respuestas > 0)
+                                                <span
+                                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
+                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd"
+                                                            d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                    {{ $alerta->total_respuestas }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </td>
 
@@ -362,6 +402,15 @@
                                         </button>
                                     @endif
 
+                                    @if ($alerta->adjuntos->count() > 0)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                            </svg>
+                                            {{ $alerta->adjuntos->count() }}
+                                            {{ $alerta->adjuntos->count() == 1 ? 'documento' : 'documentos' }}
+                                        </span>
+                                    @endif
                                     @if ($alerta->total_respuestas > 0)
                                         <span
                                             class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-700">
@@ -1411,6 +1460,12 @@
                             if (data.hilo.respuestas && data.hilo.respuestas.length > 0) {
                                 mostrarHilo(data.hilo.respuestas, 0);
                             }
+
+                            // Sección de firma si hay documentos pendientes de firmar
+                            if (data.pendiente_firma && data.adjuntos_pendientes_firma && data.adjuntos_pendientes_firma.length > 0) {
+                                mostrarSeccionFirma(data.adjuntos_pendientes_firma);
+                            }
+
                             setTimeout(() => {
                                 hiloContenido.scrollTop = hiloContenido.scrollHeight;
                             }, 100);
@@ -1451,6 +1506,8 @@
                     `;
                 }
 
+                const adjuntosHtml = window.renderAdjuntosHtml ? window.renderAdjuntosHtml(mensaje.adjuntos) : '';
+
                 const mensajeDiv = document.createElement('div');
                 mensajeDiv.className = `flex ${esPropio ? 'justify-end' : 'justify-start'}`;
                 mensajeDiv.innerHTML = `
@@ -1464,6 +1521,8 @@
                         ` : ''}
 
                         <p class="mensaje-mensaje text-[15px] leading-relaxed whitespace-pre-wrap">${mensajeTexto}</p>
+
+                        ${adjuntosHtml}
 
                         ${botonesRevision}
 
@@ -1506,6 +1565,7 @@
                     <div class="chat-bubble ${bubbleClass} max-w-[85%] px-4 py-2.5">
                         ${!esPropio ? `<p class="text-xs font-semibold text-emerald-600 mb-1">${respuesta.emisor}</p>` : ''}
                         <p class="text-[15px] text-slate-800 leading-relaxed whitespace-pre-wrap">${respuesta.mensaje}</p>
+                        ${window.renderAdjuntosHtml ? window.renderAdjuntosHtml(respuesta.adjuntos) : ''}
                         <div class="flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5">
                             <span class="text-[11px] text-slate-500">${respuesta.created_at}</span>
                             ${esPropio ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
@@ -1518,6 +1578,263 @@
                     }
                 });
             }
+
+            // ===== FIRMA DE DOCUMENTOS ADJUNTOS =====
+            const escAdj = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+
+            // Componente Alpine para gestionar los PDF adjuntos del formulario de envío
+            window.adjuntosManager = function() {
+                return {
+                    archivos: [],
+                    dataTransfer: new DataTransfer(),
+                    agregarArchivos(event) {
+                        const nuevos = Array.from(event.target.files);
+                        for (const f of nuevos) {
+                            if (this.archivos.length >= 5) break;
+                            if (f.type !== 'application/pdf') {
+                                Swal.fire('Error', 'Solo se permiten archivos PDF.', 'error');
+                                continue;
+                            }
+                            if (f.size > 10 * 1024 * 1024) {
+                                Swal.fire('Error', `El archivo "${f.name}" supera los 10 MB.`, 'error');
+                                continue;
+                            }
+                            this.archivos.push(f);
+                            this.dataTransfer.items.add(f);
+                        }
+                        this.sincronizarInput();
+                        event.target.value = '';
+                    },
+                    eliminarArchivo(index) {
+                        this.archivos.splice(index, 1);
+                        this.dataTransfer = new DataTransfer();
+                        this.archivos.forEach(f => this.dataTransfer.items.add(f));
+                        this.sincronizarInput();
+                    },
+                    sincronizarInput() {
+                        const form = this.$el.closest('form');
+                        let input = form.querySelector('input[name="adjuntos[]"]');
+                        if (!input) {
+                            input = document.createElement('input');
+                            input.type = 'file';
+                            input.name = 'adjuntos[]';
+                            input.multiple = true;
+                            input.style.display = 'none';
+                            form.appendChild(input);
+                        }
+                        input.files = this.dataTransfer.files;
+                    }
+                };
+            };
+
+            // Render de los adjuntos PDF dentro de una burbuja del hilo
+            window.renderAdjuntosHtml = function(adjuntos) {
+                if (!adjuntos || !adjuntos.length) return '';
+                const items = adjuntos.map(adj => `
+                    <div class="flex items-center gap-1.5 px-2 py-1.5 bg-white/10 border border-white/20 rounded-lg text-xs">
+                        <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="truncate max-w-[120px]" title="${escAdj(adj.nombre_original)}">${escAdj(adj.nombre_original)}</span>
+                        <a href="${escAdj(adj.ver_url)}" target="_blank" rel="noopener noreferrer" class="p-1 text-blue-600 bg-white rounded shadow-sm hover:bg-blue-50 transition-colors" title="Ver">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </a>
+                        <a href="${escAdj(adj.descargar_url)}" class="p-1 text-green-600 bg-white rounded shadow-sm hover:bg-green-50 transition-colors" title="Descargar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        </a>
+                    </div>
+                `).join('');
+                return `<div class="flex flex-wrap gap-1.5 mt-2">${items}</div>`;
+            };
+
+            // Sección de firma dentro del hilo (documentos pendientes del usuario)
+            window.mostrarSeccionFirma = function(adjuntosPendientes) {
+                const hiloContenido = document.getElementById('hiloContenido');
+                if (document.getElementById('seccionFirmaAdjuntos')) return;
+
+                const firmaDiv = document.createElement('div');
+                firmaDiv.className = 'mx-2 mt-4 mb-2';
+                firmaDiv.id = 'seccionFirmaAdjuntos';
+
+                const listaItems = adjuntosPendientes.map(adj => `
+                    <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-700 rounded-lg text-xs border border-gray-200 dark:border-gray-600">
+                        <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="flex-1 truncate text-gray-700 dark:text-gray-300">${escAdj(adj.nombre_original)}</span>
+                        <a href="${escAdj(adj.ver_url)}" target="_blank" rel="noopener noreferrer" class="p-1 text-blue-600 bg-gray-50 dark:bg-gray-600 rounded shadow-sm hover:bg-blue-50 transition-colors" title="Ver PDF">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </a>
+                    </div>
+                `).join('');
+
+                firmaDiv.innerHTML = `
+                    <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-700 rounded-xl p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                            </svg>
+                            <h4 class="text-sm font-bold text-orange-800 dark:text-orange-300">Documentos pendientes de tu firma</h4>
+                        </div>
+                        <div class="space-y-1.5 mb-4">${listaItems}</div>
+                        <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                            <input type="checkbox" id="confirmarFirmaChat" class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                            <span class="text-xs text-gray-700 dark:text-gray-300">Confirmo haber revisado y recibido los documentos</span>
+                        </label>
+                        <div id="canvasFirmaChatWrapper" class="hidden">
+                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase mb-2">Tu firma</p>
+                            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 relative touch-none select-none w-full" style="height: 150px;">
+                                <canvas id="signature-pad-chat" class="absolute inset-0 w-full h-full cursor-crosshair rounded-xl"></canvas>
+                                <div id="firmaPlaceholderChat" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span class="text-gray-400 dark:text-gray-500 text-sm">Dibuja tu firma aquí</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2">
+                                <button type="button" onclick="limpiarFirmaChat()" class="text-xs text-red-600 hover:text-red-800 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Borrar
+                                </button>
+                                <button type="button" id="btnEnviarFirmaChat" onclick="enviarFirmaChat()" disabled
+                                    class="px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                                    <span id="btnFirmaChatTexto">Firmar</span>
+                                    <svg id="btnFirmaChatSpinner" class="hidden animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                hiloContenido.appendChild(firmaDiv);
+
+                document.getElementById('confirmarFirmaChat').addEventListener('change', function() {
+                    const wrapper = document.getElementById('canvasFirmaChatWrapper');
+                    if (this.checked) {
+                        wrapper.classList.remove('hidden');
+                        setTimeout(() => initCanvasFirmaChat(), 50);
+                    } else {
+                        wrapper.classList.add('hidden');
+                    }
+                });
+            };
+
+            window._firmaChatCtx = null;
+            window._firmaChatDrawing = false;
+            window._firmaChatHasSignature = false;
+
+            window.initCanvasFirmaChat = function() {
+                const canvas = document.getElementById('signature-pad-chat');
+                if (!canvas) return;
+
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#000000';
+                window._firmaChatCtx = ctx;
+
+                function getPos(e) {
+                    const r = canvas.getBoundingClientRect();
+                    let cx = e.clientX, cy = e.clientY;
+                    if (e.touches && e.touches.length > 0) {
+                        cx = e.touches[0].clientX;
+                        cy = e.touches[0].clientY;
+                    }
+                    return { x: cx - r.left, y: cy - r.top };
+                }
+
+                canvas.onmousedown = (e) => {
+                    window._firmaChatDrawing = true;
+                    window._firmaChatHasSignature = true;
+                    document.getElementById('firmaPlaceholderChat').classList.add('hidden');
+                    document.getElementById('btnEnviarFirmaChat').disabled = false;
+                    const pos = getPos(e);
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                };
+                canvas.onmousemove = (e) => {
+                    if (!window._firmaChatDrawing) return;
+                    const pos = getPos(e);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                };
+                canvas.onmouseup = () => { window._firmaChatDrawing = false; ctx.closePath(); };
+                canvas.onmouseleave = () => { window._firmaChatDrawing = false; ctx.closePath(); };
+
+                canvas.ontouchstart = (e) => { e.preventDefault(); canvas.onmousedown(e); };
+                canvas.ontouchmove = (e) => { e.preventDefault(); canvas.onmousemove(e); };
+                canvas.ontouchend = () => { window._firmaChatDrawing = false; ctx.closePath(); };
+
+                setTimeout(() => {
+                    canvas.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            };
+
+            window.limpiarFirmaChat = function() {
+                const canvas = document.getElementById('signature-pad-chat');
+                if (!canvas || !window._firmaChatCtx) return;
+                window._firmaChatCtx.clearRect(0, 0, canvas.width, canvas.height);
+                window._firmaChatHasSignature = false;
+                document.getElementById('firmaPlaceholderChat').classList.remove('hidden');
+                document.getElementById('btnEnviarFirmaChat').disabled = true;
+            };
+
+            window.enviarFirmaChat = async function() {
+                if (!window._firmaChatHasSignature) return;
+
+                const canvas = document.getElementById('signature-pad-chat');
+                const btn = document.getElementById('btnEnviarFirmaChat');
+                const texto = document.getElementById('btnFirmaChatTexto');
+                const spinner = document.getElementById('btnFirmaChatSpinner');
+
+                btn.disabled = true;
+                texto.textContent = 'Guardando...';
+                spinner.classList.remove('hidden');
+
+                const dataUrl = canvas.toDataURL('image/png');
+
+                try {
+                    const res = await fetch("{{ route('alertas.adjuntos.firmar') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ firma: dataUrl })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        const seccion = document.getElementById('seccionFirmaAdjuntos');
+                        if (seccion) {
+                            seccion.innerHTML = `
+                                <div class="bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-xl p-4 text-center">
+                                    <svg class="w-8 h-8 text-green-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <p class="text-sm font-semibold text-green-700 dark:text-green-300">Documentos firmados correctamente</p>
+                                </div>
+                            `;
+                        }
+                        setTimeout(() => location.reload(), 1200);
+                    } else {
+                        throw new Error(data.message || 'Error al guardar la firma');
+                    }
+                } catch (e) {
+                    Swal.fire('Error', e.message, 'error');
+                    btn.disabled = false;
+                    texto.textContent = 'Firmar';
+                    spinner.classList.add('hidden');
+                }
+            };
 
             window.activarRespuesta = function() {
                 document.getElementById('textoRespuesta').focus();

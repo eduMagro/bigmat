@@ -49,6 +49,11 @@ class Alerta extends Model
     {
         return $this->belongsTo(User::class, 'destinatario_id');
     }
+    public function adjuntos()
+    {
+        return $this->hasMany(AlertaAdjunto::class, 'alerta_id');
+    }
+
     public function leidas()
     {
         return $this->hasMany(AlertaLeida::class, 'alerta_id');

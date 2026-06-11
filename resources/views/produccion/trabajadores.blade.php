@@ -244,8 +244,48 @@
                 },
                 resources: datosCalendario.recursos,
                 resourceOrder: 'orden',
-                resourceAreaWidth: '180px',
-                resourceAreaColumns: [{ field: 'title', headerContent: 'Trabajadores' }],
+                resourceAreaWidth: '210px',
+                resourceAreaColumns: [{
+                    field: 'title',
+                    headerContent: 'Trabajadores',
+                    cellContent(arg) {
+                        const props = arg.resource.extendedProps || {};
+                        const a = document.createElement('a');
+                        a.href = CONFIG.routes.userShow.replace(':id', arg.resource.id);
+                        a.title = 'Ver ficha de ' + arg.resource.title;
+                        a.className = 'flex items-center gap-2 group cursor-pointer';
+
+                        let avatar;
+                        if (props.foto) {
+                            avatar = document.createElement('img');
+                            avatar.src = props.foto;
+                            avatar.alt = '';
+                            avatar.loading = 'lazy';
+                            avatar.className = 'w-7 h-7 rounded-full object-cover border border-gray-200 flex-shrink-0';
+                        } else {
+                            avatar = document.createElement('div');
+                            avatar.className = 'w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold flex-shrink-0';
+                            avatar.textContent = (arg.resource.title || '?').charAt(0).toUpperCase();
+                        }
+
+                        const texto = document.createElement('div');
+                        texto.className = 'min-w-0 leading-tight';
+                        const nombre = document.createElement('div');
+                        nombre.className = 'text-blue-700 dark:text-blue-400 group-hover:underline font-medium text-sm truncate';
+                        nombre.textContent = arg.resource.title;
+                        texto.appendChild(nombre);
+                        if (props.categoria) {
+                            const cat = document.createElement('div');
+                            cat.className = 'text-[10px] text-gray-500 truncate';
+                            cat.textContent = props.categoria;
+                            texto.appendChild(cat);
+                        }
+
+                        a.appendChild(avatar);
+                        a.appendChild(texto);
+                        return { domNodes: [a] };
+                    }
+                }],
                 events: datosCalendario.eventos,
                 eventDidMount(info) {
                     const p = info.event.extendedProps || {};

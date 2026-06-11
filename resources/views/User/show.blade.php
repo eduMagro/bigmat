@@ -7,7 +7,8 @@
 <x-app-layout>
     <x-slot name="title">{{ $user->nombre_completo }}</x-slot>
 
-    {{-- Botones de fichaje: disponibles para todos los roles --}}
+    {{-- Botones de fichaje: solo cuando el usuario autenticado ve su propio perfil --}}
+    @if (auth()->id() === $user->id)
     <div class="container mx-auto px-4 pb-4">
         <div class="flex justify-center items-center gap-4">
             <button onclick="registrarFichaje('entrada')"
@@ -23,6 +24,7 @@
             </button>
         </div>
     </div>
+    @endif
 
     <div class="container mx-auto md:px-4">
         <x-ficha-trabajador :user="$user" :resumen="$resumen" />

@@ -168,6 +168,56 @@ class User extends Authenticatable
         return round($correspondientes);
     }
 
+    /**
+     * Días de vacaciones imputados a un año concreto.
+     * Usa anio_vacacional si está seteado; si es null, usa el año natural de la fecha.
+     */
+    public function vacacionesImputadasEnAnio(int $anio): int
+    {
+        return $this->asignacionesTurnos()
+            ->where('estado', 'vacaciones')
+            ->where(function ($q) use ($anio) {
+                $q->where('anio_vacacional', $anio)
+                    ->orWhere(function ($q2) use ($anio) {
+                        $q2->whereNull('anio_vacacional')
+                            ->whereYear('fecha', $anio);
+                    });
+            })
+            ->count();
+    }
+
+    /**
+     * Tope de vacaciones (días naturales, base 30) correspondientes a un año concreto.
+     * Prorrateado si el usuario se incorporó ese mismo año.
+     * Versión por año arbitrario de getVacacionesCorrespondientesAttribute.
+     */
+    public function topeVacacionesEnAnio(int $anio): int
+    {
+        $diasPorAnio = 30;
+        $inicio = $this->fecha_incorporacion_efectiva;
+
+        if (!$inicio) {
+            return $diasPorAnio;
+        }
+
+        // Se incorporó antes del año consultado → año completo
+        if ($inicio->year < $anio) {
+            return $diasPorAnio;
+        }
+
+        // Se incorpora después del año consultado → 0 días
+        if ($inicio->year > $anio) {
+            return 0;
+        }
+
+        // Se incorporó ese mismo año → prorrateo natural
+        $finAnio = Carbon::create($anio, 12, 31);
+        $diasTrabajados = $inicio->diffInDays($finAnio) + 1;
+        $diasEnAnio = Carbon::create($anio)->isLeapYear() ? 366 : 365;
+
+        return (int) round(($diasTrabajados / $diasEnAnio) * $diasPorAnio);
+    }
+
     // En app/Models/User.php
 
     public function compañeroDeTurno()

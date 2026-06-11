@@ -995,6 +995,8 @@ class AsignacionTurnoController extends Controller
                 'tipo'         => 'required|string',
                 'entrada'      => 'nullable|date_format:H:i',
                 'salida'       => 'nullable|date_format:H:i',
+                'entrada2'     => 'nullable|date_format:H:i',
+                'salida2'      => 'nullable|date_format:H:i',
                 'obra_id'      => 'nullable|exists:obras,id',
                 'maquina_id'   => 'nullable|exists:maquinas,id',
             ]);
@@ -1025,6 +1027,13 @@ class AsignacionTurnoController extends Controller
                         }
                         if ($request->filled('salida')) {
                             $datos['salida'] = $request->salida;
+                        }
+                        // Segunda jornada (turno partido): has() permite enviar null para limpiarla
+                        if ($request->has('entrada2')) {
+                            $datos['entrada2'] = $request->entrada2;
+                        }
+                        if ($request->has('salida2')) {
+                            $datos['salida2'] = $request->salida2;
                         }
                         if (!empty($datos)) {
                             $asignacion->update($datos);
@@ -1202,6 +1211,13 @@ class AsignacionTurnoController extends Controller
                     }
                     if ($request->has('salida')) {
                         $datos['salida'] = $request->salida;
+                    }
+                    // Segunda jornada (turno partido)
+                    if ($request->has('entrada2')) {
+                        $datos['entrada2'] = $request->entrada2;
+                    }
+                    if ($request->has('salida2')) {
+                        $datos['salida2'] = $request->salida2;
                     }
                     if ($request->has('obra_id')) {
                         $datos['obra_id'] = $request->obra_id;

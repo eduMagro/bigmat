@@ -33,6 +33,15 @@ function agendaUsuariosFactory(contactos) {
         limpiarTelefono(numero) {
             return (numero || '').toString().replace(/\s+/g, '');
         },
+        limpiarWhatsApp(numero) {
+            // wa.me requiere el número solo con dígitos y con prefijo de país.
+            let n = (numero || '').toString().replace(/\D/g, '');
+            if (!n) return '';
+            if (n.startsWith('00')) n = n.slice(2);
+            // Móvil español de 9 dígitos sin prefijo internacional → anteponer 34.
+            if (n.length === 9) n = '34' + n;
+            return n;
+        },
         onTouchStart(e) {
             this.touchStartY = e.touches?.[0]?.clientY ?? null;
             this.offsetY = 0;

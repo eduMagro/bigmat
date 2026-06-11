@@ -177,8 +177,48 @@
         // Cache global de usuarios
         let usuariosCache = null;
 
+        // Preguntar a qué año imputar las vacaciones (con sobrantes del año anterior)
+        async function elegirAnioVacacional(userId) {
+            const anioActual = new Date().getFullYear();
+            try {
+                const resp = await fetch(`{{ url('/vacaciones/sobrantes-anio-anterior') }}/${userId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const sobrantes = await resp.json();
+
+                if (sobrantes && sobrantes.sobrantes > 0) {
+                    const result = await Swal.fire({
+                        title: 'Vacaciones del año anterior',
+                        html: `<p class="mb-3">Este trabajador tiene <b>${sobrantes.sobrantes} días</b> sin disfrutar de <b>${sobrantes.anio_anterior}</b>.</p><p>¿A qué año quieres imputar estas vacaciones?</p>`,
+                        icon: 'question',
+                        showDenyButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: `Año actual (${anioActual})`,
+                        denyButtonText: `Año anterior (${sobrantes.anio_anterior})`,
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#2563EB',
+                        denyButtonColor: '#6B7280',
+                    });
+
+                    if (result.isDismissed) {
+                        return { anioVacacional: null, sobrantesAnterior: null, cancelled: true };
+                    }
+                    if (result.isDenied) {
+                        return { anioVacacional: sobrantes.anio_anterior, sobrantesAnterior: sobrantes.sobrantes, cancelled: false };
+                    }
+                    return { anioVacacional: anioActual, sobrantesAnterior: null, cancelled: false };
+                }
+
+                // Sin sobrantes → imputa al año actual sin preguntar
+                return { anioVacacional: anioActual, sobrantesAnterior: null, cancelled: false };
+            } catch (error) {
+                console.warn('No se pudieron consultar sobrantes:', error);
+                return { anioVacacional: anioActual, sobrantesAnterior: null, cancelled: false };
+            }
+        }
+
         // Funciones AJAX para aprobar/denegar solicitudes
-        function aprobarSolicitud(solicitudId, btn) {
+        async function aprobarSolicitud(solicitudId, btn) {
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
             if (!tokenMeta) {
                 mostrarError('No se encontró el token CSRF. Recarga la página.');
@@ -186,6 +226,13 @@
             }
             const token = tokenMeta.getAttribute('content');
             const row = btn.closest('tr');
+            const userId = row?.dataset?.userId;
+
+            // Preguntar año de imputación antes de procesar
+            const eleccion = await elegirAnioVacacional(userId);
+            if (eleccion.cancelled) {
+                return; // El usuario canceló, no se toca nada
+            }
 
             // Deshabilitar botones mientras se procesa
             const btns = row.querySelectorAll('button');
@@ -198,7 +245,11 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': token,
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({
+                    anio_vacacional: eleccion.anioVacacional,
+                    sobrantes_anterior: eleccion.sobrantesAnterior
+                })
             })
             .then(response => {
                 if (!response.ok) {
@@ -501,6 +552,10 @@
 
                 if (!isConfirmed || !usuarioSeleccionado) return;
 
+                // Preguntar año de imputación (sobrantes del año anterior)
+                const eleccion = await elegirAnioVacacional(usuarioSeleccionado);
+                if (eleccion.cancelled) return;
+
                 // Hacer la peticion para asignar vacaciones
                 try {
                     const response = await fetch('{{ url("/vacaciones/asignar-directo") }}', {
@@ -512,7 +567,9 @@
                         body: JSON.stringify({
                             user_id: usuarioSeleccionado,
                             fecha_inicio: fechaInicio,
-                            fecha_fin: fechaFin
+                            fecha_fin: fechaFin,
+                            anio_vacacional: eleccion.anioVacacional,
+                            sobrantes_anterior: eleccion.sobrantesAnterior
                         })
                     });
 

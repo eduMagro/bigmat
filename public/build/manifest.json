@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app.CpiT0rrm.css",
+    "file": "assets/app.DTaxcIwM.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -11,13 +11,13 @@
     "isEntry": true
   },
   "resources/js/vistas/contactos/mobile.js": {
-    "file": "assets/mobile.DK2rsAzX.js",
+    "file": "assets/mobile.BYnk1UOA.js",
     "name": "mobile",
     "src": "resources/js/vistas/contactos/mobile.js",
     "isEntry": true
   },
   "resources/js/vistas/recepcion-solicitudes/index.js": {
-    "file": "assets/index.ChpqRJUH.js",
+    "file": "assets/index.D2yfF_AR.js",
     "name": "index",
     "src": "resources/js/vistas/recepcion-solicitudes/index.js",
     "isEntry": true

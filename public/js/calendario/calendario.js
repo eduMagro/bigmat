@@ -630,19 +630,389 @@
             }
         }
 
+        function openGestionAsignacionModal({
+            esMismoDia,
+            rangoSeleccionado,
+            opcionesTurnos,
+            entradaExistente,
+            salidaExistente,
+            entrada2Existente,
+            salida2Existente,
+        }) {
+            return new Promise((resolve) => {
+                const hasSecondShiftByDefault = Boolean(entrada2Existente || salida2Existente);
+                const parseTime = (time) => {
+                    const match = String(time || "").match(/^(\d{1,2}):(\d{1,2})/);
+                    if (!match) return { hour: 0, minute: 0 };
+                    return {
+                        hour: Math.max(0, Math.min(23, Number(match[1]) || 0)),
+                        minute: Math.max(0, Math.min(59, Number(match[2]) || 0)),
+                    };
+                };
+                const sanitizeTime = (time) => {
+                    const match = String(time || "").match(/^(\d{1,2}):(\d{1,2})/);
+                    if (!match) return "";
+                    const h = String(Math.max(0, Math.min(23, Number(match[1]) || 0))).padStart(2, "0");
+                    const m = String(Math.max(0, Math.min(59, Number(match[2]) || 0))).padStart(2, "0");
+                    return `${h}:${m}`;
+                };
+                const createTimeField = (id, label, toneClass, value) => {
+                    const initial = sanitizeTime(value);
+                    const parsed = initial ? parseTime(initial) : null;
+                    const hh = parsed ? String(parsed.hour).padStart(2, "0") : "";
+                    const mm = parsed ? String(parsed.minute).padStart(2, "0") : "";
+                    return `
+                        <div data-time-picker="${id}" class="flex flex-col gap-2 rounded-xl border border-slate-300/55 bg-white/70 p-3 dark:border-slate-500/45 dark:bg-slate-900/45">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold ${toneClass}">${label}</label>
+                                <button type="button" data-clear-picker="${id}" class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200/80 text-[11px] font-bold leading-none text-slate-500 transition hover:bg-red-500 hover:text-white dark:bg-slate-700/80 dark:text-slate-300 dark:hover:bg-red-500 dark:hover:text-white" aria-label="Borrar ${label}" title="Dejar en blanco">×</button>
+                            </div>
+                            <input type="hidden" id="${id}" value="${initial}">
+                            <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
+                                <div>
+                                    <span class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">HH</span>
+                                    <input data-time-input="hour" inputmode="numeric" maxlength="2" placeholder="HH" value="${hh}" class="h-12 w-full rounded-lg border border-slate-300/70 bg-white px-2 text-center text-xl font-semibold text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/55 dark:bg-slate-800/75 dark:text-slate-100">
+                                </div>
+                                <span class="pb-2 text-xl font-semibold text-slate-500 dark:text-slate-300">:</span>
+                                <div>
+                                    <span class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">MM</span>
+                                    <input data-time-input="minute" inputmode="numeric" maxlength="2" placeholder="MM" value="${mm}" class="h-12 w-full rounded-lg border border-slate-300/70 bg-white px-2 text-center text-xl font-semibold text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/55 dark:bg-slate-800/75 dark:text-slate-100">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                };
+
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 z-[99999] flex items-stretch justify-center bg-slate-900/55 p-0 opacity-0 backdrop-blur-sm transition-opacity duration-200 md:items-center md:p-4';
+                overlay.innerHTML = `
+                    <div data-modal-dialog class="flex h-[100dvh] w-[100dvw] max-w-[100dvw] translate-y-3 flex-col overflow-hidden bg-white backdrop-blur-xl transition-transform duration-200 dark:border-slate-500/40 dark:from-slate-900/90 dark:via-slate-800/85 dark:to-slate-900/90 md:h-auto md:max-h-[94dvh] md:w-[500px] md:max-w-[500px] md:rounded-2xl" role="dialog" aria-modal="true" aria-labelledby="cal-assign-modal-title">
+                        <div data-modal-body class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden md:max-h-full">
+                            <div class="flex min-h-full flex-col text-slate-900 dark:text-slate-100">
+                                <header class="border-b border-slate-300/55 bg-white/85 p-3 text-slate-900 shadow-sm dark:border-slate-500/45 dark:bg-slate-900/70 dark:text-slate-100">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <p class="m-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">Gestión de jornada</p>
+                                        <button type="button" class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-700 transition dark:text-slate-100" data-action="close" aria-label="Cerrar modal">
+                                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M18 6 6 18"></path>
+                                                <path d="m6 6 12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div id="cal-assign-modal-title" class="flex gap-2 mt-1 text-base font-semibold items-center">
+                                        <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M8 2v4"></path>
+                                            <path d="M16 2v4"></path>
+                                            <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                                            <path d="M3 10h18"></path>
+                                            <path d="M8 14h.01"></path>
+                                            <path d="M12 14h.01"></path>
+                                            <path d="M16 14h.01"></path>
+                                            <path d="M8 18h.01"></path>
+                                            <path d="M12 18h.01"></path>
+                                            <path d="M16 18h.01"></path>
+                                        </svg>
+                                        ${rangoSeleccionado}
+                                    </div>
+                                </header>
+
+                                <section data-reveal class="border-b border-slate-300/50 p-3 shadow-sm opacity-0 translate-y-3 scale-[0.985] transition duration-500 dark:border-slate-500/35 dark:bg-slate-800/70">
+                                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label class="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200" for="sel-turno">
+                                                <svg class="h-3.5 w-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round" aria-hidden="true">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                                </svg>
+                                                Turno
+                                            </label>
+                                            <select id="sel-turno" class="w-full rounded-xl border border-slate-400/40 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/35 dark:bg-slate-900/60 dark:text-slate-100">
+                                                <option value="">Sin cambios</option>
+                                                ${opcionesTurnos}
+                                                <option disabled>─────────</option>
+                                                <option value="__quitar__">Quitar turno</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200" for="sel-estado">
+                                                <svg class="h-3.5 w-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M8 6h13"></path>
+                                                    <path d="M8 12h13"></path>
+                                                    <path d="M8 18h13"></path>
+                                                    <path d="M3 6h.01"></path>
+                                                    <path d="M3 12h.01"></path>
+                                                    <path d="M3 18h.01"></path>
+                                                </svg>
+                                                Estado
+                                            </label>
+                                            <select id="sel-estado" class="w-full rounded-xl border border-slate-400/40 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/35 dark:bg-slate-900/60 dark:text-slate-100">
+                                                <option value="">Sin cambios</option>
+                                                <option value="curso">Cursos</option>
+                                                <option value="vacaciones">Vacaciones</option>
+                                                <option value="baja">Baja</option>
+                                                <option value="justificada">Justificada</option>
+                                                <option value="injustificada">Injustificada</option>
+                                                <option disabled>─────────</option>
+                                                <option value="__quitar__">Quitar estado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section data-reveal class="flex flex-col gap-3 p-3 opacity-0 translate-y-3 scale-[0.985] transition duration-500">
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">Primera jornada</p>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        ${createTimeField("hora-entrada", "Entrada", "text-emerald-600 dark:text-emerald-300", entradaExistente)}
+                                        ${createTimeField("hora-salida", "Salida", "text-rose-600 dark:text-rose-300", salidaExistente)}
+                                    </div>
+                                    ${!esMismoDia ? `
+                                        <p class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-300">
+                                            <svg class="h-3.5 w-3.5 shrink-0 text-blue-700 dark:text-blue-200" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <path d="M12 16v-4"></path>
+                                                <path d="M12 8h.01"></path>
+                                            </svg>
+                                            Deja vacío para mantener las horas actuales
+                                        </p>
+                                    ` : ''}
+                                </section>
+
+                                <section class="flex flex-col gap-3 border-t border-slate-300/50 p-3 dark:border-slate-500/35">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">Segunda jornada</p>
+                                        <button type="button" id="btn-toggle-second-shift" class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${hasSecondShiftByDefault ? 'border-slate-300/70 bg-white text-slate-700 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:border-slate-500/50 dark:bg-slate-900/70 dark:text-slate-100' : 'border-dashed border-blue-400/55 bg-blue-50/85 text-blue-700 hover:bg-blue-100 dark:border-blue-400/45 dark:bg-blue-900/25 dark:text-blue-100'}">
+                                            <span id="btn-toggle-second-shift-label">${hasSecondShiftByDefault ? 'Quitar' : '+ Añadir'}</span>
+                                        </button>
+                                    </div>
+                                    <div id="panel-jornada-2" class="${hasSecondShiftByDefault ? '' : 'hidden'} grid grid-cols-2 gap-2">
+                                        ${createTimeField("hora-entrada2", "Entrada", "text-cyan-600 dark:text-cyan-300", entrada2Existente)}
+                                        ${createTimeField("hora-salida2", "Salida", "text-amber-600 dark:text-amber-300", salida2Existente)}
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                        <div class="mt-auto shrink-0 flex justify-end gap-2 border-t border-slate-300/40 bg-white/40 px-3 py-3 dark:border-slate-500/40 dark:bg-slate-900/35">
+                            <button type="button" class="rounded-lg border border-slate-400/45 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white dark:border-slate-500/45 dark:bg-slate-800/70 dark:text-slate-100" data-action="cancel">
+                                Cancelar
+                            </button>
+                            <button type="button" class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white" data-action="confirm">
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+                const prevOverflow = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+
+                const dialog = overlay.querySelector('[data-modal-dialog]');
+                const body = overlay.querySelector('[data-modal-body]');
+                const tipoInput = overlay.querySelector('#sel-turno');
+                const panelJornada2 = overlay.querySelector('#panel-jornada-2');
+                const btnToggleSecondShift = overlay.querySelector('#btn-toggle-second-shift');
+                const btnToggleLabel = overlay.querySelector('#btn-toggle-second-shift-label');
+                let secondShiftEnabled = hasSecondShiftByDefault;
+                let secondShiftMarkedForRemoval = false;
+                const pickers = new Map();
+                let revealObserver = null;
+                let closed = false;
+
+                const SECOND_ON = ['border-slate-300/70', 'bg-white', 'text-slate-700', 'hover:bg-red-50', 'hover:border-red-300', 'hover:text-red-700', 'dark:border-slate-500/50', 'dark:bg-slate-900/70', 'dark:text-slate-100'];
+                const SECOND_OFF = ['border-dashed', 'border-blue-400/55', 'bg-blue-50/85', 'text-blue-700', 'hover:bg-blue-100', 'dark:border-blue-400/45', 'dark:bg-blue-900/25', 'dark:text-blue-100'];
+
+                const bindPicker = (fieldId) => {
+                    const picker = overlay.querySelector(`[data-time-picker="${fieldId}"]`);
+                    const hidden = overlay.querySelector(`#${fieldId}`);
+                    if (!picker || !hidden) return;
+                    const inputHour = picker.querySelector('[data-time-input="hour"]');
+                    const inputMinute = picker.querySelector('[data-time-input="minute"]');
+                    if (!inputHour || !inputMinute) return;
+                    const parsed = parseTime(hidden.value);
+                    const state = {
+                        picker, hidden, inputHour, inputMinute,
+                        hour: parsed.hour, minute: parsed.minute,
+                        touched: false, cleared: !hidden.value,
+                    };
+                    pickers.set(fieldId, state);
+                    const parseTwoDigit = (value) => String(value || '').replace(/\D/g, '').slice(0, 2);
+                    const normalizePart = (value, max) => {
+                        const raw = parseTwoDigit(value);
+                        if (!raw) return '';
+                        return String(Math.max(0, Math.min(max, Number(raw) || 0))).padStart(2, '0');
+                    };
+                    const syncFromInputs = ({ normalize = false } = {}) => {
+                        const rawHour = parseTwoDigit(state.inputHour.value);
+                        const rawMinute = parseTwoDigit(state.inputMinute.value);
+                        state.inputHour.value = rawHour;
+                        state.inputMinute.value = rawMinute;
+                        if (!rawHour && !rawMinute) { state.hidden.value = ''; state.cleared = true; return; }
+                        const hh = normalize ? normalizePart(rawHour || '0', 23) : rawHour;
+                        const mm = normalize ? normalizePart(rawMinute || '0', 59) : rawMinute;
+                        const hourValue = normalizePart(hh || '0', 23);
+                        const minuteValue = normalizePart(mm || '0', 59);
+                        state.hour = Number(hourValue);
+                        state.minute = Number(minuteValue);
+                        state.hidden.value = `${hourValue}:${minuteValue}`;
+                        state.cleared = false;
+                        if (normalize) { state.inputHour.value = hourValue; state.inputMinute.value = minuteValue; }
+                    };
+                    state.clear = () => {
+                        state.touched = true; state.cleared = true;
+                        state.hidden.value = ''; state.inputHour.value = ''; state.inputMinute.value = '';
+                    };
+                    state.inputHour.addEventListener('focus', () => state.inputHour.select());
+                    state.inputMinute.addEventListener('focus', () => state.inputMinute.select());
+                    state.inputHour.addEventListener('input', () => {
+                        state.touched = true;
+                        const rawHour = parseTwoDigit(state.inputHour.value);
+                        if (rawHour.length === 1 && Number(rawHour) > 2) {
+                            state.inputHour.value = `0${rawHour}`; syncFromInputs(); state.inputMinute.focus(); return;
+                        }
+                        syncFromInputs();
+                        if (state.inputHour.value.length === 2) state.inputMinute.focus();
+                    });
+                    state.inputMinute.addEventListener('input', () => { state.touched = true; syncFromInputs(); });
+                    state.inputHour.addEventListener('blur', () => syncFromInputs({ normalize: true }));
+                    state.inputMinute.addEventListener('blur', () => syncFromInputs({ normalize: true }));
+                    state.inputHour.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); syncFromInputs({ normalize: true }); state.inputMinute.focus(); }
+                    });
+                    state.inputMinute.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); syncFromInputs({ normalize: true }); state.inputMinute.blur(); }
+                    });
+                    syncFromInputs({ normalize: Boolean(hidden.value) });
+                };
+                const teardown = (result) => {
+                    if (closed) return;
+                    closed = true;
+                    document.removeEventListener('keydown', onKeyDown);
+                    revealObserver?.disconnect();
+                    revealObserver = null;
+                    document.body.style.overflow = prevOverflow;
+                    overlay.classList.remove('opacity-100');
+                    overlay.classList.add('opacity-0');
+                    if (dialog) {
+                        dialog.classList.remove('translate-y-0', 'scale-100');
+                        dialog.classList.add('translate-y-3', 'scale-[0.985]');
+                    }
+                    setTimeout(() => { overlay.remove(); resolve(result); }, 180);
+                };
+
+                const onKeyDown = (event) => { if (event.key === 'Escape') teardown(null); };
+
+                overlay.addEventListener('click', (event) => { if (event.target === overlay) teardown(null); });
+                overlay.querySelector('[data-action="close"]')?.addEventListener('click', () => teardown(null));
+                overlay.querySelector('[data-action="cancel"]')?.addEventListener('click', () => teardown(null));
+
+                overlay.querySelector('[data-action="confirm"]')?.addEventListener('click', () => {
+                    const getValueOrNull = (id) => {
+                        const input = overlay.querySelector(`#${id}`);
+                        const state = pickers.get(id);
+                        if (!input) return null;
+                        if (id.endsWith('2') && !secondShiftEnabled) return null;
+                        if (!esMismoDia && state && !state.touched) return null;
+                        if (state?.cleared) return null;
+                        const val = String(input.value || '').trim();
+                        return val || null;
+                    };
+                    teardown({
+                        turno: overlay.querySelector('#sel-turno')?.value || '',
+                        estado: overlay.querySelector('#sel-estado')?.value || '',
+                        entrada: getValueOrNull('hora-entrada'),
+                        salida: getValueOrNull('hora-salida'),
+                        entrada2: getValueOrNull('hora-entrada2'),
+                        salida2: getValueOrNull('hora-salida2'),
+                        removeSecondShift: secondShiftMarkedForRemoval,
+                    });
+                });
+
+                btnToggleSecondShift?.addEventListener('click', () => {
+                    if (secondShiftEnabled) {
+                        secondShiftEnabled = false;
+                        secondShiftMarkedForRemoval = true;
+                        panelJornada2?.classList.add('hidden');
+                        pickers.get('hora-entrada2')?.clear?.();
+                        pickers.get('hora-salida2')?.clear?.();
+                        if (btnToggleLabel) btnToggleLabel.textContent = '+ Añadir';
+                        btnToggleSecondShift.classList.remove(...SECOND_ON);
+                        btnToggleSecondShift.classList.add(...SECOND_OFF);
+                    } else {
+                        secondShiftEnabled = true;
+                        secondShiftMarkedForRemoval = false;
+                        panelJornada2?.classList.remove('hidden');
+                        if (btnToggleLabel) btnToggleLabel.textContent = 'Quitar';
+                        btnToggleSecondShift.classList.remove(...SECOND_OFF);
+                        btnToggleSecondShift.classList.add(...SECOND_ON);
+                    }
+                });
+
+                ['hora-entrada', 'hora-salida', 'hora-entrada2', 'hora-salida2'].forEach((id) => {
+                    overlay.querySelector(`[data-clear-picker="${id}"]`)?.addEventListener('click', () => {
+                        pickers.get(id)?.clear?.();
+                    });
+                });
+
+                const revealItems = overlay.querySelectorAll('[data-reveal]');
+                if ('IntersectionObserver' in window && revealItems.length > 0 && body) {
+                    revealObserver = new IntersectionObserver(
+                        (entries) => {
+                            entries.forEach((entry) => {
+                                if (entry.isIntersecting) {
+                                    entry.target.classList.remove('opacity-0', 'translate-y-3', 'scale-[0.985]');
+                                    entry.target.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+                                    revealObserver?.unobserve(entry.target);
+                                }
+                            });
+                        },
+                        { root: body, threshold: 0.2 }
+                    );
+                    revealItems.forEach((item) => revealObserver.observe(item));
+                } else {
+                    revealItems.forEach((item) => {
+                        item.classList.remove('opacity-0', 'translate-y-3', 'scale-[0.985]');
+                        item.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+                    });
+                }
+
+                document.addEventListener('keydown', onKeyDown);
+                ['hora-entrada', 'hora-salida', 'hora-entrada2', 'hora-salida2'].forEach(bindPicker);
+                requestAnimationFrame(() => {
+                    overlay.classList.remove('opacity-0');
+                    overlay.classList.add('opacity-100');
+                    if (dialog) {
+                        dialog.classList.remove('translate-y-3', 'scale-[0.985]');
+                        dialog.classList.add('translate-y-0', 'scale-100');
+                    }
+                });
+                if (dialog) dialog.scrollTop = 0;
+                if (tipoInput) tipoInput.focus();
+            });
+        }
+
         async function registrarEventoOficina(fechaInicio, fechaFin, calendar) {
             const opcionesTurnos = (turnos || [])
                 .map((t) => `<option value="${t.nombre}">${t.nombre}</option>`)
                 .join("");
 
             const esMismoDia = fechaInicio === fechaFin;
-            const mensajeFecha = esMismoDia
-                ? `<p class="mb-2">${fechaInicio}</p>`
-                : `<p class="mb-2">Desde: ${fechaInicio} — Hasta: ${fechaFin}</p>`;
+            const rangoSeleccionado = esMismoDia
+                ? fechaInicio
+                : `${fechaInicio} → ${fechaFin}`;
 
             // Si es un solo día, buscar horas existentes en los eventos del calendario
             let entradaExistente = '';
             let salidaExistente = '';
+            let entrada2Existente = '';
+            let salida2Existente = '';
             if (esMismoDia) {
                 const eventos = calendar.getEvents();
                 eventos.forEach(ev => {
@@ -654,351 +1024,292 @@
                         if (props.salida && !salidaExistente) {
                             salidaExistente = props.salida.substring(0, 5);
                         }
+                        if (props.entrada2 && !entrada2Existente) {
+                            entrada2Existente = props.entrada2.substring(0, 5);
+                        }
+                        if (props.salida2 && !salida2Existente) {
+                            salida2Existente = props.salida2.substring(0, 5);
+                        }
                     }
                 });
             }
 
-            const { value: formData, isConfirmed } = await Swal.fire({
-                title: null,
-                html: `
-                    <div style="text-align: left; overflow-x: hidden;">
-                        <!-- Header con fecha -->
-                        <div style="background: linear-gradient(135deg, #1e3a5f 0%, #111827 100%); color: white; margin: -20px -20px 20px -20px; padding: 20px; border-radius: 8px 8px 0 0;">
-                            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">Gestionar Asignacion</h3>
-                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">
-                                ${esMismoDia ? fechaInicio : `${fechaInicio} → ${fechaFin}`}
-                            </p>
-                        </div>
-
-                        <!-- Selector de turno/estado -->
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                                Turno o Estado
-                            </label>
-                            <select id="tipo-dia" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; transition: border-color 0.2s;">
-                                <option value="">Solo actualizar horas</option>
-                                <option value="eliminarTurnoEstado">Eliminar turno</option>
-                                ${opcionesTurnos}
-                                <option disabled style="font-size: 8px;">─────────</option>
-                                <option value="eliminarEstado">Eliminar estado</option>
-                                <option value="curso">Cursos</option>
-                                <option value="vacaciones">Vacaciones</option>
-                                <option value="baja">Baja</option>
-                                <option value="justificada">Justificada</option>
-                                <option value="injustificada">Injustificada</option>
-                            </select>
-                        </div>
-
-                        <!-- Campos de hora -->
-                        <div style="background: #f9fafb; border-radius: 8px; padding: 16px; border: 1px solid #e5e7eb;">
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 12px;">
-                                Horario de fichaje
-                            </label>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div>
-                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #059669; margin-bottom: 6px; font-weight: 500;">
-                                        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
-                                        Entrada
-                                    </label>
-                                    <input type="time" id="hora-entrada" value="${entradaExistente}"
-                                        style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; font-family: monospace; transition: border-color 0.2s;">
-                                </div>
-                                <div>
-                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #dc2626; margin-bottom: 6px; font-weight: 500;">
-                                        <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>
-                                        Salida
-                                    </label>
-                                    <input type="time" id="hora-salida" value="${salidaExistente}"
-                                        style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; font-family: monospace; transition: border-color 0.2s;">
-                                </div>
-                            </div>
-                            ${!esMismoDia ? `
-                                <p style="margin: 12px 0 0 0; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px;">
-                                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Deja vacio para mantener las horas actuales
-                                </p>
-                            ` : ''}
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: "Guardar",
-                cancelButtonText: "Cancelar",
-                confirmButtonColor: "#1e3a5f",
-                cancelButtonColor: "#6b7280",
-                width: 420,
-                padding: "20px",
-                customClass: {
-                    popup: 'swal-calendario-popup',
-                    confirmButton: 'swal-btn-confirm',
-                    cancelButton: 'swal-btn-cancel'
-                },
-                preConfirm: () => {
-                    return {
-                        tipo: document.getElementById("tipo-dia").value,
-                        entrada: document.getElementById("hora-entrada").value || null,
-                        salida: document.getElementById("hora-salida").value || null,
-                    };
-                },
-                didOpen: () => {
-                    // Añadir efectos hover a los inputs
-                    const inputs = document.querySelectorAll('#hora-entrada, #hora-salida, #tipo-dia');
-                    inputs.forEach(input => {
-                        input.addEventListener('focus', () => input.style.borderColor = '#3b82f6');
-                        input.addEventListener('blur', () => input.style.borderColor = '#e5e7eb');
-                    });
-                }
+            const formData = await openGestionAsignacionModal({
+                esMismoDia,
+                rangoSeleccionado,
+                opcionesTurnos,
+                entradaExistente,
+                salidaExistente,
+                entrada2Existente,
+                salida2Existente,
             });
+            if (!formData) return;
 
-            if (!isConfirmed || !formData) return;
-
-            const tipoSeleccionado = formData.tipo;
+            const turnoSel = formData.turno || '';
+            const estadoSel = formData.estado || '';
             const horaEntrada = formData.entrada;
             const horaSalida = formData.salida;
+            const horaEntrada2 = formData.entrada2;
+            const horaSalida2 = formData.salida2;
+            const removeSecondShift = Boolean(formData.removeSecondShift);
 
-            // --- Solo actualizar horas (sin cambiar turno/estado) ---
-            if (!tipoSeleccionado) {
-                // Validar que al menos una hora esté especificada
-                if (!horaEntrada && !horaSalida) {
-                    Swal.fire("Aviso", "Debes especificar al menos una hora para actualizar.", "warning");
-                    return;
-                }
-
-                const body = {
-                    user_id: userId,
-                    fecha_inicio: fechaInicio,
-                    fecha_fin: fechaFin,
-                    tipo: "soloHoras",
-                };
+            // Helper: añade las horas (1ª y 2ª jornada) al body
+            const aplicarHoras = (body) => {
                 if (horaEntrada) body.entrada = horaEntrada;
                 if (horaSalida) body.salida = horaSalida;
-
-                fetch(routes.storeUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": csrfToken,
-                    },
-                    body: JSON.stringify(body),
-                })
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data.success) {
-                            smartRefetch(calendar, () =>
-                                actualizarResumenAsistencia(routes.resumenUrl)
-                            );
-                            Swal.fire("Actualizado", "Horas actualizadas correctamente.", "success");
-                        } else {
-                            if (typeof mostrarError === 'function') {
-                                mostrarError(data.error || "No se pudieron actualizar las horas.");
-                            } else {
-                                Swal.fire("Error", data.error || "No se pudieron actualizar las horas.", "error");
-                            }
-                        }
-                    })
-                    .catch((err) => {
-                        console.error("Error:", err);
-                        if (typeof mostrarError === 'function') {
-                            mostrarError("Ocurrió un problema al actualizar las horas.");
-                        } else {
-                            Swal.fire("Error", "Ocurrió un problema al actualizar las horas.", "error");
-                        }
-                    });
-                return;
-            }
-
-            // --- Lógica de eliminación ---
-            if (
-                tipoSeleccionado === "eliminarTurnoEstado" ||
-                tipoSeleccionado === "eliminarEstado"
-            ) {
-                const mensajeConfirmacion =
-                    tipoSeleccionado === "eliminarTurnoEstado"
-                        ? "Estas seguro de que quieres eliminar el turno? Esto tambien eliminara cualquier estado asignado (vacaciones, baja...) y las horas de entrada y salida."
-                        : "Seguro que quieres eliminar solo el estado? Las horas de entrada y salida y el turno se mantendran.";
-
-                const confirmacion = await Swal.fire({
-                    title: "Confirmar eliminacion",
-                    text: mensajeConfirmacion,
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonText: "Si, eliminar",
-                    cancelButtonText: "Cancelar",
-                });
-
-                if (!confirmacion.isConfirmed) return;
-
-                const body = {
-                    fecha_inicio: fechaInicio,
-                    fecha_fin: fechaFin,
-                    user_id: userId,
-                    tipo: tipoSeleccionado,
-                };
-
-                fetch(routes.destroyUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": csrfToken,
-                        },
-                        body: JSON.stringify(body),
-                    }
-                )
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data.success) {
-                            smartRefetch(calendar, () =>
-                                actualizarResumenAsistencia(routes.resumenUrl)
-                            );
-
-                            Swal.fire("Eliminado", data.success, "success");
-                        } else {
-                            Swal.fire(
-                                "Error",
-                                data.error || "No se pudo eliminar el turno.",
-                                "error"
-                            );
-                        }
-                    })
-                    .catch((err) => {
-                        console.error("Error:", err);
-                        Swal.fire(
-                            "Error",
-                            "Ocurrio un problema al eliminar los turnos.",
-                            "error"
-                        );
-                    });
-
-                return;
-            }
-
-            // --- Lógica de asignación nueva ---
-            const body = {
-                user_id: userId,
-                fecha_inicio: fechaInicio,
-                fecha_fin: fechaFin,
-                tipo: tipoSeleccionado,
+                if (removeSecondShift) {
+                    body.entrada2 = null;
+                    body.salida2 = null;
+                } else if (esMismoDia) {
+                    // Día único: enviar siempre (mantiene valor existente o null si vacío)
+                    body.entrada2 = horaEntrada2;
+                    body.salida2 = horaSalida2;
+                } else {
+                    // Rango: solo enviar si tienen valor (no machacar lo existente)
+                    if (horaEntrada2) body.entrada2 = horaEntrada2;
+                    if (horaSalida2) body.salida2 = horaSalida2;
+                }
+                return body;
             };
 
-            // Añadir horas solo si se han especificado
-            if (horaEntrada) body.entrada = horaEntrada;
-            if (horaSalida) body.salida = horaSalida;
+            const postStore = (body) =>
+                fetch(routes.storeUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken },
+                    body: JSON.stringify(body),
+                }).then((res) => res.json());
 
-            // Si es vacaciones y hay días del año anterior disponibles, preguntar si usarlos primero
-            if (tipoSeleccionado === 'vacaciones' && vacationData && vacationData.disponiblesAnterior > 0) {
-                const fechaInicioDate = new Date(fechaInicio);
-                const mes = fechaInicioDate.getMonth(); // 0=enero, 1=febrero, 2=marzo
+            const postDestroy = (body) =>
+                fetch(routes.destroyUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken },
+                    body: JSON.stringify(body),
+                }).then((res) => res.json());
 
-                // Solo preguntar si estamos en período de gracia (enero-marzo)
-                if (mes <= 2) {
-                    const anioActual = fechaInicioDate.getFullYear();
-                    const anioAnterior = anioActual - 1;
-                    const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
+            const finalizar = (mensaje) => {
+                smartRefetch(calendar, () => actualizarResumenAsistencia(routes.resumenUrl));
+                Swal.fire("Listo", mensaje, "success");
+            };
 
-                    const { isConfirmed: usarAnterior } = await Swal.fire({
-                        title: 'Días del año anterior',
-                        html: `
-                            <p class="text-sm text-gray-600 mb-4">Tienes <strong>${vacationData.disponiblesAnterior} días</strong> del año ${anioAnterior} que caducan el 31 de marzo.</p>
-                            <p class="text-sm text-gray-600 mb-4">Estás solicitando <strong>${diasSeleccionados} días</strong> de vacaciones.</p>
-                            <p class="text-sm text-gray-600 mb-4">¿Quieres usar primero los días del año ${anioAnterior}?</p>
-                            ${diasSeleccionados > vacationData.disponiblesAnterior ?
-                                `<p class="text-xs text-blue-600 mt-2"><em>Se asignarán ${Math.min(diasSeleccionados, vacationData.disponiblesAnterior)} días al ${anioAnterior} y ${diasSeleccionados - vacationData.disponiblesAnterior} días al ${anioActual}.</em></p>` :
-                                ''}
-                        `,
-                        showCancelButton: true,
-                        showDenyButton: true,
-                        confirmButtonText: `Sí, usar días de ${anioAnterior}`,
-                        denyButtonText: `No, usar solo ${anioActual}`,
-                        cancelButtonText: 'Cancelar',
-                        confirmButtonColor: '#1e3a5f',
-                        denyButtonColor: '#6b7280',
-                    });
+            // Calcula el objeto vacationData a partir de la respuesta del endpoint.
+            // Misma lógica que el flujo de selección de rango del calendario (dateClick);
+            // si se cambia una, actualizar también la otra.
+            const calcularVacationData = (data, fechaRefStr) => {
+                const fechaIncorporacion = data.fecha_incorporacion;
+                if (!fechaIncorporacion) return null;
 
-                    if (Swal.DismissReason && Swal.DismissReason.cancel) {
-                        // Usuario canceló
-                    }
+                const incorpDate = new Date(fechaIncorporacion);
+                const refDate = new Date(fechaRefStr);
+                if (refDate < incorpDate) return null;
 
-                    // Si el usuario confirma, usar año anterior primero
-                    if (usarAnterior === true) {
-                        body.usar_anterior_primero = true;
-                        body.dias_disponibles_anterior = vacationData.disponiblesAnterior;
-                        body.anio_anterior = anioAnterior;
-                    } else if (usarAnterior === false) {
-                        // Usuario eligió "No", usar solo año actual
-                        body.anio_cargo = anioActual;
-                    } else {
-                        // Usuario canceló
-                        return;
+                const clickYear = refDate.getFullYear();
+                const isGracePeriod = refDate.getMonth() <= 2; // ene-mar
+                const previousYear = clickYear - 1;
+
+                // Vacaciones generadas el año anterior (máx 22)
+                let generadasAnterior = 0;
+                if (incorpDate < new Date(clickYear, 0, 1)) {
+                    const endOfPrevYear = new Date(previousYear, 11, 31);
+                    const prevYearStart = incorpDate > new Date(previousYear, 0, 1) ? incorpDate : new Date(previousYear, 0, 1);
+                    const diffDaysPrev = Math.ceil(Math.max(0, endOfPrevYear - prevYearStart) / (1000 * 60 * 60 * 24)) + 1;
+                    generadasAnterior = Math.floor(Math.min((diffDaysPrev / 30) * 2.5, 22));
+                }
+
+                const usadasAnteriorDirec = (data.dias_asignados_anterior || 0) + (data.dias_solicitados_anterior || 0);
+                const saldoAnteriorAlFinalizar = generadasAnterior - usadasAnteriorDirec;
+                const usadasPeriodoGracia = (data.dias_usados_periodo_gracia || 0) + (data.dias_solicitados_periodo_gracia || 0);
+                const usadasPostGracia = (data.dias_usados_post_gracia || 0) + (data.dias_solicitados_post_gracia || 0);
+
+                if (isGracePeriod && incorpDate < new Date(clickYear, 0, 1)) {
+                    const saldoAnteriorPositivo = Math.max(0, saldoAnteriorAlFinalizar);
+                    const disponiblesAnterior = Math.max(0, saldoAnteriorPositivo - usadasPeriodoGracia);
+                    const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - saldoAnteriorPositivo);
+                    const disponiblesActual = 30 - excesoSobreAnterior - usadasPostGracia;
+                    return { disponiblesTotal: disponiblesAnterior + disponiblesActual, disponiblesAnterior, previousYear, clickYear };
+                } else if (!isGracePeriod && incorpDate < new Date(clickYear, 0, 1)) {
+                    const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - Math.max(0, saldoAnteriorAlFinalizar));
+                    const disponiblesActual = 30 - (excesoSobreAnterior + usadasPostGracia);
+                    return { disponiblesTotal: disponiblesActual, disponiblesAnterior: 0, previousYear, clickYear };
+                }
+
+                // Incorporado este año: cálculo proporcional progresivo
+                const diasUsadosEsteAnio = (data.dias_asignados_actual || 0) + (data.dias_solicitados_actual || 0);
+                const finDeAnio = new Date(clickYear, 11, 31);
+                const diasTotalesAnio = Math.ceil((finDeAnio - new Date(clickYear, 0, 1)) / (1000 * 60 * 60 * 24)) + 1;
+                const diasHastaFecha = Math.max(0, Math.ceil((refDate - incorpDate) / (1000 * 60 * 60 * 24)) + 1);
+                const diasIncorpHastaFin = Math.ceil((finDeAnio - incorpDate) / (1000 * 60 * 60 * 24)) + 1;
+                const generadasTotalesAnio = Math.floor((diasIncorpHastaFin / diasTotalesAnio) * 30);
+                const generadasHastaFecha = Math.floor(generadasTotalesAnio * Math.min(1, diasHastaFecha / diasIncorpHastaFin));
+                return { disponiblesTotal: Math.max(0, generadasHastaFecha - diasUsadosEsteAnio), disponiblesAnterior: 0, previousYear, clickYear };
+            };
+
+            // Carga vacationData bajo demanda (cuando no se pobló por el clic previo en el calendario).
+            const obtenerVacationData = async (fechaRefStr) => {
+                try {
+                    const baseUrl = routes.vacationDataUrl || `/usuarios/${userId}/vacation-data`;
+                    const r = await fetch(`${baseUrl}?fecha=${fechaRefStr}`, { headers: { Accept: "application/json" } });
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    const data = await r.json();
+                    if (data.error) throw new Error(data.error);
+                    return calcularVacationData(data, fechaRefStr);
+                } catch (e) {
+                    console.error("Error cargando vacation-data on-demand:", e);
+                    return null;
+                }
+            };
+
+            // Vacaciones: lógica de año anterior + validación de días disponibles.
+            // Devuelve true para continuar, false para abortar.
+            const prepararVacaciones = async (body) => {
+                // Cargar datos on-demand si el flujo de selección de rango no los pobló
+                // (p.ej. al asignar el estado "vacaciones" desde el modal sin clic previo en el calendario).
+                if (!vacationData) {
+                    vacationData = await obtenerVacationData(fechaInicio);
+                }
+
+                if (vacationData && vacationData.disponiblesAnterior > 0) {
+                    const fechaInicioDate = new Date(fechaInicio);
+                    const mes = fechaInicioDate.getMonth(); // 0=ene, 1=feb, 2=mar
+                    if (mes <= 2) {
+                        const anioActual = fechaInicioDate.getFullYear();
+                        const anioAnterior = anioActual - 1;
+                        const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
+
+                        const { isConfirmed: usarAnterior } = await Swal.fire({
+                            title: 'Días del año anterior',
+                            html: `
+                                <p class="text-sm text-gray-600 mb-4">Tiene <strong>${vacationData.disponiblesAnterior} días</strong> del año ${anioAnterior} que caducan el 31 de marzo.</p>
+                                <p class="text-sm text-gray-600 mb-4">Estás asignando <strong>${diasSeleccionados} días</strong> de vacaciones.</p>
+                                <p class="text-sm text-gray-600 mb-4">¿Quieres usar primero los días del año ${anioAnterior}?</p>
+                                ${diasSeleccionados > vacationData.disponiblesAnterior ?
+                                    `<p class="text-xs text-blue-600 mt-2"><em>Se asignarán ${Math.min(diasSeleccionados, vacationData.disponiblesAnterior)} días al ${anioAnterior} y ${diasSeleccionados - vacationData.disponiblesAnterior} días al ${anioActual}.</em></p>` :
+                                    ''}
+                            `,
+                            showCancelButton: true,
+                            showDenyButton: true,
+                            confirmButtonText: `Sí, usar días de ${anioAnterior}`,
+                            denyButtonText: `No, usar solo ${anioActual}`,
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#1e3a5f',
+                            denyButtonColor: '#6b7280',
+                        });
+
+                        if (usarAnterior === true) {
+                            body.usar_anterior_primero = true;
+                            body.dias_disponibles_anterior = vacationData.disponiblesAnterior;
+                            body.anio_anterior = anioAnterior;
+                        } else {
+                            body.anio_cargo = anioActual;
+                        }
                     }
                 }
-            }
 
-            // Validar que no se excedan los días disponibles de vacaciones
-            if (tipoSeleccionado === 'vacaciones') {
+                // Sin datos (usuario sin fecha de incorporación o fallo de carga):
+                // continuar y dejar que el backend valide el tope de vacaciones.
                 if (!vacationData) {
-                    console.error('vacationData no está definido - no se puede validar días disponibles');
-                    if (typeof mostrarError === 'function') {
-                        mostrarError('No se pudieron cargar los datos de vacaciones. Recarga la página e inténtalo de nuevo.');
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar los datos de vacaciones.' });
-                    }
-                    return;
+                    return true;
                 }
 
                 const diasSeleccionados = contarDiasLaborables(fechaInicio, fechaFin, calendar);
                 const restantes = vacationData.disponiblesTotal - diasSeleccionados;
-                console.log('Validación vacaciones:', { diasSeleccionados, disponibles: vacationData.disponiblesTotal, restantes });
-
                 if (restantes < 0) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Días insuficientes',
                         html: `
-                            <p class="text-gray-600 mb-2">No tienes suficientes días de vacaciones disponibles.</p>
+                            <p class="text-gray-600 mb-2">No tiene suficientes días de vacaciones disponibles.</p>
                             <p class="text-gray-600">Disponibles: <strong>${vacationData.disponiblesTotal}</strong></p>
                             <p class="text-gray-600">Solicitados: <strong>${diasSeleccionados}</strong></p>
-                            <p class="text-red-600 font-semibold mt-2">Te faltan ${Math.abs(restantes)} día(s)</p>
+                            <p class="text-red-600 font-semibold mt-2">Faltan ${Math.abs(restantes)} día(s)</p>
                         `,
                         confirmButtonColor: '#1e3a5f',
                     });
+                    return false;
+                }
+                return true;
+            };
+
+            try {
+                // === 1) QUITAR TURNO (elimina la fila completa: turno, estado y horas) ===
+                if (turnoSel === '__quitar__') {
+                    const confirmacion = await Swal.fire({
+                        title: "Confirmar eliminación",
+                        text: "¿Seguro que quieres eliminar el turno? Esto también eliminará el estado y las horas de entrada y salida.",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Sí, eliminar",
+                        cancelButtonText: "Cancelar",
+                    });
+                    if (!confirmacion.isConfirmed) return;
+
+                    const data = await postDestroy({ fecha_inicio: fechaInicio, fecha_fin: fechaFin, user_id: userId, tipo: "eliminarTurnoEstado" });
+                    if (data.success) finalizar(data.success);
+                    else Swal.fire("Error", data.error || "No se pudo eliminar el turno.", "error");
                     return;
                 }
-            }
 
-            fetch(routes.storeUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": csrfToken,
-                },
-                body: JSON.stringify(body),
-            })
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data.success) {
-                        smartRefetch(calendar, () =>
-                            actualizarResumenAsistencia(routes.resumenUrl)
-                        );
+                const asignaTurno = turnoSel !== '';
+                const asignaEstado = estadoSel !== '' && estadoSel !== '__quitar__';
+                const quitaEstado = estadoSel === '__quitar__';
 
-                        Swal.fire("Registrado", data.success, "success");
-                    } else {
-                        Swal.fire(
-                            "Error",
-                            data.error || "No se pudo registrar el evento.",
-                            "error"
-                        );
+                // === 2) SOLO HORAS (ningún cambio de turno ni estado) ===
+                if (!asignaTurno && !asignaEstado && !quitaEstado) {
+                    const body = aplicarHoras({ user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: "soloHoras" });
+                    if (!horaEntrada && !horaSalida && !('entrada2' in body) && !('salida2' in body)) {
+                        Swal.fire("Aviso", "Selecciona un turno/estado o indica al menos una hora.", "warning");
+                        return;
                     }
-                })
-                .catch((err) => {
-                    console.error("Error:", err);
-                    Swal.fire(
-                        "Error",
-                        "Ocurrio un problema al registrar el turno.",
-                        "error"
-                    );
-                });
+                    const data = await postStore(body);
+                    if (data.success) finalizar("Horas actualizadas correctamente.");
+                    else if (typeof mostrarError === 'function') mostrarError(data.error || "No se pudieron actualizar las horas.");
+                    else Swal.fire("Error", data.error || "No se pudieron actualizar las horas.", "error");
+                    return;
+                }
+
+                let horasAplicadas = false;
+
+                // === 3) ASIGNAR TURNO (turno_id + estado=activo + horas) ===
+                if (asignaTurno) {
+                    const body = aplicarHoras({ user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: turnoSel });
+                    horasAplicadas = true;
+                    const data = await postStore(body);
+                    if (!data.success) {
+                        Swal.fire("Error", data.error || "No se pudo asignar el turno.", "error");
+                        return;
+                    }
+                }
+
+                // === 4) ASIGNAR ESTADO (mantiene el turno asignado/existente) ===
+                if (asignaEstado) {
+                    const body = { user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: estadoSel };
+                    if (!horasAplicadas) aplicarHoras(body);
+
+                    if (estadoSel === 'vacaciones') {
+                        const continuar = await prepararVacaciones(body);
+                        if (!continuar) return;
+                    }
+
+                    const data = await postStore(body);
+                    if (!data.success) {
+                        Swal.fire("Error", data.error || "No se pudo asignar el estado.", "error");
+                        return;
+                    }
+                }
+
+                // === 5) QUITAR ESTADO (mantiene turno y horas) ===
+                if (quitaEstado) {
+                    const data = await postDestroy({ fecha_inicio: fechaInicio, fecha_fin: fechaFin, user_id: userId, tipo: "eliminarEstado" });
+                    if (!data.success) {
+                        Swal.fire("Error", data.error || "No se pudo eliminar el estado.", "error");
+                        return;
+                    }
+                }
+
+                finalizar("Cambios guardados correctamente.");
+            } catch (err) {
+                console.error("Error:", err);
+                Swal.fire("Error", "Ocurrió un problema al guardar los cambios.", "error");
+            }
         }
 
         const rightButtons = enableListMonth

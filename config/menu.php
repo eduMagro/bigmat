@@ -67,6 +67,14 @@ return [
                     ]
                 ],
                 [
+                    'label' => 'Documentos',
+                    'route' => 'documentos-alertas.index',
+                    'icon' => '📄',
+                    'actions' => [
+                        ['label' => 'Ver documentos', 'route' => 'documentos-alertas.index', 'permission' => 'ver'],
+                    ]
+                ],
+                [
                     'label' => 'Planificacion',
                     'route' => 'planificacion.trabajadores',
                     'icon' => '📅',

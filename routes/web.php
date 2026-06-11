@@ -20,6 +20,7 @@ use App\Http\Controllers\IncorporacionPublicaController;
 use App\Http\Controllers\DocumentoEmpleadoController;
 use App\Http\Controllers\PermisoAccesoController;
 use App\Http\Controllers\AlertaController;
+use App\Http\Controllers\DocumentoAlertaController;
 use App\Http\Controllers\ProduccionController;
 use App\Http\Controllers\AjustesController;
 use App\Http\Controllers\PoliticasController;
@@ -67,6 +68,8 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar', 'operario.redirect'])->group(function () {
 
     // === USUARIOS ===
+    // Buscador rápido de usuarios (debe ir antes del resource para no chocar con /users/{user})
+    Route::get('/users/buscar', [ProfileController::class, 'buscar'])->name('users.buscar');
     Route::resource('users', ProfileController::class)->except(['create', 'store']);
     Route::get('/users/{id}/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -102,6 +105,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::get('/vacaciones/mis-solicitudes-pendientes', [VacacionesController::class, 'misSolicitudesPendientes'])->name('vacaciones.misSolicitudesPendientes');
     Route::delete('/vacaciones/solicitud/{id}', [VacacionesController::class, 'eliminarSolicitud'])->name('vacaciones.eliminarSolicitud');
     Route::post('/vacaciones/solicitud/eliminar-dias', [VacacionesController::class, 'eliminarDiasSolicitud'])->name('vacaciones.eliminarDiasSolicitud');
+    Route::get('/vacaciones/sobrantes-anio-anterior/{user}', [VacacionesController::class, 'sobrantesAnioAnterior'])->name('vacaciones.sobrantesAnioAnterior');
     Route::resource('vacaciones', VacacionesController::class);
 
     // === AJUSTES (Turnos y Festivos) ===
@@ -203,7 +207,18 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::post('/alertas/marcar-leidas', [AlertaController::class, 'marcarLeidas'])->name('alertas.marcarLeidas');
     Route::get('/alertas/sin-leer', [AlertaController::class, 'sinLeer'])->name('alertas.verSinLeer');
     Route::get('/alertas/{id}/hilo', [AlertaController::class, 'obtenerHilo'])->name('alertas.obtenerHilo');
+    // Firma de documentos adjuntos a alertas
+    Route::post('/alertas/adjuntos/firmar', [AlertaController::class, 'firmarAdjuntos'])->name('alertas.adjuntos.firmar');
+    Route::get('/alertas/adjuntos/{id}/ver', [AlertaController::class, 'verAdjunto'])->name('alertas.adjuntos.ver');
+    Route::get('/alertas/adjuntos/{id}/descargar', [AlertaController::class, 'descargarAdjunto'])->name('alertas.adjuntos.descargar');
+    Route::get('/alertas/firma/{filename}', [AlertaController::class, 'verFirmaAdjunto'])->name('alertas.firma.ver');
     Route::resource('alertas', AlertaController::class);
+
+    // === DOCUMENTOS / GESTIÓN DE FIRMAS ===
+    Route::get('/documentos-alertas', [DocumentoAlertaController::class, 'index'])->name('documentos-alertas.index');
+    Route::post('/documentos-alertas', [DocumentoAlertaController::class, 'store'])->name('documentos-alertas.store');
+    Route::post('/documentos-alertas/{documento}/asignar-faltantes', [DocumentoAlertaController::class, 'asignarFirmasFaltantes'])->name('documentos-alertas.asignar-faltantes');
+    Route::post('/documentos-alertas/firmas/{firma}/revocar', [DocumentoAlertaController::class, 'revocarFirma'])->name('documentos-alertas.firmas.revocar');
 
     // === REVISION DE FICHAJES ===
     Route::post('/revision-fichaje/solicitar', [RevisionFichajeController::class, 'store'])->name('revision-fichaje.store');
