@@ -19,7 +19,7 @@
     </div>
 
     <div class="container mx-auto sm:px-4">
-        <x-ficha-trabajador :user="$user" :resumen="$resumen" :solicitudesVacaciones="$solicitudesVacaciones" />
+        <x-ficha-trabajador :user="$user" :resumen="$resumen" :horas="$horasResumen ?? null" :solicitudesVacaciones="$solicitudesVacaciones" />
     </div>
 
     @php

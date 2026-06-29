@@ -43,8 +43,8 @@ class PerfilController extends Controller
         // Resumen de asistencias (optimizado)
         $resumen = $this->getResumenAsistencia($user);
 
-        // Horas trabajadas del mes (optimizado)
-        $horasMensuales = $this->getHorasMensuales($user);
+        // Resumen de horas reales fichadas (semana y mes en curso)
+        $horasResumen = \App\Services\ComputoHorasService::semanaYMesUsuario($user->id);
 
         // Solicitudes de vacaciones pendientes del usuario
         $solicitudesVacaciones = VacacionesSolicitud::where('user_id', $user->id)
@@ -94,7 +94,7 @@ class PerfilController extends Controller
             'user',
             'turnos',
             'resumen',
-            'horasMensuales',
+            'horasResumen',
             'config',
             'solicitudesVacaciones'
         ));
@@ -134,55 +134,4 @@ class PerfilController extends Controller
     /**
      * Horas mensuales optimizado - usa cálculo en base de datos cuando es posible
      */
-    private function getHorasMensuales(User $user): array
-    {
-        $inicioMes = Carbon::now()->startOfMonth();
-        $hoy = Carbon::now()->toDateString();
-        $finMes = Carbon::now()->endOfMonth();
-
-        // Obtener estadísticas agregadas directamente de la base de datos
-        $stats = AsignacionTurno::where('user_id', $user->id)
-            ->whereBetween('fecha', [$inicioMes->toDateString(), $finMes->toDateString()])
-            ->where('estado', 'activo')
-            ->selectRaw('
-                COUNT(*) as total_asignaciones,
-                SUM(CASE WHEN fecha <= ? THEN 1 ELSE 0 END) as dias_hasta_hoy,
-                SUM(CASE
-                    WHEN entrada IS NOT NULL AND salida IS NOT NULL
-                    THEN TIMESTAMPDIFF(MINUTE, entrada, salida) / 60.0
-                    ELSE 0
-                END) as horas_jornada1,
-                SUM(CASE
-                    WHEN entrada2 IS NOT NULL AND salida2 IS NOT NULL
-                    THEN TIMESTAMPDIFF(MINUTE, entrada2, salida2) / 60.0
-                    ELSE 0
-                END) as horas_jornada2,
-                SUM(CASE
-                    WHEN fecha < ? AND (
-                        (entrada IS NOT NULL AND salida IS NULL) OR
-                        (entrada2 IS NOT NULL AND salida2 IS NULL)
-                    )
-                    THEN 1 ELSE 0
-                END) as dias_con_errores
-            ', [$hoy, $hoy])
-            ->first();
-
-        $horasTrabajadas = ($stats->horas_jornada1 ?? 0) + ($stats->horas_jornada2 ?? 0);
-        $diasHastaHoy = $stats->dias_hasta_hoy ?? 0;
-        $totalAsignacionesMes = $stats->total_asignaciones ?? 0;
-        $diasConErrores = $stats->dias_con_errores ?? 0;
-
-        // Horas que debería llevar hasta hoy
-        $horasDeberiaLlevar = $diasHastaHoy * 8;
-
-        // Horas planificadas en el mes completo
-        $horasPlanificadasMes = $totalAsignacionesMes * 8;
-
-        return [
-            'horas_trabajadas' => round($horasTrabajadas, 2),
-            'horas_deberia_llevar' => $horasDeberiaLlevar,
-            'dias_con_errores' => $diasConErrores,
-            'horas_planificadas_mes' => $horasPlanificadasMes,
-        ];
-    }
 }

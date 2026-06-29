@@ -1104,14 +1104,12 @@ class AsignacionTurnoController extends Controller
                 $esSplitAnterior = $anioVacacional && (int) $anioVacacional < $anioActual && $sobrantesAnterior !== null;
 
                 if ($tipo === 'vacaciones') {
-                    // Contar días solicitados (laborables, sin festivos, que aún no son vacaciones)
+                    // Contar días solicitados (días naturales, incluidos fines de semana;
+                    // se excluyen festivos y los días que ya son vacaciones)
                     $tempDate = $fechaInicio->copy();
                     while ($tempDate->lte($fechaFin)) {
                         $tempStr = $tempDate->toDateString();
-                        if (
-                            !in_array($tempDate->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]) &&
-                            !in_array($tempStr, $festivos)
-                        ) {
+                        if (!in_array($tempStr, $festivos)) {
                             $asignacion = AsignacionTurno::where('user_id', $user->id)
                                 ->whereDate('fecha', $tempStr)
                                 ->first();
@@ -1178,12 +1176,15 @@ class AsignacionTurnoController extends Controller
                 foreach ($periodo as $currentDate) {
                     $dateStr = $currentDate->toDateString();
 
-                    // Saltar fines de semana y festivos para vacaciones y turnos
-                    if (
-                        ($tipo === 'vacaciones' || $esTurno) &&
-                        (in_array($currentDate->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]) ||
-                            in_array($dateStr, $festivos))
-                    ) {
+                    // Turnos: saltar fines de semana y festivos (no se trabaja esos días).
+                    // Vacaciones: incluir fines de semana (cuentan como días naturales),
+                    // pero saltar festivos (no consumen vacaciones).
+                    $esFinDeSemana = in_array($currentDate->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
+                    $esFestivo = in_array($dateStr, $festivos);
+                    if ($esTurno && ($esFinDeSemana || $esFestivo)) {
+                        continue;
+                    }
+                    if ($tipo === 'vacaciones' && $esFestivo) {
                         continue;
                     }
 

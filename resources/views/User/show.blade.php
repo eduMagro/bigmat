@@ -27,7 +27,7 @@
     @endif
 
     <div class="container mx-auto md:px-4">
-        <x-ficha-trabajador :user="$user" :resumen="$resumen" />
+        <x-ficha-trabajador :user="$user" :resumen="$resumen" :horas="$horasResumen ?? null" />
     </div>
 
     @if ($esOficina || auth()->id() === $user->id)

@@ -31,14 +31,20 @@ class ProduccionController extends Controller
         // Obtener turnos para mostrar en la leyenda
         $turnos = Turno::activos()->ordenados()->get();
 
+        // Horas reales fichadas (semana y mes) por trabajador
+        $resumenHoras = \App\Services\ComputoHorasService::semanaYMes($trabajadores->pluck('id'));
+
         // Crear recursos para el calendario (cada trabajador es una fila)
-        $recursos = $trabajadores->map(function ($trabajador, $index) {
+        $recursos = $trabajadores->map(function ($trabajador, $index) use ($resumenHoras) {
+            $h = $resumenHoras[$trabajador->id] ?? null;
             return [
                 'id' => $trabajador->id,
                 'title' => $trabajador->nombre_completo ?? $trabajador->name,
                 'orden' => $index,
                 'foto' => $trabajador->ruta_imagen ?? null,
                 'categoria' => $trabajador->categoria?->nombre,
+                'horas_semana' => $h['semana']['horas'] ?? 0,
+                'horas_mes' => $h['mes']['horas'] ?? 0,
             ];
         })->values();
 
@@ -200,13 +206,18 @@ class ProduccionController extends Controller
 
         $turnos = Turno::activos()->ordenados()->get();
 
-        $recursos = $trabajadores->map(function ($trabajador, $index) {
+        $resumenHoras = \App\Services\ComputoHorasService::semanaYMes($trabajadores->pluck('id'));
+
+        $recursos = $trabajadores->map(function ($trabajador, $index) use ($resumenHoras) {
+            $h = $resumenHoras[$trabajador->id] ?? null;
             return [
                 'id' => $trabajador->id,
                 'title' => $trabajador->nombre_completo ?? $trabajador->name,
                 'orden' => $index,
                 'foto' => $trabajador->ruta_imagen ?? null,
                 'categoria' => $trabajador->categoria?->nombre,
+                'horas_semana' => $h['semana']['horas'] ?? 0,
+                'horas_mes' => $h['mes']['horas'] ?? 0,
             ];
         })->values();
 

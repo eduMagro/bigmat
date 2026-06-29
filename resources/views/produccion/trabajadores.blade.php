@@ -281,6 +281,17 @@
                             texto.appendChild(cat);
                         }
 
+                        // Horas reales fichadas: semana / mes
+                        const fmtH = (v) => {
+                            const n = Number(v) || 0;
+                            return (Number.isInteger(n) ? n.toString() : n.toFixed(2).replace('.', ',').replace(/,?0+$/, ''));
+                        };
+                        const horas = document.createElement('div');
+                        horas.className = 'text-[10px] text-gray-600 dark:text-gray-300 font-medium mt-0.5';
+                        horas.innerHTML = `<span title="Horas trabajadas esta semana">S: ${fmtH(props.horas_semana)}h</span>` +
+                            ` · <span title="Horas trabajadas este mes">M: ${fmtH(props.horas_mes)}h</span>`;
+                        texto.appendChild(horas);
+
                         a.appendChild(avatar);
                         a.appendChild(texto);
                         return { domNodes: [a] };

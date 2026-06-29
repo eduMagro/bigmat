@@ -327,10 +327,29 @@
 
         // --- Acciones por rol ---
         async function pedirVacaciones(fechaInicio, fechaFin, calendar) {
+            // Las vacaciones deben solicitarse por semanas completas (lunes a domingo).
+            // getDay(): 0=domingo, 1=lunes ... 6=sábado. Se parsea en hora local para evitar desfases.
+            const inicioDate = new Date(fechaInicio + "T00:00:00");
+            const finDate = new Date(fechaFin + "T00:00:00");
+            if (inicioDate.getDay() !== 1 || finDate.getDay() !== 0) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Selecciona semanas completas",
+                    text: "Las vacaciones deben solicitarse por semanas completas, de lunes a domingo.",
+                    confirmButtonColor: "#1e3a5f",
+                });
+                return;
+            }
+
+            // Formatear fecha YYYY-MM-DD -> dd/mm/yyyy para mostrar
+            const fmtFecha = (s) => {
+                const [y, m, d] = s.split("-");
+                return `${d}/${m}/${y}`;
+            };
             const msg =
                 fechaInicio === fechaFin
-                    ? `<p>${fechaInicio}</p>`
-                    : `<p>Desde: ${fechaInicio}</p><p>Hasta: ${fechaFin}</p>`;
+                    ? `<p>${fmtFecha(fechaInicio)}</p>`
+                    : `<p>Desde: ${fmtFecha(fechaInicio)}</p><p>Hasta: ${fmtFecha(fechaFin)}</p>`;
             const { isConfirmed } = await Swal.fire({
                 title: "Solicitar vacaciones",
                 html: `${msg}<p class="mt-2 text-sm text-gray-600">Se enviará una solicitud para revisión.</p>`,
@@ -489,19 +508,37 @@
 
         // Mostrar opciones: Vacaciones o Revision de fichajes
         async function mostrarOpcionesAccion(fechaInicio, fechaFin, calendar) {
+            // Formatear fecha YYYY-MM-DD -> dd/mm/yyyy para mostrar
+            const fmtFecha = (s) => {
+                const [y, m, d] = s.split("-");
+                return `${d}/${m}/${y}`;
+            };
             const esMismoDia = fechaInicio === fechaFin;
             const rangoTexto = esMismoDia
-                ? fechaInicio
-                : `${fechaInicio} - ${fechaFin}`;
+                ? fmtFecha(fechaInicio)
+                : `${fmtFecha(fechaInicio)} - ${fmtFecha(fechaFin)}`;
+
+            // Las vacaciones solo se pueden solicitar por semanas completas (lunes a domingo).
+            // getDay(): 0=domingo, 1=lunes ... 6=sábado. Se parsea en hora local para evitar desfases.
+            const inicioDate = new Date(fechaInicio + "T00:00:00");
+            const finDate = new Date(fechaFin + "T00:00:00");
+            const esSemanaCompleta = inicioDate.getDay() === 1 && finDate.getDay() === 0;
+
+            const btnVacaciones = esSemanaCompleta
+                ? `<button type="button" class="swal2-option-btn px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors" data-value="vacaciones">
+                            Solicitar vacaciones
+                        </button>`
+                : `<button type="button" disabled title="Selecciona una semana completa (lunes a domingo)" class="px-4 py-3 bg-blue-500 text-white rounded-lg font-semibold opacity-50 cursor-not-allowed">
+                            Solicitar vacaciones
+                        </button>
+                        <p class="text-xs text-gray-500 -mt-1">Selecciona semanas completas (lunes a domingo) para solicitar vacaciones.</p>`;
 
             const { value: opcion } = await Swal.fire({
                 title: 'Que deseas hacer?',
                 html: `
                     <p class="text-gray-600 mb-4">${rangoTexto}</p>
                     <div class="flex flex-col gap-3">
-                        <button type="button" class="swal2-option-btn px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors" data-value="vacaciones">
-                            Solicitar vacaciones
-                        </button>
+                        ${btnVacaciones}
                         <button type="button" class="swal2-option-btn px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors" data-value="revision">
                             Pedir revision de fichajes
                         </button>
@@ -530,10 +567,15 @@
 
         // Solicitar revision de fichajes
         async function solicitarRevisionFichaje(fechaInicio, fechaFin, calendar) {
+            // Formatear fecha YYYY-MM-DD -> dd/mm/yyyy para mostrar
+            const fmtFecha = (s) => {
+                const [y, m, d] = s.split("-");
+                return `${d}/${m}/${y}`;
+            };
             const esMismoDia = fechaInicio === fechaFin;
             const rangoTexto = esMismoDia
-                ? fechaInicio
-                : `Del ${fechaInicio} al ${fechaFin}`;
+                ? fmtFecha(fechaInicio)
+                : `Del ${fmtFecha(fechaInicio)} al ${fmtFecha(fechaFin)}`;
 
             // Obtener datos de fichajes para mostrar resumen
             const fichajesUrl = `${routes.fichajesRangoUrl}?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
@@ -564,9 +606,9 @@
 
                 fichajesData.fichajes.forEach(f => {
                     const icono = f.completo ? 'OK' : 'X';
-                    const fechaCorta = f.fecha.substring(5); // MM-DD
+                    const fechaFmt = fmtFecha(f.fecha); // dd/mm/yyyy
                     tablaFichajes += `<tr class="${f.completo ? '' : 'bg-red-50'}">`;
-                    tablaFichajes += `<td class="p-1 border text-center">${icono} ${fechaCorta}</td>`;
+                    tablaFichajes += `<td class="p-1 border text-center">${icono} ${fechaFmt}</td>`;
                     tablaFichajes += `<td class="p-1 border text-center">${f.turno || '-'}</td>`;
                     tablaFichajes += `<td class="p-1 border text-center">${f.entrada || '-'}</td>`;
                     tablaFichajes += `<td class="p-1 border text-center">${f.salida || '-'}</td>`;

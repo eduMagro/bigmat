@@ -354,13 +354,17 @@ class ProfileController extends Controller
         // Obtener resumen y conteo de vacaciones en una sola consulta optimizada
         $resumen = $this->getResumenAsistencia($user);
 
-        // Horas mensuales - consulta optimizada
-        $horasMensuales = $this->getHorasMensuales($user);
+        // Resumen de horas reales fichadas (semana y mes en curso)
+        $horasResumen = \App\Services\ComputoHorasService::semanaYMesUsuario($user->id);
 
         $esOficina = $auth->rol === 'oficina';
 
-        // Precargar eventos del mes actual para evitar AJAX inicial
-        $initialEvents = $this->getEventosRangoOptimizado($user, Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth());
+        // Precargar eventos de toda la rejilla visible del calendario (6 semanas, empezando
+        // en lunes), no solo el mes natural: así los días del mes siguiente que se ven en la
+        // cuadrícula también traen sus eventos en la carga inicial.
+        $gridInicio = Carbon::now()->startOfMonth()->startOfWeek(Carbon::MONDAY);
+        $gridFin = $gridInicio->copy()->addDays(41)->endOfDay();
+        $initialEvents = $this->getEventosRangoOptimizado($user, $gridInicio, $gridFin);
 
         $config = [
             'userId' => $user->id,
@@ -404,7 +408,7 @@ class ProfileController extends Controller
             'user',
             'turnos',
             'resumen',
-            'horasMensuales',
+            'horasResumen',
             'config'
         ));
     }
@@ -431,51 +435,6 @@ class ProfileController extends Controller
             'nombre' => $u->nombre_completo,
             'imagen' => $u->ruta_imagen,
         ]));
-    }
-
-    private function getHorasMensuales(User $user): array
-    {
-        $inicioMes = Carbon::now()->startOfMonth()->toDateString();
-        $hoy = Carbon::now()->toDateString();
-        $finMes = Carbon::now()->endOfMonth()->toDateString();
-
-        // Consulta optimizada: solo campos necesarios
-        $asignacionesMes = AsignacionTurno::where('user_id', $user->id)
-            ->whereBetween('fecha', [$inicioMes, $finMes])
-            ->where('estado', 'activo')
-            ->select('fecha', 'entrada', 'salida')
-            ->get();
-
-        $horasTrabajadas = 0;
-        $diasConErrores = 0;
-        $diasHastaHoy = 0;
-        $totalAsignacionesMes = $asignacionesMes->count();
-
-        foreach ($asignacionesMes as $asignacion) {
-            $fechaStr = $asignacion->fecha instanceof \Carbon\Carbon
-                ? $asignacion->fecha->toDateString()
-                : $asignacion->fecha;
-
-            if ($fechaStr <= $hoy) {
-                $diasHastaHoy++;
-            }
-
-            if ($asignacion->entrada && $asignacion->salida) {
-                $horaEntrada = Carbon::parse($asignacion->entrada);
-                $horaSalida = Carbon::parse($asignacion->salida);
-                $horasDia = $horaSalida->diffInMinutes($horaEntrada) / 60;
-                $horasTrabajadas += max($horasDia, 8);
-            } elseif ($fechaStr < $hoy) {
-                $diasConErrores++;
-            }
-        }
-
-        return [
-            'horas_trabajadas' => $horasTrabajadas,
-            'horas_deberia_llevar' => $diasHastaHoy * 8,
-            'dias_con_errores' => $diasConErrores,
-            'horas_planificadas_mes' => $totalAsignacionesMes * 8,
-        ];
     }
 
     protected function getColoresTurnosYEstado(): array

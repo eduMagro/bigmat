@@ -1,4 +1,4 @@
-@props(['user', 'resumen', 'solicitudesVacaciones' => collect()])
+@props(['user', 'resumen', 'horas' => null, 'solicitudesVacaciones' => collect()])
 
 <style>
     [x-cloak] {
@@ -222,50 +222,112 @@
                     </svg>
                 </button>
                 <div x-cloak x-show="seccionLaboral" x-collapse>
-                    <div class="px-3 pb-3 space-y-3">
+                    <div class="px-3 pb-3 space-y-4">
+
                         {{-- Datos básicos --}}
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                            <span class="text-gray-500 dark:text-gray-400">Empresa: <span class="text-gray-900 dark:text-gray-100 font-medium">{{ $user->empresa->nombre ?? 'N/A' }}</span></span>
-                            <span class="text-gray-500 dark:text-gray-400">Categoria: <span class="text-gray-900 dark:text-gray-100 font-medium">{{ $user->categoria->nombre ?? 'N/A' }}</span></span>
+                        <div>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold mb-1.5">Datos</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-400">Empresa</p>
+                                    <p class="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{{ $user->empresa->nombre ?? 'N/A' }}</p>
+                                </div>
+                                <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-400">Categoría</p>
+                                    <p class="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{{ $user->categoria->nombre ?? 'N/A' }}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        {{-- Vacaciones --}}
-                        <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs text-gray-600 dark:text-gray-300 font-medium">Vacaciones {{ $anioActual }}</span>
-                                <div class="flex items-center gap-4 text-xs">
-                                    <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientes }}</span> <span class="text-gray-400">totales</span></span>
-                                    <span><span id="vac-actual-disfrutadas" class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadas }}</span> <span class="text-gray-400">disfrutadas</span></span>
-                                    <span><span id="vac-actual-disponibles" class="font-semibold {{ $vacacionesRestantes > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">{{ $vacacionesRestantes }}</span> <span class="text-gray-400">disponibles</span></span>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
-                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Vacaciones {{ $anioAnterior }} <span class="text-[10px] text-gray-400">(año anterior)</span></span>
-                                <div class="flex items-center gap-4 text-xs">
-                                    <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientesAnterior }}</span> <span class="text-gray-400">totales</span></span>
-                                    <span><span id="vac-anterior-disfrutadas" class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadasAnterior }}</span> <span class="text-gray-400">disfrutadas</span></span>
-                                    <span><span id="vac-anterior-pendientes" class="font-semibold {{ $vacacionesRestantesAnterior > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">{{ $vacacionesRestantesAnterior }}</span> <span class="text-gray-400">pendientes</span></span>
-                                </div>
-                            </div>
-                            @if ($solicitudesPendientesData->count() > 0)
-                                <div class="pt-2 border-t border-gray-200 dark:border-gray-600">
-                                    <p class="text-[10px] text-amber-600 dark:text-amber-400 font-medium mb-1">Solicitudes pendientes:</p>
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach ($solicitudesPendientesData as $solicitud)
-                                            <span class="text-[10px] px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">
-                                                {{ \Carbon\Carbon::parse($solicitud->fecha_inicio)->format('d/m') }} - {{ \Carbon\Carbon::parse($solicitud->fecha_fin)->format('d/m') }}
-                                            </span>
-                                        @endforeach
+                        {{-- Horas trabajadas (fichajes reales) --}}
+                        @if (!is_null($horas))
+                            @php
+                                $hSemana = $horas['semana'] ?? ['horas' => 0, 'dias_trabajados' => 0, 'dias_incompletos' => 0];
+                                $hMes = $horas['mes'] ?? ['horas' => 0, 'dias_trabajados' => 0, 'dias_incompletos' => 0];
+                                $fmtH = fn($v) => rtrim(rtrim(number_format((float) $v, 2, ',', '.'), '0'), ',');
+                            @endphp
+                            <div>
+                                <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold mb-1.5">Horas trabajadas</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    {{-- Esta semana --}}
+                                    <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <div class="flex items-center gap-1.5 mb-0.5">
+                                            <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Esta semana</span>
+                                        </div>
+                                        <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ $fmtH($hSemana['horas']) }} <span class="text-xs font-medium text-gray-400">h</span></p>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400">
+                                            {{ $hSemana['dias_trabajados'] }} día{{ $hSemana['dias_trabajados'] != 1 ? 's' : '' }} trabajado{{ $hSemana['dias_trabajados'] != 1 ? 's' : '' }}
+                                            @if (($hSemana['dias_incompletos'] ?? 0) > 0)
+                                                · <span class="text-amber-600 dark:text-amber-400">{{ $hSemana['dias_incompletos'] }} sin fichaje</span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                    {{-- Este mes --}}
+                                    <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <div class="flex items-center gap-1.5 mb-0.5">
+                                            <svg class="w-3.5 h-3.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Este mes</span>
+                                        </div>
+                                        <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ $fmtH($hMes['horas']) }} <span class="text-xs font-medium text-gray-400">h</span></p>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400">
+                                            {{ $hMes['dias_trabajados'] }} día{{ $hMes['dias_trabajados'] != 1 ? 's' : '' }} trabajado{{ $hMes['dias_trabajados'] != 1 ? 's' : '' }}
+                                            @if (($hMes['dias_incompletos'] ?? 0) > 0)
+                                                · <span class="text-amber-600 dark:text-amber-400">{{ $hMes['dias_incompletos'] }} sin fichaje</span>
+                                            @endif
+                                        </p>
                                     </div>
                                 </div>
-                            @endif
+                            </div>
+                        @endif
+
+                        {{-- Vacaciones --}}
+                        <div>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold mb-1.5">Vacaciones</p>
+                            <div class="py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-gray-600 dark:text-gray-300 font-medium">{{ $anioActual }}</span>
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientes }}</span> <span class="text-gray-400">totales</span></span>
+                                        <span><span id="vac-actual-disfrutadas" class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadas }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                        <span><span id="vac-actual-disponibles" class="font-semibold {{ $vacacionesRestantes > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">{{ $vacacionesRestantes }}</span> <span class="text-gray-400">disponibles</span></span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ $anioAnterior }} <span class="text-[10px] text-gray-400">(año anterior)</span></span>
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <span><span class="font-semibold text-gray-700 dark:text-gray-200">{{ $vacacionesCorrespondientesAnterior }}</span> <span class="text-gray-400">totales</span></span>
+                                        <span><span id="vac-anterior-disfrutadas" class="font-semibold text-blue-600 dark:text-blue-400">{{ $vacacionesDisfrutadasAnterior }}</span> <span class="text-gray-400">disfrutadas</span></span>
+                                        <span><span id="vac-anterior-pendientes" class="font-semibold {{ $vacacionesRestantesAnterior > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">{{ $vacacionesRestantesAnterior }}</span> <span class="text-gray-400">pendientes</span></span>
+                                    </div>
+                                </div>
+                                @if ($solicitudesPendientesData->count() > 0)
+                                    <div class="pt-2 border-t border-gray-200 dark:border-gray-600">
+                                        <p class="text-[10px] text-amber-600 dark:text-amber-400 font-medium mb-1">Solicitudes pendientes:</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach ($solicitudesPendientesData as $solicitud)
+                                                <span class="text-[10px] px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">
+                                                    {{ \Carbon\Carbon::parse($solicitud->fecha_inicio)->format('d/m') }} - {{ \Carbon\Carbon::parse($solicitud->fecha_fin)->format('d/m') }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
 
-                        {{-- Faltas y bajas en linea --}}
-                        <div class="flex flex-wrap gap-2 text-xs">
-                            <span class="px-2 py-1 rounded {{ $resumen['faltasInjustificadas'] > 0 ? 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-400' }}">{{ $resumen['faltasInjustificadas'] }} injustificada{{ $resumen['faltasInjustificadas'] != 1 ? 's' : '' }}</span>
-                            <span class="px-2 py-1 rounded {{ $resumen['faltasJustificadas'] > 0 ? 'bg-yellow-50 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-400' }}">{{ $resumen['faltasJustificadas'] }} justificada{{ $resumen['faltasJustificadas'] != 1 ? 's' : '' }}</span>
-                            <span class="px-2 py-1 rounded {{ $resumen['diasBaja'] > 0 ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200' : 'bg-gray-50 dark:bg-gray-700 text-gray-400' }}">{{ $resumen['diasBaja'] }} dia{{ $resumen['diasBaja'] != 1 ? 's' : '' }} baja</span>
+                        {{-- Ausencias (este año) --}}
+                        <div>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold mb-1.5">Ausencias (este año)</p>
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <span class="px-2 py-1 rounded {{ $resumen['faltasInjustificadas'] > 0 ? 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-400' }}">{{ $resumen['faltasInjustificadas'] }} injustificada{{ $resumen['faltasInjustificadas'] != 1 ? 's' : '' }}</span>
+                                <span class="px-2 py-1 rounded {{ $resumen['faltasJustificadas'] > 0 ? 'bg-yellow-50 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-400' }}">{{ $resumen['faltasJustificadas'] }} justificada{{ $resumen['faltasJustificadas'] != 1 ? 's' : '' }}</span>
+                                <span class="px-2 py-1 rounded {{ $resumen['diasBaja'] > 0 ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200' : 'bg-gray-50 dark:bg-gray-700 text-gray-400' }}">{{ $resumen['diasBaja'] }} día{{ $resumen['diasBaja'] != 1 ? 's' : '' }} baja</span>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -134,6 +134,14 @@ class VacacionesController extends Controller
             $nuevaInicio = Carbon::parse($validated['fecha_inicio']);
             $nuevaFin = Carbon::parse($validated['fecha_fin']);
 
+            // 1.b) Las vacaciones deben solicitarse por semanas completas (lunes a domingo).
+            // Si empieza en lunes (ISO 1) y termina en domingo (ISO 7), el rango es múltiplo exacto de semanas.
+            if ($nuevaInicio->dayOfWeekIso !== 1 || $nuevaFin->dayOfWeekIso !== 7) {
+                return response()->json([
+                    'error' => 'Las vacaciones deben solicitarse por semanas completas (de lunes a domingo).',
+                ], 422);
+            }
+
             // 2) Validar que haya al menos un día laborable (excluir fines de semana, festivos y días ya con vacaciones)
             $rango = CarbonPeriod::create($nuevaInicio, $nuevaFin);
             $festivos = Festivo::whereBetween('fecha', [
