@@ -53,6 +53,7 @@ class User extends Authenticatable
         'turno_actual',
         'dias_vacaciones',
         'estado',
+        'fecha_baja',
         'updated_by',
         'puede_usar_asistente',
         'puede_modificar_bd',
@@ -87,6 +88,7 @@ class User extends Authenticatable
         'acepta_politica_privacidad' => 'boolean',
         'acepta_politica_cookies' => 'boolean',
         'fecha_aceptacion_politicas' => 'date',
+        'fecha_baja' => 'datetime',
     ];
 
     /**
@@ -110,6 +112,17 @@ class User extends Authenticatable
         static::addGlobalScope('soloActivos', function ($query) {
             $query->where('estado', 'activo');
         });
+    }
+
+    /**
+     * Permite resolver por route-model binding también a usuarios despedidos
+     * (ignora el global scope 'soloActivos'), necesario para ver/readmitir bajas.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->withoutGlobalScopes()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->firstOrFail();
     }
     public function alertasLeidas()
     {

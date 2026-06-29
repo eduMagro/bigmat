@@ -1374,6 +1374,43 @@ class ProfileController extends Controller
         return redirect()->route('users.index')->with('success', '👋 Usuario despedido correctamente.');
     }
 
+    /**
+     * Listado de trabajadores despedidos (solo oficina).
+     */
+    public function despedidos()
+    {
+        $auth = auth()->user();
+
+        if (!$auth) {
+            return redirect()->route('login');
+        }
+
+        // si no es oficina, lo llevamos a su propia ficha
+        if ($auth->rol !== 'oficina') {
+            return redirect()->route('users.show', $auth->id);
+        }
+
+        return view('User.despedidos');
+    }
+
+    /**
+     * Readmitir (reactivar) a un trabajador despedido.
+     * No restaura los turnos futuros eliminados al despedirlo.
+     */
+    public function readmitirUsuario(User $user)
+    {
+        if ($user->estado !== 'despedido') {
+            return redirect()->back()->with('error', 'El usuario no está en estado despedido.');
+        }
+
+        $user->update([
+            'estado'     => 'activo',
+            'fecha_baja' => null,
+        ]);
+
+        return redirect()->route('users.despedidos')->with('success', "✅ {$user->name} {$user->primer_apellido} ha sido readmitido. Recuerda asignarle turnos si los necesita.");
+    }
+
     private function getResumenAsistencia(User $user): array
     {
         $inicioAño = Carbon::now()->startOfYear();

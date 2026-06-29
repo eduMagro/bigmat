@@ -70,6 +70,8 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     // === USUARIOS ===
     // Buscador rápido de usuarios (debe ir antes del resource para no chocar con /users/{user})
     Route::get('/users/buscar', [ProfileController::class, 'buscar'])->name('users.buscar');
+    // Trabajadores despedidos (debe ir antes del resource para no chocar con /users/{user})
+    Route::get('/users/despedidos', [ProfileController::class, 'despedidos'])->name('users.despedidos');
     Route::resource('users', ProfileController::class)->except(['create', 'store']);
     Route::get('/users/{id}/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -79,6 +81,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::get('/users/{user}/eventos-turnos', [ProfileController::class, 'eventosTurnos'])->name('users.verEventos-turnos');
     Route::post('/usuarios/{user}/cerrar-sesiones', [ProfileController::class, 'cerrarSesionesDeUsuario'])->name('usuarios.cerrarSesiones');
     Route::post('/usuarios/{user}/despedir', [ProfileController::class, 'despedirUsuario'])->name('usuarios.editarDespedir');
+    Route::post('/usuarios/{user}/readmitir', [ProfileController::class, 'readmitirUsuario'])->name('usuarios.readmitir');
     Route::get('/mi-perfil/{user}', [PerfilController::class, 'show'])->name('usuarios.show');
     Route::get('/api/usuarios/operarios', [ProfileController::class, 'getOperarios'])->name('api.usuarios.operarios');
     Route::get('/usuarios/{user}/vacation-data', [ProfileController::class, 'getVacationData'])->name('usuarios.getVacationData');
