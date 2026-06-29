@@ -1,4 +1,4 @@
-<div class="max-md:hidden px-6">
+<div class="max-md:hidden">
     <style>
         [x-cloak] {
             display: none !important;
@@ -20,7 +20,7 @@
     </div>
 
     <div class="w-full max-w-full overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg mt-4">
-        <table class="w-full min-w-[1100px] border border-gray-200 dark:border-gray-700 rounded-lg">
+        <table class="w-full border border-gray-200 dark:border-gray-700 rounded-lg">
             <thead class="bg-blue-500 text-white">
                 <tr class="text-center text-xs uppercase">
                     <x-tabla.encabezado-ordenable campo="id" :sortActual="$sort" :orderActual="$order" texto="ID" />
@@ -37,52 +37,62 @@
                 </tr>
 
                 {{-- Filtros --}}
-                <x-tabla.filtro-row>
-                    <th>
-                        <input type="text" wire:model.live.debounce.300ms="user_id" placeholder="ID" aria-label="Filtrar por ID">
+                <tr class="text-center text-xs uppercase">
+                    <th class="p-1 border">
+                        <input type="text" wire:model.live.debounce.300ms="user_id" placeholder="ID"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
                     </th>
-                    <th>
-                        <input type="text" wire:model.live="filtro_name" placeholder="Nombre" autocomplete="off" aria-label="Filtrar por nombre">
+                    <th class="p-1 border">
+                        <input type="text" wire:model.live="filtro_name" placeholder="Nombre" autocomplete="off"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
                     </th>
-                    <th>
-                        <input type="text" wire:model.live="filtro_primer_apellido" placeholder="Apellido 1" autocomplete="off" aria-label="Filtrar por primer apellido">
+                    <th class="p-1 border">
+                        <input type="text" wire:model.live="filtro_primer_apellido" placeholder="Apellido 1" autocomplete="off"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
                     </th>
-                    <th>
-                        <input type="text" wire:model.live="filtro_segundo_apellido" placeholder="Apellido 2" autocomplete="off" aria-label="Filtrar por segundo apellido">
+                    <th class="p-1 border">
+                        <input type="text" wire:model.live="filtro_segundo_apellido" placeholder="Apellido 2" autocomplete="off"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
                     </th>
-                    <th>
-                        <input type="text" wire:model.live.debounce.300ms="email" placeholder="Email" aria-label="Filtrar por email">
+                    <th class="p-1 border">
+                        <input type="text" wire:model.live.debounce.300ms="email" placeholder="Email"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
                     </th>
-                    <th>
-                        <input type="text" wire:model.live.debounce.300ms="dni" placeholder="DNI" aria-label="Filtrar por DNI">
+                    <th class="p-1 border">
+                        <input type="text" wire:model.live.debounce.300ms="dni" placeholder="DNI"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
                     </th>
-                    <th>
-                        <select wire:model.live="empresa_id" aria-label="Filtrar por empresa">
+                    <th class="p-1 border">
+                        <select wire:model.live="empresa_id"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none">
                             <option value="">Todas</option>
                             @foreach($empresas as $empresa)
                             <option value="{{ $empresa->id }}">{{ $empresa->nombre }}</option>
                             @endforeach
                         </select>
                     </th>
-                    <th>
-                        <select wire:model.live="rol" aria-label="Filtrar por rol">
+                    <th class="p-1 border">
+                        <select wire:model.live="rol"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none">
                             <option value="">Todos</option>
                             @foreach($roles as $r)
                             <option value="{{ $r }}">{{ ucfirst($r) }}</option>
                             @endforeach
                         </select>
                     </th>
-                    <th>
-                        <select wire:model.live="categoria_id" aria-label="Filtrar por categoría">
+                    <th class="p-1 border">
+                        <select wire:model.live="categoria_id"
+                            class="w-full text-xs px-2 py-1 border rounded text-blue-900 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none">
                             <option value="">Todas</option>
                             @foreach($categorias as $categoria)
                             <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
                             @endforeach
                         </select>
                     </th>
-                    <th></th>
-                    <th class="text-center align-middle">
+                    <th class="p-1 border"></th>
+                    <th class="p-1 border text-center align-middle">
                         <div class="flex justify-center gap-2 items-center h-full">
+                            {{-- Botón reset --}}
                             <button type="button" wire:click="limpiarFiltros"
                                 class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs flex items-center justify-center"
                                 title="Restablecer filtros">
@@ -94,12 +104,13 @@
                             </button>
                         </div>
                     </th>
-                </x-tabla.filtro-row>
+                </tr>
             </thead>
 
-            <tbody class="text-gray-700 dark:text-gray-300">
+            <tbody class="text-gray-600 dark:text-gray-400 text-sm">
                 @forelse ($registros as $user)
-                <x-tabla.row wire:key="despedido-{{ $user->id }}" class="uppercase">
+                <tr wire:key="despedido-{{ $user->id }}"
+                    class="border-b border-gray-200 dark:border-gray-700 odd:bg-gray-100 dark:odd:bg-gray-700 even:bg-gray-50 dark:even:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 text-xs uppercase transition-colors">
                     <td class="px-2 py-3 text-center border">{{ $user->id }}</td>
                     <td class="px-2 py-3 text-center border">{{ $user->name }}</td>
                     <td class="px-2 py-3 text-center border">{{ $user->primer_apellido }}</td>
@@ -121,7 +132,7 @@
                                 @csrf
                                 <button type="button"
                                     onclick="confirmarReadmision({{ $user->id }}, '{{ addslashes($user->name . ' ' . $user->primer_apellido) }}')"
-                                    class="w-6 h-6 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 flex items-center justify-center"
+                                    class="w-6 h-6 bg-green-100 text-green-600 rounded hover:bg-green-200 flex items-center justify-center"
                                     title="Readmitir trabajador">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -131,36 +142,36 @@
                             </form>
                         </div>
                     </td>
-                </x-tabla.row>
+                </tr>
                 @empty
-                <x-tabla.row :clickable="false">
-                    <td colspan="11" class="text-center py-4 text-gray-500 dark:text-gray-400">No hay trabajadores dados de baja.</td>
-                </x-tabla.row>
+                <tr>
+                    <td colspan="11" class="text-center py-4 text-gray-600 dark:text-gray-400">No hay trabajadores dados de baja.</td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
     <x-tabla.paginacion-livewire :paginador="$registros" />
-</div>
 
-@push('scripts')
-<script>
-    function confirmarReadmision(userId, nombre) {
-        Swal.fire({
-            title: '¿Readmitir a ' + nombre + '?',
-            html: '<p>El trabajador volverá a estar <strong>activo</strong> en la app.</p>' +
-                  '<p class="mt-2 text-sm text-yellow-600">⚠️ Los turnos futuros eliminados al despedirlo <strong>no se restauran</strong>. Deberás asignarlos manualmente si son necesarios.</p>',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, readmitir',
-            cancelButtonText: 'Cancelar',
-            cancelButtonColor: '#d33',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('form-readmitir-' + userId).submit();
-            }
-        });
-    }
-</script>
-@endpush
+    @push('scripts')
+    <script>
+        function confirmarReadmision(userId, nombre) {
+            Swal.fire({
+                title: '¿Readmitir a ' + nombre + '?',
+                html: '<p>El trabajador volverá a estar <strong>activo</strong> en la app.</p>' +
+                      '<p class="mt-2 text-sm text-yellow-600">⚠️ Los turnos futuros eliminados al despedirlo <strong>no se restauran</strong>. Deberás asignarlos manualmente si son necesarios.</p>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, readmitir',
+                cancelButtonText: 'Cancelar',
+                cancelButtonColor: '#d33',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('form-readmitir-' + userId).submit();
+                }
+            });
+        }
+    </script>
+    @endpush
+</div>
