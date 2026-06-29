@@ -22,8 +22,7 @@
                         {{ $badge['texto'] }}
                     </span>
                     <span
-                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                        {{ $incorporacion->empresa_destino === 'hpr_servicios' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800' }}">
+                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
                         {{ $incorporacion->empresa_nombre }}
                     </span>
                     @if ($incorporacion->puesto)

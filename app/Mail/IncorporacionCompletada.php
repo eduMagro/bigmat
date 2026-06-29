@@ -77,7 +77,7 @@ class IncorporacionCompletada extends Mailable
       </div>
     </div>
     <div style=\"background:#f9fafb;padding:16px;text-align:center;border-top:1px solid #e5e7eb;\">
-      <p style=\"margin:0;font-size:12px;color:#6b7280;\">Recursos Humanos - Hierros Paco Reyes</p>
+      <p style=\"margin:0;font-size:12px;color:#6b7280;\">Recursos Humanos - {$empresa}</p>
     </div>
   </div>
 </body>
