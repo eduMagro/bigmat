@@ -1,0 +1,14 @@
+{
+  "name": "bigmat-manual",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generador de PDF del manual de usuario de Bigmat",
+  "scripts": {
+    "build": "node build-pdf.mjs"
+  },
+  "dependencies": {
+    "marked": "^12.0.0",
+    "puppeteer-core": "^25.2.1"
+  }
+}

@@ -356,81 +356,39 @@
                     Documentación de Formación
                 </h2>
 
-                @if ($incorporacion->empresa_destino === 'hpr_servicios')
-                    <!-- HPR Servicios -->
-                    <p class="text-sm text-gray-600 mb-4">
-                        Como trabajador de <strong>HPR Servicios</strong> en obra, necesitamos los siguientes
-                        certificados:
-                    </p>
+                <p class="text-sm text-gray-600 mb-4">
+                    Si has realizado cursos o tienes certificados de formación relacionados con tu puesto,
+                    adjúntalos a continuación:
+                </p>
 
-                    <div class="space-y-4">
-                        <!-- Otros cursos -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Otros cursos (opcional)
-                            </label>
-                            <p class="text-xs text-gray-500 mb-2">Puente grúa, aparatos elevadores, espacios
-                                confinados, carretilla...</p>
-                            <div id="otros-cursos-container" class="space-y-3">
-                                <div class="flex gap-2 items-start otro-curso">
-                                    <input type="text" name="formacion_otros_nombres[]"
-                                        placeholder="Nombre del curso" class="input-styled flex-1">
-                                    <div class="file-input-wrapper flex-1">
-                                        <div
-                                            class="border border-gray-300 rounded-lg p-2.5 text-center cursor-pointer text-sm hover:border-gray-400 transition">
-                                            <span class="text-gray-500" id="text-otro-0">Seleccionar...</span>
-                                        </div>
-                                        <input type="file" name="formacion_otros[]" accept=".pdf,.jpg,.jpeg,.png"
-                                            onchange="updateFileName(this, 'text-otro-0')">
+                <div class="space-y-4">
+                    <!-- Otros cursos -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Otros cursos (opcional)
+                        </label>
+                        <p class="text-xs text-gray-500 mb-2">Puente grúa, aparatos elevadores, espacios
+                            confinados, carretilla...</p>
+                        <div id="otros-cursos-container" class="space-y-3">
+                            <div class="flex gap-2 items-start otro-curso">
+                                <input type="text" name="formacion_otros_nombres[]"
+                                    placeholder="Nombre del curso" class="input-styled flex-1">
+                                <div class="file-input-wrapper flex-1">
+                                    <div
+                                        class="border border-gray-300 rounded-lg p-2.5 text-center cursor-pointer text-sm hover:border-gray-400 transition">
+                                        <span class="text-gray-500" id="text-otro-0">Seleccionar...</span>
                                     </div>
+                                    <input type="file" name="formacion_otros[]" accept=".pdf,.jpg,.jpeg,.png"
+                                        onchange="updateFileName(this, 'text-otro-0')">
                                 </div>
                             </div>
-                            <button type="button" onclick="agregarOtroCurso()"
-                                class="mt-2 text-sm text-blue-600 hover:text-blue-800">
-                                + Añadir otro curso
-                            </button>
                         </div>
+                        <button type="button" onclick="agregarOtroCurso()"
+                            class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                            + Añadir otro curso
+                        </button>
                     </div>
-                @else
-                    <!-- Hierros Paco Reyes -->
-                    <p class="text-sm text-gray-600 mb-4">
-                        Como trabajador de <strong>Hierros Paco Reyes</strong>, necesitamos los siguientes certificados:
-                    </p>
-
-                    <div class="space-y-4">
-                        <!-- Formación genérica -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Formación genérica del puesto <span class="text-gray-400 text-xs">(opcional)</span>
-                            </label>
-                            <p class="text-xs text-gray-500 mb-2">Estructuras metálicas genérico</p>
-                            <div class="file-input-wrapper">
-                                <div
-                                    class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition cursor-pointer">
-                                    <p class="text-sm text-gray-600" id="text-generica">Seleccionar archivo...</p>
-                                </div>
-                                <input type="file" name="formacion_generica" accept=".pdf,.jpg,.jpeg,.png"
-                                    onchange="updateFileName(this, 'text-generica')">
-                            </div>
-                        </div>
-
-                        <!-- Formación específica -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Formación específica del puesto <span class="text-gray-400 text-xs">(opcional)</span>
-                            </label>
-                            <p class="text-xs text-gray-500 mb-2">Soldador, puente grúa, etc.</p>
-                            <div class="file-input-wrapper">
-                                <div
-                                    class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition cursor-pointer">
-                                    <p class="text-sm text-gray-600" id="text-especifica">Seleccionar archivo...</p>
-                                </div>
-                                <input type="file" name="formacion_especifica" accept=".pdf,.jpg,.jpeg,.png"
-                                    onchange="updateFileName(this, 'text-especifica')">
-                            </div>
-                        </div>
-                    </div>
-                @endif
+                </div>
             </div>
 
             <!-- Aviso RGPD -->

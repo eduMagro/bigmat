@@ -34,10 +34,8 @@ class IncorporacionPublicaController extends Controller
             return view('incorporaciones.publica-cancelada', compact('incorporacion'));
         }
 
-        // Determinar tipos de formación según empresa
-        $tiposFormacion = $incorporacion->empresa_destino === Incorporacion::EMPRESA_HPR
-            ? IncorporacionFormacion::TIPOS_HPR
-            : IncorporacionFormacion::TIPOS_HIERROS;
+        // Documentación de formación: "otros cursos" para todas las empresas
+        $tiposFormacion = IncorporacionFormacion::TIPOS_HPR;
 
         // Obtener archivos temporales guardados (si hubo error previo)
         $sessionKey = "incorporacion_tmp_{$token}";
@@ -45,8 +43,6 @@ class IncorporacionPublicaController extends Controller
             'dni_frontal' => session()->get("{$sessionKey}.dni_frontal"),
             'dni_trasero' => session()->get("{$sessionKey}.dni_trasero"),
             'certificado_bancario' => session()->get("{$sessionKey}.certificado_bancario"),
-            'formacion_generica' => session()->get("{$sessionKey}.formacion_generica"),
-            'formacion_especifica' => session()->get("{$sessionKey}.formacion_especifica"),
             'formacion_otros' => session()->get("{$sessionKey}.formacion_otros", []),
         ];
 
@@ -91,16 +87,11 @@ class IncorporacionPublicaController extends Controller
             'certificado_bancario' => ($tieneCertBancarioTmp ? 'nullable' : 'required') . '|file|mimes:pdf,jpg,jpeg,png|max:15360',
         ];
 
-        // Validación de formación según empresa (todos opcionales)
-        if ($incorporacion->empresa_destino === Incorporacion::EMPRESA_HPR) {
-            $rules['formacion_otros'] = 'nullable|array';
-            $rules['formacion_otros.*'] = 'file|mimes:pdf,jpg,jpeg,png|max:15360';
-            $rules['formacion_otros_nombres'] = 'nullable|array';
-            $rules['formacion_otros_nombres.*'] = 'nullable|string|max:255';
-        } else {
-            $rules['formacion_generica'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:15360';
-            $rules['formacion_especifica'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:15360';
-        }
+        // Validación de formación: "otros cursos" para todas las empresas (todos opcionales)
+        $rules['formacion_otros'] = 'nullable|array';
+        $rules['formacion_otros.*'] = 'file|mimes:pdf,jpg,jpeg,png|max:15360';
+        $rules['formacion_otros_nombres'] = 'nullable|array';
+        $rules['formacion_otros_nombres.*'] = 'nullable|string|max:255';
 
         $messages = [
             'dni_frontal.required' => 'El archivo del frente del DNI/NIE es obligatorio.',
@@ -134,10 +125,6 @@ class IncorporacionPublicaController extends Controller
             'formacion_otros.*.max' => 'Los archivos de otros cursos no pueden superar 15MB.',
             'formacion_otros_nombres.*.string' => 'El nombre del curso debe ser texto.',
             'formacion_otros_nombres.*.max' => 'El nombre del curso no puede superar 255 caracteres.',
-            'formacion_generica.mimes' => 'La formación genérica debe ser PDF, JPG o PNG.',
-            'formacion_generica.max' => 'La formación genérica no puede superar 15MB.',
-            'formacion_especifica.mimes' => 'La formación específica debe ser PDF, JPG o PNG.',
-            'formacion_especifica.max' => 'La formación específica no puede superar 15MB.',
         ];
 
         $validated = $request->validate($rules, $messages);
@@ -208,31 +195,25 @@ class IncorporacionPublicaController extends Controller
 
             $incorporacion->update($datosActualizacion);
 
-            // Guardar documentos de formación (desde request o desde temporal)
-            if ($incorporacion->empresa_destino === Incorporacion::EMPRESA_HPR) {
-                // Otros cursos (múltiples)
-                $formacionOtrosTmp = session()->get("{$sessionKey}.formacion_otros", []);
-                if ($request->hasFile('formacion_otros') || !empty($formacionOtrosTmp)) {
-                    $nombres = $request->input('formacion_otros_nombres', []);
-                    $archivos = $request->file('formacion_otros') ?? [];
+            // Guardar documentos de formación: "otros cursos" (múltiples) para todas las empresas
+            $formacionOtrosTmp = session()->get("{$sessionKey}.formacion_otros", []);
+            if ($request->hasFile('formacion_otros') || !empty($formacionOtrosTmp)) {
+                $nombres = $request->input('formacion_otros_nombres', []);
+                $archivos = $request->file('formacion_otros') ?? [];
 
-                    // Primero procesar archivos nuevos del request
-                    foreach ($archivos as $index => $archivo) {
+                // Primero procesar archivos nuevos del request
+                foreach ($archivos as $index => $archivo) {
+                    $nombre = $nombres[$index] ?? 'Otro curso ' . ($index + 1);
+                    $this->guardarFormacion($incorporacion, $archivo, 'otros_cursos', $nombre, $carpetaUsuario);
+                }
+
+                // Luego procesar archivos temporales que no fueron reemplazados
+                foreach ($formacionOtrosTmp as $index => $datosTmp) {
+                    if (!isset($archivos[$index]) && isset($datosTmp['ruta']) && Storage::exists($datosTmp['ruta'])) {
                         $nombre = $nombres[$index] ?? 'Otro curso ' . ($index + 1);
-                        $this->guardarFormacion($incorporacion, $archivo, 'otros_cursos', $nombre, $carpetaUsuario);
-                    }
-
-                    // Luego procesar archivos temporales que no fueron reemplazados
-                    foreach ($formacionOtrosTmp as $index => $datosTmp) {
-                        if (!isset($archivos[$index]) && isset($datosTmp['ruta']) && Storage::exists($datosTmp['ruta'])) {
-                            $nombre = $nombres[$index] ?? 'Otro curso ' . ($index + 1);
-                            $this->guardarFormacionDesdeTemporal($incorporacion, $datosTmp, 'otros_cursos', $nombre, $carpetaUsuario);
-                        }
+                        $this->guardarFormacionDesdeTemporal($incorporacion, $datosTmp, 'otros_cursos', $nombre, $carpetaUsuario);
                     }
                 }
-            } else {
-                $this->guardarFormacionConTemporal($incorporacion, $request->file('formacion_generica'), session()->get("{$sessionKey}.formacion_generica"), 'formacion_generica_puesto', null, $carpetaUsuario);
-                $this->guardarFormacionConTemporal($incorporacion, $request->file('formacion_especifica'), session()->get("{$sessionKey}.formacion_especifica"), 'formacion_especifica_puesto', null, $carpetaUsuario);
             }
 
             // Crear usuario automáticamente
@@ -307,8 +288,8 @@ class IncorporacionPublicaController extends Controller
             return $usuarioExistente;
         }
 
-        // Obtener empresa_id basado en empresa_destino
-        $empresaId = $this->obtenerEmpresaId($incorporacion->empresa_destino);
+        // empresa_destino ya almacena el ID de la empresa
+        $empresaId = $incorporacion->empresa_destino;
 
         // Obtener categoría por defecto (primera disponible)
         $categoriaId = Categoria::first()?->id ?? 1;
@@ -340,18 +321,6 @@ class IncorporacionPublicaController extends Controller
             'estado' => 'activo',
             // rol y turno se dejan null para que se asignen manualmente desde users
         ]);
-    }
-
-    /**
-     * Obtener el ID de empresa basado en el valor de empresa_destino
-     */
-    private function obtenerEmpresaId(string $empresaDestino): int
-    {
-        if ($empresaDestino === Incorporacion::EMPRESA_HPR) {
-            return Empresa::whereRaw("LOWER(nombre) LIKE ?", ['%hpr servicios%'])->value('id') ?? 1;
-        }
-
-        return Empresa::whereRaw("LOWER(nombre) LIKE ?", ['%hierros paco reyes%'])->value('id') ?? 1;
     }
 
     /**
@@ -429,8 +398,6 @@ class IncorporacionPublicaController extends Controller
             'dni_frontal',
             'dni_trasero',
             'certificado_bancario',
-            'formacion_generica',
-            'formacion_especifica',
         ];
 
         foreach ($camposArchivo as $campo) {

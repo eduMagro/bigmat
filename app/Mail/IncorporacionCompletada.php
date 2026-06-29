@@ -26,9 +26,7 @@ class IncorporacionCompletada extends Mailable
             ($this->incorporacion->segundo_apellido ?? '')
         );
 
-        $empresa = $this->incorporacion->empresa_destino === Incorporacion::EMPRESA_HPR
-            ? 'HPR Servicios'
-            : 'Hierros Paco Reyes';
+        $empresa = $this->incorporacion->empresa_nombre;
 
         $fechaCompletado = $this->incorporacion->datos_completados_at
             ->setTimezone(new \DateTimeZone('Europe/Madrid'))

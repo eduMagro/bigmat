@@ -7,6 +7,9 @@ use App\Models\User;
 use App\Models\Categoria;
 use App\Models\Empresa;
 use App\Models\Turno;
+use App\Models\Incorporacion;
+use App\Models\IncorporacionLog;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -139,20 +142,51 @@ class RegisteredUserController extends Controller
             'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
         try {
-            $user = User::create([
-                'name' => $request->name,
-                'primer_apellido' => $request->primer_apellido,
-                'segundo_apellido' => $request->segundo_apellido,
-                'email' => $request->email,
-                'movil_personal' => $request->movil_personal,
-                'movil_empresa' => $request->movil_empresa,
-                'dni' => $request->dni,
-                'empresa_id' => $request->empresa_id,
-                'rol' => $request->rol,
-                'categoria_id' => $request->categoria_id,
-                'turno' => $request->turno,
-                'password' => Hash::make($request->password),
-            ]);
+            $user = DB::transaction(function () use ($request) {
+                $user = User::create([
+                    'name' => $request->name,
+                    'primer_apellido' => $request->primer_apellido,
+                    'segundo_apellido' => $request->segundo_apellido,
+                    'email' => $request->email,
+                    'movil_personal' => $request->movil_personal,
+                    'movil_empresa' => $request->movil_empresa,
+                    'dni' => $request->dni,
+                    'empresa_id' => $request->empresa_id,
+                    'rol' => $request->rol,
+                    'categoria_id' => $request->categoria_id,
+                    'turno' => $request->turno,
+                    'password' => Hash::make($request->password),
+                ]);
+
+                // 🔗 Crear la incorporación vinculada al usuario recién creado.
+                // El registro directo ya aporta todos los datos personales, por lo que
+                // la incorporación nace en "datos_recibidos" (pendiente solo de documentos),
+                // equivalente a haber completado el formulario público.
+                if (!$user->incorporacion()->exists()) {
+                    $incorporacion = Incorporacion::create([
+                        'estado' => Incorporacion::ESTADO_DATOS_RECIBIDOS,
+                        'empresa_destino' => $user->empresa_id,
+                        'name' => $user->name,
+                        'primer_apellido' => $user->primer_apellido,
+                        'segundo_apellido' => $user->segundo_apellido,
+                        'dni' => $user->dni,
+                        'email' => $user->email,
+                        'email_provisional' => $user->email,
+                        'telefono' => $user->movil_personal,
+                        'telefono_provisional' => $user->movil_personal,
+                        'datos_completados_at' => now(),
+                        'created_by' => auth()->id(),
+                        'user_id' => $user->id,
+                    ]);
+
+                    $incorporacion->registrarLog(
+                        IncorporacionLog::ACCION_CREADA,
+                        'Incorporación creada automáticamente al registrar el usuario ' . $user->nombre_completo
+                    );
+                }
+
+                return $user;
+            });
 
             event(new Registered($user));
 
