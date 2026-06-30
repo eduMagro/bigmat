@@ -13,7 +13,7 @@
 
 ## Alta y gestión de trabajadores
 
-**Versión 1.1**
+**Versión 1.2**
 
 Documento de uso interno — Recursos Humanos
 
@@ -41,6 +41,12 @@ Documento de uso interno — Recursos Humanos
 11. [La ficha del trabajador](#11-la-ficha-del-trabajador)
 12. [Planificación de turnos](#12-planificación-de-turnos)
 13. [Mi perfil](#13-mi-perfil)
+
+**Parte 3 — Vacaciones, ausencias y expedientes**
+
+14. [Vacaciones: solicitud y aprobación](#14-vacaciones-solicitud-y-aprobación)
+15. [Justificantes y control de ausencias](#15-justificantes-y-control-de-ausencias)
+16. [La ficha de incorporación («Ver información»)](#16-la-ficha-de-incorporación-ver-información)
 
 <div class="page-break"></div>
 
@@ -501,6 +507,183 @@ La vista **Recursos Humanos → Planificacion** es un **tablero de turnos** con 
 - Gestionar tu **consentimiento** de privacidad.
 
 > Es el mismo calendario y las mismas secciones que ve la oficina, pero solo sobre tus propios datos y **sin** las acciones de gestión (asignar turnos, despedir, etc.).
+
+<div class="page-break"></div>
+
+# Parte 3 — Vacaciones, ausencias y expedientes
+
+## 14. Vacaciones: solicitud y aprobación
+
+Las vacaciones tienen **dos caras**: la del **trabajador**, que las solicita desde su ficha, y la de la **oficina**, que las aprueba, deniega o asigna desde el panel de **Vacaciones**.
+
+![Panel de vacaciones](images/13-vacaciones-panel.png)
+
+### Cuántos días corresponden (cupo y fecha de incorporación)
+
+La base estándar son **30 días** de vacaciones al año. El cupo de cada trabajador se calcula automáticamente teniendo en cuenta su **fecha de incorporación**:
+
+- Si se incorporó en un **año anterior** (o no consta fecha), le corresponden los **30 días** completos.
+- Si se incorpora **durante el año en curso**, el cupo se **prorratea** de forma proporcional a los días que trabajará ese año (por ejemplo, quien entra a mitad de año dispone de aproximadamente la mitad de los días).
+- Si la fecha de incorporación es **futura**, el cupo de ese año es **0** hasta que llegue.
+
+> La fecha de incorporación se establece en el **contrato** de su [ficha de incorporación](#16-la-ficha-de-incorporación-ver-información) (o desde **Contratos y Documentos** en la ficha del trabajador). Por eso es importante registrarla: de ella depende el número de días de vacaciones que el sistema le permite disfrutar.
+
+### Cómo solicita vacaciones el trabajador
+
+Desde el **calendario** de su propia ficha (ver [La ficha del trabajador](#11-la-ficha-del-trabajador)):
+
+1. **Selecciona un rango**: clic en el día inicial y clic en el día final.
+2. Confirma la solicitud.
+
+Condiciones que comprueba el sistema:
+
+- Solo se pueden pedir **semanas completas** (de **lunes a domingo**).
+- Debe **quedar cupo disponible** (días que corresponden − ya disfrutados − pendientes de aprobar).
+
+La solicitud queda **pendiente** y aparece en el panel de la oficina. El trabajador puede ver y **eliminar** sus solicitudes pendientes desde su ficha.
+
+### El panel de la oficina
+
+Se accede desde **Recursos Humanos → 🌴 Vacaciones**. Cuando hay solicitudes sin resolver, el menú muestra un **contador** junto a «Vacaciones». La pantalla tiene dos partes:
+
+**1. Solicitudes pendientes** (tabla superior)
+
+Cada fila es una solicitud, con:
+
+- **Empleado**.
+- **Vacaciones**: una etiqueta `usadas/totales` que cambia de color según los días que le quedan — **verde** (le quedan más de 5), **amarillo** (le quedan 5 o menos) y **rojo** (sin días disponibles) — junto al número de días disponibles.
+- **Desde** y **Hasta**: el rango solicitado.
+- **Acciones**: botones **Aprobar** (verde) y **Denegar** (rojo).
+
+**2. Calendario de Vacaciones** (debajo)
+
+Muestra todas las vacaciones asignadas (en rojo) y los **festivos**. Sirve para tener la visión global del equipo y para gestionar vacaciones directamente sobre él.
+
+> Tanto la tabla como el calendario muestran **solo los trabajadores que tu perfil tiene permiso de ver**.
+
+### Aprobar o denegar una solicitud
+
+- **Aprobar**: si el trabajador tiene **días sin disfrutar del año anterior**, el sistema pregunta primero **a qué año imputar** las vacaciones (año actual o año anterior), o permite cancelar. Tras elegir, la solicitud se aprueba, los días se reflejan en el calendario y la fila desaparece de pendientes.
+- **Denegar**: rechaza la solicitud y la quita de la lista.
+
+En ambos casos se muestra un aviso de confirmación.
+
+### Asignar vacaciones directamente (sin solicitud previa)
+
+La oficina puede asignar vacaciones a alguien sin esperar a que las pida, desde el propio calendario:
+
+1. **Clic en el día inicial** y **clic en el día final** del rango (se resalta la selección).
+2. Se abre un buscador de **empleados**; cada uno muestra su etiqueta `usadas/totales` con el color de disponibilidad. Selecciona a la persona.
+3. Si tiene días sobrantes del año anterior, se pregunta a qué año imputarlos.
+4. Se asignan las vacaciones y aparecen en el calendario.
+
+### Reorganizar o eliminar vacaciones en el calendario
+
+- **Mover**: **arrastra** un día de vacaciones a otra fecha para reprogramarlo (los festivos no se pueden mover).
+- **Eliminar**: **clic derecho** sobre un día de vacaciones y confirma para quitarlo.
+- **Ir a la ficha**: **clic** sobre unas vacaciones abre la ficha de ese trabajador.
+
+> **Permisos:** el panel de Vacaciones es una pantalla de gestión (perfil de **oficina** / Recursos Humanos). Cada trabajador solo solicita y consulta las **suyas** desde su ficha.
+
+<div class="page-break"></div>
+
+## 15. Justificantes y control de ausencias
+
+Cuando un trabajador falta, su día queda marcado con un **estado**. Si la falta está justificada, se aporta el **justificante** (un documento) para dejar constancia.
+
+### Estados de un día
+
+| Estado | Qué significa | Color en el calendario |
+|---|---|---|
+| **Activo** | Día trabajado con normalidad | el de su turno |
+| **Injustificada** | Falta sin justificar | rojo |
+| **Justificada** | Falta con justificante aportado | verde |
+| **Baja** | Baja médica | naranja |
+| **Vacaciones** | Día de vacaciones | rojo claro |
+| **Curso** | Formación / curso | violeta |
+
+En la ficha de cada trabajador, el bloque de **ausencias** resume el año en curso con tres contadores: **injustificadas**, **justificadas** y **días de baja**.
+
+### Quién puede subir y quién solo consulta
+
+La sección **«Subir Justificante»** aparece en la ficha del trabajador, solo para perfiles **operario** y **oficina**:
+
+- En **tu propia ficha** puedes **subir** justificantes.
+- La **oficina**, al mirar la ficha de **otra** persona, entra en modo **solo lectura** (la sección se titula «Justificantes»): puede **consultar** los documentos aportados, pero no subir.
+
+![Subir un justificante](images/14-justificante.png)
+
+### Cómo subir un justificante (paso a paso)
+
+1. **Selecciona el archivo** del justificante. Se admiten **PDF, JPG y PNG**, hasta **10 MB**.
+2. **Detección automática de fecha (OCR)**: si el servidor lo tiene disponible, el sistema **lee el documento e intenta detectar la fecha** automáticamente y la muestra (con un desplegable «Ver texto extraído»). Si no está disponible, se continúa de forma manual.
+3. **Elige el día a justificar**:
+   - Si hay **días recientes sin justificar** (últimos 60 días), aparece un desplegable **«Asignación a justificar»** con cada día (fecha, turno, obra y estado). Si el OCR detectó la fecha, queda **preseleccionada**.
+   - Si no hay días pendientes en la lista, se usa un **selector de fecha** manual (sin permitir fechas futuras).
+4. **Horas justificadas** (obligatorio): se introducen **a mano** (admite medias horas). El OCR detecta la fecha, **no** las horas.
+5. **Observaciones** (opcional).
+6. Pulsa **«Guardar Justificante»**.
+
+### Qué ocurre al guardar
+
+- El documento se archiva en la carpeta del empleado y el **día pasa a estado justificado** (una falta que estaba en rojo pasa a verde).
+- Se **avisa automáticamente** a los departamentos de **RRHH** y **Producción** con una alerta interna que incluye al trabajador, el día, las horas y un enlace para **ver el justificante**.
+
+Arriba se mantiene la lista **«Justificantes subidos (últimos 90 días)»**, con la fecha, las horas, las observaciones y un icono para **abrir** cada documento.
+
+<div class="page-break"></div>
+
+## 16. La ficha de incorporación («Ver información»)
+
+Es la pantalla que centraliza **todo el expediente** de una persona: sus datos, sus documentos y el estado del proceso de alta. Es la misma ficha de incorporación de la [Parte 1](#4-vía-recomendada-incorporación-con-enlace), vista aquí como **pantalla de consulta y gestión** del trabajador ya dado de alta.
+
+### Cómo llegar
+
+Desde el **listado de usuarios**, en la columna **Acciones** de cada fila, pulsa el botón **«Ver información»** (icono de información). Te lleva directamente a la ficha de incorporación de esa persona.
+
+> El botón **solo aparece si el trabajador tiene una incorporación asociada**. Como cada alta genera siempre su incorporación (ver [Conceptos clave](#2-conceptos-clave-usuario-e-incorporación)), lo normal es que esté disponible.
+
+![Ficha de incorporación](images/15-incorporacion-show.png)
+
+### Qué contiene la pantalla (de arriba a abajo)
+
+**Cabecera** — nombre completo del candidato, **etiquetas de estado** (estado de la incorporación, empresa y puesto) y dos botones: **«Descargar ZIP»** (descarga todos los documentos en un comprimido) y **«Cambiar estado»**.
+
+**Enlace del formulario** — la dirección única del formulario público, con botón para **copiarla**, y la opción de **«Marcar como enviado»** (o la fecha en que se marcó).
+
+**Datos Personales** — DNI/NIE, Nº de afiliación a la SS, email, teléfono, nombre y apellidos. **Cada campo tiene un lápiz** para editarlo. Aquí están también los **documentos del candidato**:
+
+- **DNI** (frontal y trasero) y **certificado bancario**: por cada uno, **Ver**, **resubir** (reemplazar) y **eliminar**; o **subir** si todavía no existe.
+
+**Documentos Post-Incorporación** — una **lista de verificación** con **barra de progreso** (porcentaje completado). Cada documento se marca en verde al completarse. Por cada uno: **Subir** (si falta) o **Ver** / **Eliminar**. Los que aportó el propio candidato aparecen como **«Por candidato»**. Los tipos son:
+
+1. Currículum Vitae
+2. Formación del puesto *(varios archivos, hasta 5)*
+3. Información en materia preventiva
+4. Art. 19 específica del puesto
+5. Certificado de aptitud médica
+6. Documento de entrega de EPIs
+7. Contrato de trabajo *(varios archivos; incluye el campo **Fecha de Incorporación**, que se guarda al cambiarlo)*
+8. IDC
+9. Huella de contrato (SEPE)
+10. TA2 (Alta del trabajador)
+
+> La **Fecha de Incorporación** del contrato es la que usa el sistema para calcular las vacaciones (ver [capítulo 14](#14-vacaciones-solicitud-y-aprobación)).
+
+**Usuario Asignado** (columna lateral) — muestra el usuario vinculado (foto, nombre, email) con opción de **desvincular**; o, si no lo hay, un **buscador** para vincular uno existente y un botón **«Crear Usuario»** (que reutiliza el usuario si ya existe uno con el mismo DNI).
+
+**Información** — quién creó la incorporación, cuándo, y la fecha en que se completaron los datos.
+
+**Historial** — registro cronológico de las acciones realizadas sobre la incorporación.
+
+**Zona peligrosa** — botón **«Eliminar incorporación»** (pide confirmación; borra también sus documentos).
+
+### Formatos y avisos
+
+- Archivos admitidos: **PDF, JPG y PNG** (hasta **10 MB** en documentos post-incorporación; **5 MB** al resubir documentos del candidato).
+- Casi todas las acciones piden **confirmación** y, al completarse, refrescan la pantalla con el cambio.
+
+> **Permisos:** es una pantalla de **gestión** (Recursos Humanos / administración). Los **operarios no acceden** a ella.
 
 ---
 
