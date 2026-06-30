@@ -438,7 +438,7 @@ class SubirJustificante extends Component
                     $nuevaAsignacion = AsignacionTurno::create([
                         'user_id' => $this->userId,
                         'fecha' => Carbon::parse($this->fechaDetectada),
-                        'estado' => 'justificado',
+                        'estado' => 'justificada',
                     ]);
 
                     $nuevaAsignacionArray = [
@@ -447,7 +447,7 @@ class SubirJustificante extends Component
                         'fecha_formateada' => Carbon::parse($this->fechaDetectada)->format('d/m/Y'),
                         'turno' => 'Sin turno',
                         'obra' => 'Sin obra',
-                        'estado' => 'justificado',
+                        'estado' => 'justificada',
                     ];
 
                     array_unshift($this->asignacionesDisponibles, $nuevaAsignacionArray);
@@ -489,7 +489,7 @@ class SubirJustificante extends Component
                     $asignacion = AsignacionTurno::create([
                         'user_id' => $this->userId,
                         'fecha' => $fecha,
-                        'estado' => 'justificado',
+                        'estado' => 'justificada',
                     ]);
                 }
             }
@@ -510,8 +510,8 @@ class SubirJustificante extends Component
                 'justificante_subido_at' => now(),
             ];
 
-            // Siempre cambiar a justificado al subir justificante
-            $datosActualizar['estado'] = 'justificado';
+            // Siempre cambiar a justificada al subir justificante
+            $datosActualizar['estado'] = 'justificada';
 
             $asignacion->update($datosActualizar);
 
