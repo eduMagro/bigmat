@@ -102,6 +102,19 @@ async function shot(page, name) { await sleep(400); await page.screenshot({ path
     console.log('  ⚠️ No se encontró enlace a mi-perfil; se omite 11.');
   }
 
+  // --- 12 Planificación de turnos (timeline de recursos) ---
+  await page.goto(BASE + '/planificacion/trabajadores', { waitUntil: 'networkidle2' });
+  // El calendario carga sus datos por AJAX tras render; esperar a que aparezcan eventos
+  for (let i = 0; i < 20; i++) { await sleep(500); const ok = await page.evaluate(() => !!document.querySelector('.fc-event, .fc-timeline-event')); if (ok) break; }
+  await sleep(800);
+  // Difuminar nombres y fotos de los trabajadores en la columna de recursos
+  await page.evaluate(() => {
+    document.querySelectorAll('.fc-datagrid-cell .text-blue-700, .fc-datagrid-cell a > div > div').forEach((el) => { el.style.filter = 'blur(5px)'; });
+    document.querySelectorAll('.fc-datagrid-cell img').forEach((img) => { img.style.filter = 'blur(6px)'; });
+  });
+  await blurOperator(page);
+  await shot(page, '12-planificacion.png');
+
   console.log('\n✅ Capturas terminadas en /images');
   await browser.close();
 })();

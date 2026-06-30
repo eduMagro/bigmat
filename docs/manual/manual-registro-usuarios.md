@@ -39,7 +39,8 @@ Documento de uso interno — Recursos Humanos
 
 10. [El listado de usuarios](#10-el-listado-de-usuarios)
 11. [La ficha del trabajador](#11-la-ficha-del-trabajador)
-12. [Mi perfil](#12-mi-perfil)
+12. [Planificación de turnos](#12-planificación-de-turnos)
+13. [Mi perfil](#13-mi-perfil)
 
 <div class="page-break"></div>
 
@@ -387,7 +388,7 @@ El listado se muestra como **tarjetas de contacto**. Al tocar una se abre una fi
 
 ## 11. La ficha del trabajador
 
-Es la pantalla de detalle de una persona, a la que se llega con **👁 Ver perfil** desde el listado. Reúne sus datos, su **calendario** de turnos y fichajes, y las acciones de gestión. Es la **misma pantalla** que cada trabajador ve como [Mi perfil](#12-mi-perfil); lo que se puede hacer depende de **quién** la esté mirando.
+Es la pantalla de detalle de una persona, a la que se llega con **👁 Ver perfil** desde el listado. Reúne sus datos, su **calendario** de turnos y fichajes, y las acciones de gestión. Es la **misma pantalla** que cada trabajador ve como [Mi perfil](#13-mi-perfil); lo que se puede hacer depende de **quién** la esté mirando.
 
 ![Ficha del trabajador](images/09-ficha-trabajador.png)
 
@@ -452,7 +453,37 @@ El resto de acciones de gestión sobre el trabajador están en otras pantallas, 
 
 <div class="page-break"></div>
 
-## 12. Mi perfil
+## 12. Planificación de turnos
+
+La vista **Recursos Humanos → Planificacion** es un **tablero de turnos** con forma de calendario tipo línea de tiempo: cada **fila es un trabajador** y cada **bloque de color es un turno** asignado. Sirve para ver de un vistazo la planificación de toda la plantilla y reorganizarla.
+
+![Planificación de turnos](images/12-planificacion.png)
+
+### Qué se ve
+
+- **Filas (trabajadores):** cada trabajador activo, con su **foto**, **nombre**, **categoría** y las **horas reales fichadas** (`S:` esta semana · `M:` este mes). Solo aparecen los trabajadores que tu perfil tiene permiso de ver.
+- **Bloques (turnos):** cada asignación se pinta con el **color de su turno** y muestra su **horario** (p. ej. `07:00 - 15:00`).
+- **Estados especiales:** vacaciones, baja, justificada, injustificada y curso se muestran con su propio color en lugar del horario.
+- **Festivos:** aparecen en rojo y **no se pueden mover**.
+- **Leyenda de Turnos:** arriba a la derecha, con el color de cada turno.
+
+### Navegar y filtrar
+
+- **Vistas:** botones **Semana** y **Día** (arriba a la derecha). La vista **Día** muestra el detalle hora a hora.
+- **Desplazamiento:** **‹ ›** para avanzar/retroceder y **Hoy** para volver a la fecha actual. La aplicación recuerda la última vista que usaste.
+- **Buscar trabajador:** el cuadro de la esquina superior izquierda filtra las filas por nombre.
+
+### Acciones sobre los turnos
+
+- **Mover un turno** — **arrastra** el bloque a otro día (siempre del **mismo trabajador**; no se puede pasar a otra persona). En la vista **Día**, si lo sueltas en otra franja horaria, el turno cambia al que corresponda a esa hora.
+- **Eliminar un turno** — **clic derecho** sobre el bloque y pulsa **«🗑️ Eliminar turno»** (pide confirmación).
+- **Ir a la ficha** — **clic** sobre un turno (o sobre el **nombre** del trabajador en su fila) abre la [ficha del trabajador](#11-la-ficha-del-trabajador).
+
+> Esta vista sirve para **consultar y reorganizar** los turnos ya existentes. Para **generar** turnos nuevos a partir de una plantilla, usa el botón **Turnos** del [listado de usuarios](#10-el-listado-de-usuarios); para asignaciones puntuales, la **Gestión de jornada** desde el calendario de la ficha.
+
+<div class="page-break"></div>
+
+## 13. Mi perfil
 
 «Mi perfil» es **tu propia ficha de trabajador**: la misma pantalla del capítulo anterior aplicada a ti. Como trabajador, desde aquí puedes:
 
