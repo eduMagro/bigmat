@@ -389,7 +389,7 @@ class UsersTable extends Component
         }
 
         // Paginar con eager loading optimizado
-        $registrosUsuarios = $query->with(['empresa:id,nombre', 'categoria:id,nombre'])->paginate($this->perPage);
+        $registrosUsuarios = $query->with(['empresa:id,nombre', 'categoria:id,nombre', 'incorporacion:id,user_id'])->paginate($this->perPage);
 
         return view('livewire.users-table', [
             'registrosUsuarios' => $registrosUsuarios,

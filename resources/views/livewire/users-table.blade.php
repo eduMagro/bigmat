@@ -301,6 +301,17 @@
                                         </svg>
                                     </button>
                                     <x-tabla.boton-ver :href="route('users.show', $user->id)" target="_self" rel="noopener" />
+                                    @if ($user->incorporacion)
+                                    <a href="{{ route('incorporaciones.show', $user->incorporacion->id) }}" wire:navigate
+                                        title="Ver información"
+                                        class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </a>
+                                    @endif
                                     <a href="{{ route('users.edit', $user->id) }}" wire:navigate title="Configuración"
                                         class="w-6 h-6 bg-yellow-100 text-yellow-600 rounded hover:bg-yellow-200 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
