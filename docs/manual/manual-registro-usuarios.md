@@ -342,7 +342,7 @@ La columna **Estado** indica si la persona está **En línea** (verde) o **Desco
 
 - **✏️ Editar** — activa la edición en línea.
 - **👁 Ver perfil** — abre la [ficha del trabajador](#11-la-ficha-del-trabajador).
-- **⚙️ Configuración** — abre el formulario avanzado (contraseña, imagen, sesiones…).
+- **⚙️ Configuración** — abre la vista **«Administración de Perfil»** del trabajador, con las acciones avanzadas (cambiar contraseña, cerrar sesiones y despedir). Se explica en detalle en [La vista de Configuración](#la-vista-de-configuración).
 - **Turnos** — genera turnos a partir de una plantilla, en dos pasos: **1)** elegir la **plantilla** (agrupación de turnos) y **2)** elegir el **lugar de trabajo (obra)**. Se generan los turnos hasta fin de año, saltando festivos, vacaciones y días no laborables.
 
 ### Barra de acciones (cabecera de la tabla)
@@ -350,6 +350,30 @@ La columna **Estado** indica si la persona está **En línea** (verde) o **Desco
 - **↻ Restablecer filtros**.
 - **Exportar a Excel** (icono verde) — descarga el listado **con los filtros aplicados** en un archivo `.xlsx`.
 - **🚫 Despedidos** (icono rojo) — abre la vista de **trabajadores dados de baja** (ver/readmitir).
+
+### La vista de Configuración
+
+El botón **⚙️ Configuración** de cada fila abre la pantalla **«Administración de Perfil»** del trabajador. Es donde están las acciones avanzadas que **no** aparecen en la ficha. Se compone de tres bloques:
+
+**1. Actualizar contraseña**
+
+Define una nueva contraseña para el trabajador. Rellena **Contraseña actual**, **Nueva contraseña** y **Confirmar contraseña**, y pulsa **«Guardar»**.
+
+**2. Cerrar sesiones activas**
+
+El botón **«🛑 Cerrar sesiones activas»** cierra todas las sesiones abiertas del trabajador (lo expulsa de todos los dispositivos donde tenga la sesión iniciada). Debajo se listan sus **sesiones activas**, cada una con su **IP**, **navegador** y **fecha de última actividad**.
+
+**3. Despedir trabajador**
+
+El botón **«⚠️ Despedir trabajador»** da de baja digital a la persona (pide confirmación antes de ejecutarse). Es una acción **irreversible desde la interfaz** que, de forma automática:
+
+- Revoca su acceso a la plataforma.
+- Cierra sus sesiones activas.
+- Cancela sus turnos futuros.
+- Anula los movimientos pendientes que tuviera asignados.
+- Guarda la fecha de baja y lo marca como **despedido**.
+
+Si el trabajador ya está despedido, en lugar del botón se muestra la **fecha de su baja**. Para volver a darle acceso, usa **🚫 Despedidos** en la cabecera del listado (ver/readmitir).
 
 ### Paginación
 
@@ -416,12 +440,15 @@ Muestra turnos, fichajes (entrada/salida), vacaciones, estados y festivos. Permi
 
 ### Acciones de oficina sobre un trabajador
 
-Cuando es la **oficina** quien mira la ficha de otra persona, además puede:
+Cuando es la **oficina** quien mira la ficha de otra persona, la acción de gestión disponible **en la propia ficha** es:
 
 - **Gestión de jornada** (clic en un día del calendario): asignar o editar el **turno**, el **estado** (curso, vacaciones, baja, justificada, injustificada) y las **horas** de la 1ª y 2ª jornada; o **eliminar** el turno/estado.
-- **Generar turnos** desde una plantilla (igual que en el listado).
-- **Despedir** al trabajador (lo marca como despedido, cierra sus sesiones y borra sus turnos futuros) y **Readmitir** si estaba despedido.
-- **Cerrar las sesiones** activas del trabajador.
+
+El resto de acciones de gestión sobre el trabajador están en otras pantallas, todas a un clic desde el **listado de usuarios**:
+
+- **Cambiar contraseña**, **cerrar sesiones** y **despedir** → botón **⚙️ Configuración** (ver [La vista de Configuración](#la-vista-de-configuración)).
+- **Generar turnos** desde una plantilla → botón **Turnos** del listado.
+- **Readmitir** a un trabajador despedido → vista **🚫 Despedidos**.
 
 <div class="page-break"></div>
 
