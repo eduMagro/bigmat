@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\AsignacionTurno;
 use App\Models\AgrupacionTurno;
+use App\Models\Configuracion;
 use App\Models\Epi;
 use App\Models\EpiUsuario;
 use App\Notifications\ResetPasswordNotification;
@@ -480,6 +481,12 @@ class User extends Authenticatable
         if ($departamentosIds->isEmpty()) {
             // No es responsable, solo puede verse a sí mismo
             return $cache[$cacheKey] = [$this->id];
+        }
+
+        // Si el administrador ha activado que los responsables vean a todos
+        // los usuarios, devolver null (acceso total) en lugar de solo su equipo.
+        if (Configuracion::getBool('responsables_ven_todos', false)) {
+            return $cache[$cacheKey] = null;
         }
 
         // Obtener todos los usuarios de esos departamentos en una sola query

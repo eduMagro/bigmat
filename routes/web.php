@@ -113,6 +113,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
 
     // === AJUSTES (Turnos y Festivos) ===
     Route::get('/ajustes', [AjustesController::class, 'index'])->name('ajustes.index');
+    Route::post('/ajustes/visibilidad', [AjustesController::class, 'actualizarVisibilidad'])->name('ajustes.visibilidad');
 
     // === TURNOS Y ASIGNACIONES ===
     Route::resource('turnos', TurnoController::class);

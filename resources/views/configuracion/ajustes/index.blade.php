@@ -348,6 +348,40 @@
                 </div>
             @endif
 
+            <!-- ===== SECCION VISIBILIDAD DE USUARIOS ===== -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Visibilidad de usuarios</h3>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <form method="POST" action="{{ route('ajustes.visibilidad') }}" class="p-6">
+                        @csrf
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Los responsables ven a todos los usuarios
+                                </p>
+                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    Si está activado, los responsables de departamento podrán ver y gestionar a
+                                    <strong>todos</strong> los usuarios (listado de usuarios, solicitudes de vacaciones, etc.).
+                                    Si está desactivado, cada responsable solo verá a los trabajadores de sus departamentos.
+                                </p>
+                            </div>
+
+                            <label class="relative inline-flex items-center cursor-pointer mt-1">
+                                <input type="hidden" name="responsables_ven_todos" value="0">
+                                <input type="checkbox" name="responsables_ven_todos" value="1"
+                                    class="sr-only peer" {{ $responsablesVenTodos ? 'checked' : '' }}
+                                    onchange="this.form.submit()">
+                                <div class="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                </div>
+                            </label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- ===== SECCION EMPRESAS ===== -->
             <div class="mb-8">
                 <div class="flex justify-between items-center mb-4">
