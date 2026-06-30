@@ -1,6 +1,6 @@
 # Manual de usuario — Bigmat
 
-## Registro de usuarios e incorporaciones
+## Alta y gestión de trabajadores
 
 ---
 
@@ -11,9 +11,9 @@
 
 # Manual de usuario
 
-## Alta de trabajadores: incorporaciones y registro de usuarios
+## Alta y gestión de trabajadores
 
-**Versión 1.0**
+**Versión 1.1**
 
 Documento de uso interno — Recursos Humanos
 
@@ -22,6 +22,8 @@ Documento de uso interno — Recursos Humanos
 <div class="page-break"></div>
 
 ## Índice
+
+**Parte 1 — Alta de trabajadores**
 
 1. [Introducción](#1-introducción)
 2. [Conceptos clave: usuario e incorporación](#2-conceptos-clave-usuario-e-incorporación)
@@ -32,6 +34,12 @@ Documento de uso interno — Recursos Humanos
 7. [Acceso y permisos](#7-acceso-y-permisos)
 8. [Preguntas frecuentes](#8-preguntas-frecuentes)
 9. [Referencia rápida](#9-referencia-rápida)
+
+**Parte 2 — Gestión de trabajadores**
+
+10. [El listado de usuarios](#10-el-listado-de-usuarios)
+11. [La ficha del trabajador](#11-la-ficha-del-trabajador)
+12. [Mi perfil](#12-mi-perfil)
 
 <div class="page-break"></div>
 
@@ -296,6 +304,144 @@ DNI (delante y detrás) · Certificado bancario · Nº afiliación SS · CV · F
 
 Pendiente → Datos recibidos → En proceso → Completada *(o Cancelada)*.
 
+<div class="page-break"></div>
+
+# Parte 2 — Gestión de trabajadores
+
+## 10. El listado de usuarios
+
+Se accede desde **Recursos Humanos → Usuarios**. Solo el personal de **oficina** ve este listado; el resto de usuarios entra directamente a su propia ficha.
+
+![Listado de usuarios](images/08-users-index.png)
+
+### Buscar y filtrar
+
+Cada columna tiene su filtro en la fila superior de la tabla y se aplica al instante:
+
+- **Texto**: ID, Nombre, Primer apellido, Segundo apellido, Email, Móvil personal, Móvil empresa, Nº corporativo y DNI.
+- **Desplegables**: Empresa, Rol, Categoría y Estado.
+
+Puedes combinar varios filtros a la vez; los filtros activos aparecen como etiquetas encima de la tabla. El botón amarillo **↻ (Restablecer filtros)** los limpia todos.
+
+### Ordenar
+
+Pulsa en la cabecera de una columna para ordenar ascendente/descendente: ID, Nombre, Email, Nº corporativo, DNI, Empresa, Rol, Categoría y Estado.
+
+### Estado de conexión
+
+La columna **Estado** indica si la persona está **En línea** (verde) o **Desconectado** (gris).
+
+### Editar un usuario sin salir del listado
+
+**Doble clic** sobre una fila (o el botón **✏️ Editar**) la pone en modo edición. Se pueden modificar: nombre, apellidos, email, móviles, nº corporativo, DNI, empresa, rol y categoría.
+
+- Guarda con el botón **✓ (verde)** o pulsando **Enter**; descarta con **✗ (rojo)**.
+- ⚠️ El **DNI** y el **Email** solo los pueden editar los departamentos **Programador** o **Administrador**.
+
+### Acciones por fila
+
+- **✏️ Editar** — activa la edición en línea.
+- **👁 Ver perfil** — abre la [ficha del trabajador](#11-la-ficha-del-trabajador).
+- **⚙️ Configuración** — abre el formulario avanzado (contraseña, imagen, sesiones…).
+- **Turnos** — genera turnos a partir de una plantilla, en dos pasos: **1)** elegir la **plantilla** (agrupación de turnos) y **2)** elegir el **lugar de trabajo (obra)**. Se generan los turnos hasta fin de año, saltando festivos, vacaciones y días no laborables.
+
+### Barra de acciones (cabecera de la tabla)
+
+- **↻ Restablecer filtros**.
+- **Exportar a Excel** (icono verde) — descarga el listado **con los filtros aplicados** en un archivo `.xlsx`.
+- **🚫 Despedidos** (icono rojo) — abre la vista de **trabajadores dados de baja** (ver/readmitir).
+
+### Paginación
+
+El listado se pagina automáticamente (15 registros por página).
+
+### En el móvil
+
+El listado se muestra como **tarjetas de contacto**. Al tocar una se abre una ficha con accesos rápidos: **llamar** (móvil personal, de empresa o corporativo), **WhatsApp**, **email** y **ver perfil**. También permite editar los datos básicos.
+
+<div class="page-break"></div>
+
+## 11. La ficha del trabajador
+
+Es la pantalla de detalle de una persona, a la que se llega con **👁 Ver perfil** desde el listado. Reúne sus datos, su **calendario** de turnos y fichajes, y las acciones de gestión. Es la **misma pantalla** que cada trabajador ve como [Mi perfil](#12-mi-perfil); lo que se puede hacer depende de **quién** la esté mirando.
+
+![Ficha del trabajador](images/09-ficha-trabajador.png)
+
+### Cabecera
+
+- **Foto de perfil** — el icono de cámara permite **cambiar la foto** (tu propia foto; la oficina/administración puede cambiar la de otros).
+- **Fichar Entrada / Salida** — botones verde y rojo, solo en **tu propia** ficha. Registran la entrada o salida con geolocalización.
+- **Buscador de trabajador** (solo oficina) — salta rápidamente a la ficha de otra persona.
+- **Ver más / Ocultar** — despliega o contrae las secciones de detalle.
+
+### Información que se muestra
+
+- **Contacto**: email y teléfonos.
+- **Laboral**: empresa, categoría, **horas trabajadas** (semana y mes, calculadas a partir de los fichajes), **vacaciones** (totales / disfrutadas / disponibles por año) y **ausencias** (injustificadas, justificadas y días de baja).
+- **Departamentos** (solo oficina): departamentos a los que pertenece y su rol departamental.
+
+### Contratos y Documentos
+
+El botón **«Contratos y Documentos»** (oficina o el propio usuario) abre un modal para:
+
+- **Ver y descargar** los contratos de la incorporación.
+- **Fecha de incorporación**: se muestra y, si no hay una incorporación vinculada, la **oficina** puede establecerla (se usa para calcular las vacaciones).
+
+### Solicitar nómina *(tu propia ficha)*
+
+En la sección **«Solicitar Nómina»** eliges un mes y se te envía la nómina por email.
+
+### Solicitudes de vacaciones pendientes
+
+Muestra tus solicitudes pendientes; puedes **eliminar** una solicitud (con confirmación).
+
+### Subir justificante *(operario / oficina)*
+
+La sección **«Subir Justificante»** sirve para justificar ausencias: subes el documento (PDF o imagen), el sistema intenta **detectar la fecha automáticamente (OCR)**, indicas las **horas justificadas** y, si quieres, observaciones. Al guardarlo se avisa a RRHH y Producción. La oficina puede **consultar** los justificantes de otros (no subirlos).
+
+### Privacidad y consentimiento *(tu propia ficha)*
+
+Permite consultar las políticas (**Privacidad**, **Cookies**, **Términos**) y, si lo deseas, **revocar el consentimiento** (cierra la sesión y obliga a aceptarlas de nuevo para volver a entrar).
+
+### Calendario de turnos
+
+![Calendario de la ficha](images/10-ficha-calendario.png)
+
+Muestra turnos, fichajes (entrada/salida), vacaciones, estados y festivos. Permite:
+
+- **Navegar** (anterior / siguiente / hoy) y **cambiar la vista** (mes, semana, día o lista).
+- **Seleccionar un rango** (clic en el día inicial y clic en el día final) para:
+  - **Solicitar vacaciones** — solo en **semanas completas** (de lunes a domingo) y si te quedan días disponibles.
+  - **Pedir revisión de fichajes** — muestra un resumen de los fichajes del rango y permite añadir observaciones.
+
+### Acciones de oficina sobre un trabajador
+
+Cuando es la **oficina** quien mira la ficha de otra persona, además puede:
+
+- **Gestión de jornada** (clic en un día del calendario): asignar o editar el **turno**, el **estado** (curso, vacaciones, baja, justificada, injustificada) y las **horas** de la 1ª y 2ª jornada; o **eliminar** el turno/estado.
+- **Generar turnos** desde una plantilla (igual que en el listado).
+- **Despedir** al trabajador (lo marca como despedido, cierra sus sesiones y borra sus turnos futuros) y **Readmitir** si estaba despedido.
+- **Cerrar las sesiones** activas del trabajador.
+
+<div class="page-break"></div>
+
+## 12. Mi perfil
+
+«Mi perfil» es **tu propia ficha de trabajador**: la misma pantalla del capítulo anterior aplicada a ti. Como trabajador, desde aquí puedes:
+
+![Mi perfil](images/11-mi-perfil.png)
+
+- **Fichar Entrada y Salida** (con geolocalización).
+- **Cambiar tu foto** de perfil.
+- Consultar tus **datos**, tus **horas** trabajadas (semana y mes), tus **vacaciones** y tus **ausencias**.
+- **Solicitar vacaciones** y **pedir revisión de fichajes** desde el calendario (seleccionando un rango de fechas).
+- **Solicitar tu nómina** de un mes (te llega por email).
+- **Subir justificantes** de ausencias.
+- **Ver y descargar** tus contratos y documentos.
+- Gestionar tu **consentimiento** de privacidad.
+
+> Es el mismo calendario y las mismas secciones que ve la oficina, pero solo sobre tus propios datos y **sin** las acciones de gestión (asignar turnos, despedir, etc.).
+
 ---
 
-*Bigmat — Manual de registro de usuarios e incorporaciones · Documento de uso interno.*
+*Bigmat — Manual de usuario · Alta y gestión de trabajadores · Documento de uso interno.*
