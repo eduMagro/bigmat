@@ -82,6 +82,7 @@
         const CONFIG = @json($config);
         let menuActual = null;
         let datosCalendario = null; // Se carga via AJAX
+        let ultimoClickCelda = null; // Para detectar doble clic en celda vacia
 
         function cerrarMenu() {
             if (menuActual) { menuActual.remove(); menuActual = null; }
@@ -142,6 +143,126 @@
                     }
                 } catch (e) { console.error(e); }
             };
+        }
+
+        // Comprueba si un trabajador ya tiene una asignacion (turno o estado) en una fecha
+        function tieneAsignacionEseDia(resourceId, fecha, calendar) {
+            return calendar.getEvents().some((e) => {
+                const p = e.extendedProps || {};
+                if (p.es_festivo) return false;
+                if (String(p.user_id) !== String(resourceId)) return false;
+                if (!e.start) return false;
+                const d = e.start;
+                const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return ymd === fecha;
+            });
+        }
+
+        // Modal para crear una asignacion (doble clic en celda vacia)
+        async function abrirModalCrearTurno(resource, fecha, calendar) {
+            // Evitar el error del backend cuando se hace doble clic en la zona vacia
+            // de una celda que ya tiene asignacion ese dia
+            if (tieneAsignacionEseDia(resource.id, fecha, calendar)) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Ya tiene una asignacion',
+                    text: 'Este trabajador ya tiene un turno o estado asignado ese dia. Borralo (clic derecho) antes de crear otro.',
+                    timer: 2600,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            const turnos = (datosCalendario && datosCalendario.turnos) ? datosCalendario.turnos : [];
+            if (!turnos.length) {
+                Swal.fire({ icon: 'info', title: 'No hay turnos', text: 'No hay turnos activos para asignar.' });
+                return;
+            }
+
+            const fechaFmt = new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+            const opciones = turnos.map((t) => {
+                const ini = (t.hora_inicio || '').slice(0, 5);
+                const fin = (t.hora_fin || '').slice(0, 5);
+                return `<button type="button" class="turno-opt" data-id="${t.id}"
+                            style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;text-align:left;width:100%">
+                            <span style="width:14px;height:14px;border-radius:50%;background:${t.color || '#93C5FD'};flex:0 0 auto"></span>
+                            <span style="font-weight:600">${t.nombre}</span>
+                            <span style="margin-left:auto;color:#6b7280;font-size:12px">${ini} - ${fin}</span>
+                        </button>`;
+            }).join('');
+
+            let turnoSeleccionado = null;
+            await Swal.fire({
+                title: 'Asignar turno',
+                html: `<div style="font-size:13px;color:#6b7280;margin-bottom:10px">${resource.title} &middot; ${fechaFmt}</div>
+                       <div style="display:flex;flex-direction:column;gap:8px">${opciones}</div>`,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'Cancelar',
+                didOpen: () => {
+                    Swal.getPopup().querySelectorAll('.turno-opt').forEach((btn) => {
+                        btn.addEventListener('mouseenter', () => { btn.style.background = '#f3f4f6'; });
+                        btn.addEventListener('mouseleave', () => { btn.style.background = '#fff'; });
+                        btn.addEventListener('click', () => { turnoSeleccionado = btn.dataset.id; Swal.close(); });
+                    });
+                }
+            });
+
+            if (!turnoSeleccionado) return; // cancelado
+
+            try {
+                const res = await fetch(CONFIG.routes.crearAsignacion, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CONFIG.csrf },
+                    body: JSON.stringify({ user_id: resource.id, turno_id: turnoSeleccionado, fecha })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    Swal.fire({ icon: 'error', title: 'No se pudo crear', text: data.message || 'Error al crear la asignacion' });
+                    return;
+                }
+
+                const a = data.asignacion;
+                const start = `${a.fecha}T${a.turno_hora_inicio}:00`;
+                let end;
+                if (a.turno_hora_fin < a.turno_hora_inicio) {
+                    // Turno nocturno: termina al dia siguiente
+                    const d = new Date(a.fecha + 'T00:00:00');
+                    d.setDate(d.getDate() + 1);
+                    end = `${d.toISOString().slice(0, 10)}T${a.turno_hora_fin}:00`;
+                } else {
+                    end = `${a.fecha}T${a.turno_hora_fin}:00`;
+                }
+
+                calendar.addEvent({
+                    id: 'asig-' + a.id,
+                    title: a.turno_nombre,
+                    start,
+                    end,
+                    resourceId: a.user_id,
+                    backgroundColor: a.color.bg,
+                    borderColor: a.color.border,
+                    textColor: '#000000',
+                    extendedProps: {
+                        asignacion_id: a.id,
+                        user_id: a.user_id,
+                        turno_id: a.turno_id,
+                        turno_nombre: a.turno_nombre,
+                        estado: 'activo',
+                        entrada: null, salida: null, entrada2: null, salida2: null,
+                        foto: a.foto,
+                        categoria: a.categoria,
+                        hora_inicio: a.turno_hora_inicio,
+                        hora_fin: a.turno_hora_fin,
+                    }
+                });
+
+                Swal.fire({ icon: 'success', title: 'Turno asignado', timer: 1200, showConfirmButton: false });
+            } catch (e) {
+                console.error(e);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear la asignacion' });
+            }
         }
 
         async function inicializarCalendario() {
@@ -340,7 +461,17 @@
                     }
                 },
                 dateClick(info) {
-                    // Clic izquierdo en celda vacia - no hacer nada
+                    // Doble clic en celda vacia -> abrir modal para crear turno
+                    if (!info.resource) return;
+                    const fecha = info.dateStr.slice(0, 10);
+                    const key = info.resource.id + '|' + fecha;
+                    const ahora = Date.now();
+                    if (ultimoClickCelda && ultimoClickCelda.key === key && (ahora - ultimoClickCelda.t) < 400) {
+                        ultimoClickCelda = null;
+                        abrirModalCrearTurno(info.resource, fecha, calendar);
+                    } else {
+                        ultimoClickCelda = { key, t: ahora };
+                    }
                 },
                 eventContent(arg) {
                     const p = arg.event.extendedProps || {};

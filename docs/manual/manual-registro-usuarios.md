@@ -475,11 +475,13 @@ La vista **Recursos Humanos → Planificacion** es un **tablero de turnos** con 
 
 ### Acciones sobre los turnos
 
+- **Crear un turno** — **doble clic** sobre una celda vacía (el día de un trabajador). Se abre el modal **«Asignar turno»**, que muestra el trabajador y la fecha; **pulsa el turno** que quieras de la lista (con su color y horario) y se asigna al instante.
+  - Cada trabajador solo puede tener **un turno o estado por día**. Si el día ya está ocupado, la aplicación avisa de que primero debes **eliminar** el turno existente.
 - **Mover un turno** — **arrastra** el bloque a otro día (siempre del **mismo trabajador**; no se puede pasar a otra persona). En la vista **Día**, si lo sueltas en otra franja horaria, el turno cambia al que corresponda a esa hora.
 - **Eliminar un turno** — **clic derecho** sobre el bloque y pulsa **«🗑️ Eliminar turno»** (pide confirmación).
 - **Ir a la ficha** — **clic** sobre un turno (o sobre el **nombre** del trabajador en su fila) abre la [ficha del trabajador](#11-la-ficha-del-trabajador).
 
-> Esta vista sirve para **consultar y reorganizar** los turnos ya existentes. Para **generar** turnos nuevos a partir de una plantilla, usa el botón **Turnos** del [listado de usuarios](#10-el-listado-de-usuarios); para asignaciones puntuales, la **Gestión de jornada** desde el calendario de la ficha.
+> Desde aquí puedes **crear, reorganizar y eliminar** turnos uno a uno. Para **generar muchos turnos de golpe** a partir de una plantilla, usa el botón **Turnos** del [listado de usuarios](#10-el-listado-de-usuarios); para una asignación puntual también dispones de la **Gestión de jornada** en el calendario de la ficha.
 
 <div class="page-break"></div>
 
