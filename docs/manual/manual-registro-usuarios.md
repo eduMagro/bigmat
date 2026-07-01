@@ -13,7 +13,7 @@
 
 ## Alta y gestión de trabajadores
 
-**Versión 1.4**
+**Versión 1.5**
 
 Documento de uso interno — Recursos Humanos
 
@@ -72,6 +72,12 @@ Documento de uso interno — Recursos Humanos
 27. [Contratos y documentos del trabajador](#27-contratos-y-documentos-del-trabajador)
 28. [Recepción de solicitudes de compra (HPR)](#28-recepción-de-solicitudes-de-compra-hpr)
 29. [Privacidad y consentimiento](#29-privacidad-y-consentimiento)
+
+**Parte 8 — Anexos**
+
+30. [Solución de problemas](#30-solución-de-problemas)
+31. [Glosario de términos](#31-glosario-de-términos)
+32. [Atajos de teclado y preferencias](#32-atajos-de-teclado-y-preferencias)
 
 <div class="page-break"></div>
 
@@ -474,7 +480,7 @@ Muestra turnos, fichajes (entrada/salida), vacaciones, estados y festivos. Permi
 
 Cuando es la **oficina** quien mira la ficha de otra persona, la acción de gestión disponible **en la propia ficha** es:
 
-- **Gestión de jornada** (clic en un día del calendario): asignar o editar el **turno**, el **estado** (curso, vacaciones, baja, justificada, injustificada) y las **horas** de la 1ª y 2ª jornada; o **eliminar** el turno/estado.
+- **Gestión de jornada** (clic en un día del calendario): asignar o editar el **turno**, el **estado** (curso, vacaciones, baja, justificada, injustificada) y las **horas** de la 1ª y 2ª jornada; o **eliminar** el turno/estado. Al elegir **justificada** o **injustificada** aparece un campo de **comentario** para anotar el motivo (ver [Comentario en una falta](#15-justificantes-y-control-de-ausencias)).
 
 El resto de acciones de gestión sobre el trabajador están en otras pantallas, todas a un clic desde el **listado de usuarios**:
 
@@ -628,6 +634,23 @@ Cuando un trabajador falta, su día queda marcado con un **estado**. Si la falta
 | **Curso** | Formación / curso | violeta |
 
 En la ficha de cada trabajador, el bloque de **ausencias** resume el año en curso con tres contadores: **injustificadas**, **justificadas** y **días de baja**.
+
+### Comentario en una falta (motivo)
+
+En las faltas —**justificada** e **injustificada**— se puede anotar un **comentario** de texto libre que explique el **motivo** (por ejemplo, «no avisó ni presentó justificante» o «cita médica con parte»). Se gestiona desde la ficha del trabajador:
+
+1. En el **calendario**, haz clic en el día para abrir el modal **«Gestión de jornada»**.
+2. En **Estado**, elige **Justificada** o **Injustificada**. Debajo aparece el campo **«Comentario (motivo de la ausencia)»**.
+3. Escribe el motivo y pulsa **Guardar**.
+
+El comentario:
+
+- Se muestra **en el propio evento** del calendario, en una línea debajo del estado.
+- Aparece también en el **tooltip** al hacer clic sobre el día, como **«Motivo: …»**.
+- Se puede **editar** más tarde reabriendo la Gestión de jornada del día (el texto queda precargado).
+- Se **borra automáticamente** si el día deja de ser una falta (al cambiarlo a otro estado o a un turno normal, o al quitar el estado).
+
+> Es una anotación interna de gestión. El **justificante** (documento) sigue subiéndose aparte, desde la sección **«Subir Justificante»**; el comentario solo describe el motivo en el calendario.
 
 ### Quién puede subir y quién solo consulta
 
@@ -1260,6 +1283,106 @@ La primera vez (o si aún no ha aceptado), al iniciar sesión aparece la pantall
 Cada trabajador puede **retirar su consentimiento** cuando quiera, desde el bloque de **políticas de su propia ficha**. Ahí encontrará los enlaces para **consultar** las políticas y el botón **«Revocar consentimiento»**.
 
 Al revocar, el sistema avisa de las consecuencias: **se cierra la sesión automáticamente** y **no se podrá volver a usar la aplicación hasta aceptar de nuevo** las políticas. Se pide confirmación («Sí, revocar» / «Cancelar»).
+
+<div class="page-break"></div>
+
+# Parte 8 — Anexos
+
+## 30. Solución de problemas
+
+Incidencias frecuentes y cómo resolverlas.
+
+### No puedo fichar
+
+- **«No estás dentro de ninguna zona de trabajo…»** — estás fuera del **radio** del lugar de trabajo, o ese lugar **no tiene coordenadas** configuradas. Acércate a la obra o pide a administración que revise las **coordenadas y el radio** del [lugar de trabajo](#22-ajustes-empresas-lugares-de-trabajo-categorías-y-festivos).
+- **El navegador no pide la ubicación / la deniega** — el fichaje **necesita GPS**. Acepta el permiso de ubicación del navegador; si lo bloqueaste, vuelve a activarlo en los ajustes del sitio.
+- **«No tienes permisos para fichar»** — fichar es solo para perfiles **operario** y **oficina**.
+- **«Ya has completado el turno partido de hoy»** — ya están registrados los cuatro marcajes del día; no se pueden añadir más.
+- Si te has equivocado con una hora, no la corrijas fichando de nuevo: **pide una revisión de fichajes** (ver [capítulo 17](#17-fichajes-y-revisión-de-fichajes)).
+
+### No me llega la nómina
+
+- La nómina **se envía por correo**, no se descarga en pantalla. Revisa la carpeta de **spam**.
+- **«No tienes un correo electrónico configurado»** — falta tu email; contacta con el departamento de **programador**.
+- **«No se encontró ninguna nómina para el mes…»** — administración aún no ha **importado** las nóminas de ese mes (ver [capítulo 20](#20-nóminas-contratos-y-despidos)).
+
+### No veo el menú lateral o algunas secciones
+
+- El **menú lateral** solo se muestra a perfiles de **oficina / administración**. Los **operarios** entran directamente a su ficha.
+- Una opción con un **candado** significa que tu perfil **no tiene permiso** para esa sección. Los **responsables** no ven la **Configuración** (Ajustes, Departamentos). Si necesitas acceso, pídelo a administración (ver [capítulo 24](#24-departamentos-secciones-y-permisos-de-acceso)).
+- **«No tienes acceso a la configuración del sistema.»** — eres responsable e intentas entrar en una pantalla de configuración; solo los perfiles de **acceso total** entran ahí.
+
+### La aplicación me pide aceptar las políticas
+
+Es obligatorio aceptar **privacidad, cookies y términos** para poder usar la aplicación. Marca las tres casillas y pulsa **Aceptar** (ver [capítulo 29](#29-privacidad-y-consentimiento)). Si antes **revocaste** el consentimiento, tendrás que volver a aceptarlas.
+
+### No encuentro a un trabajador en los listados
+
+- Puede estar **despedido**: los dados de baja **no aparecen** en los listados generales, solo en la vista **Despedidos** (ver [capítulo 20](#20-nóminas-contratos-y-despidos)).
+- Si eres **responsable**, quizá ese trabajador **no es de tus departamentos**. La visibilidad depende del ajuste **«Los responsables ven a todos los usuarios»** (ver [capítulo 22](#22-ajustes-empresas-lugares-de-trabajo-categorías-y-festivos)).
+
+### El calendario o una pantalla no carga bien
+
+- Usa el botón **refrescar** de la barra superior, o vuelve a entrar desde el menú.
+- Si acabas de subir un documento o justificante y no lo ves, **refresca** la pantalla.
+
+### Un aviso de mensajes que no desaparece
+
+La **campana** cuenta las **conversaciones sin leer**. Basta con **abrir** el mensaje para marcarlo como leído; el contador se actualiza solo (ver [capítulo 18](#18-mensajes-internos-y-firma-de-documentos)).
+
+<div class="page-break"></div>
+
+## 31. Glosario de términos
+
+| Término | Qué significa |
+|---|---|
+| **Usuario** | La cuenta de una persona en la aplicación (con la que inicia sesión, ficha, etc.). |
+| **Incorporación** | El expediente de alta de una persona: sus datos y toda su documentación. Cada alta genera un usuario y su incorporación. |
+| **Ficha del trabajador** | La pantalla que reúne los datos, el calendario y las acciones sobre una persona. «Mi perfil» es tu propia ficha. |
+| **Empresa** | La entidad empleadora a la que pertenece el trabajador. |
+| **Lugar de trabajo (obra)** | Un centro físico. Si tiene coordenadas y radio, habilita el **fichaje por geolocalización** en esa ubicación. |
+| **Categoría** | El nivel profesional del trabajador (Oficial 1.ª, Peón…). Determina su convenio. |
+| **Turno** | Una franja horaria con nombre (Mañana, Tarde, Noche…) y color. |
+| **Plantilla de turnos** | Una configuración que asigna un turno a cada día de la semana, para **generar turnos** de golpe. |
+| **Asignación de turno** | El turno (o estado) de un trabajador en un día concreto, con sus horas de fichaje. |
+| **Estado (de un día)** | La situación de un día: activo, injustificada, justificada, baja, vacaciones o curso. |
+| **Fichaje** | El registro de entrada/salida. Un día está **completo** si tiene entrada y salida. |
+| **Justificante** | El documento que acredita una ausencia justificada. |
+| **Departamento** | Un grupo de empleados que además define qué **secciones** ve ese grupo. |
+| **Sección** | Un área o pantalla de la aplicación, usada para conceder accesos. |
+| **Responsable** | Quien está al frente de un departamento; accede a casi todo excepto a la configuración. |
+| **Acceso total** | Perfil de los departamentos Programador, Administrador y Administración: accede a todo. |
+| **Convenio** | La retribución (salario base y pluses) asociada a una categoría. |
+| **Modelo 145** | Los datos personales y familiares del trabajador que afectan a la retención de IRPF. |
+| **EPI** | Equipo de Protección Individual (guantes, casco, botas…). |
+| **HPR** | Sistema externo de solicitudes de compra con el que se integra la Recepción de Compras. |
+| **Alerta / Mensaje** | La mensajería interna de la aplicación. |
+
+<div class="page-break"></div>
+
+## 32. Atajos de teclado y preferencias
+
+### Atajos de teclado
+
+Disponibles para los perfiles con menú lateral (oficina / administración):
+
+| Atajo | Acción |
+|---|---|
+| **Ctrl + K** | Abrir el **buscador global** |
+| **Ctrl + B** | Abrir / cerrar el **menú lateral** |
+| **Ctrl + H** | Ver los elementos **recientes** |
+| **Esc** | Cerrar el cuadro o modal abierto |
+
+Además, el menú lateral incluye accesos a **Favoritos** y **Recientes** para volver rápido a las pantallas que más usas.
+
+### Modo oscuro
+
+En el pie del menú lateral hay un conmutador **Modo Oscuro / Modo Claro**. La aplicación recuerda tu elección.
+
+### Otras preferencias que la aplicación recuerda
+
+- La **última vista y fecha** del calendario (semana/día/mes) en la planificación y en la ficha.
+- La **última vista** usada en las pantallas que lo permiten.
 
 ---
 
