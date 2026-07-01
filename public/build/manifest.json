@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app.DTaxcIwM.css",
+    "file": "assets/app.DhCvo-cV.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -20,6 +20,12 @@
     "file": "assets/index.D2yfF_AR.js",
     "name": "index",
     "src": "resources/js/vistas/recepcion-solicitudes/index.js",
+    "isEntry": true
+  },
+  "resources/js/vistas/vacaciones/index.js": {
+    "file": "assets/index.juZJ5o-1.js",
+    "name": "index",
+    "src": "resources/js/vistas/vacaciones/index.js",
     "isEntry": true
   }
 }

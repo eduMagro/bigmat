@@ -23,6 +23,7 @@ export default defineConfig(({ command, mode }) => {
                     "resources/js/app.js",
                     "resources/js/vistas/contactos/mobile.js",
                     "resources/js/vistas/recepcion-solicitudes/index.js",
+                    "resources/js/vistas/vacaciones/index.js",
                 ],
                 refresh: true,
             }),
