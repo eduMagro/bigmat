@@ -15,7 +15,21 @@
 
         {{-- Calendario de vacaciones --}}
         <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <h3 class="text-lg font-semibold text-blue-700 mb-4">Calendario de Vacaciones</h3>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <h3 class="text-lg font-semibold text-blue-700">Calendario de Vacaciones</h3>
+                <div class="flex items-center gap-2">
+                    <label for="filtro-categoria" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Categoría:
+                    </label>
+                    <select id="filtro-categoria"
+                        class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Todas</option>
+                        @foreach ($categorias as $categoria)
+                            <option value="{{ $categoria }}">{{ $categoria }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
             <div id="calendario-vacaciones"></div>
         </div>
     </div>

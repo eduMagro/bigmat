@@ -242,6 +242,18 @@ function inicializarCalendario(cfg) {
     // Estado de selección click-and-click
     const state = { startClick: null, hoverDayEvs: [] };
 
+    // Filtro por categoría: '' = todas. Los festivos (sin user_id) siempre se muestran.
+    function filtrarPorCategoria(eventos) {
+        const select = document.getElementById('filtro-categoria');
+        const categoria = select ? select.value : '';
+        if (!categoria) return eventos;
+        return eventos.filter((ev) => {
+            const props = ev.extendedProps || {};
+            if (!props.user_id) return true; // festivos u otros eventos generales
+            return props.categoria === categoria;
+        });
+    }
+
     function eachDayStr(aStr, bStr) {
         const days = [];
         let a = new Date(aStr),
@@ -469,10 +481,10 @@ function inicializarCalendario(cfg) {
         events: function (info, successCallback) {
             fetch(cfg.urls.eventos)
                 .then((r) => r.json())
-                .then((data) => successCallback(data))
+                .then((data) => successCallback(filtrarPorCategoria(data)))
                 .catch((err) => {
                     console.warn('Error cargando eventos:', err);
-                    successCallback(cfg.eventosFallback || []);
+                    successCallback(filtrarPorCategoria(cfg.eventosFallback || []));
                 });
         },
 
@@ -634,6 +646,12 @@ function inicializarCalendario(cfg) {
             clearTempHighlight();
         }
     });
+
+    // Al cambiar la categoría, recargar los eventos aplicando el filtro
+    const selectCategoria = document.getElementById('filtro-categoria');
+    if (selectCategoria) {
+        selectCategoria.addEventListener('change', () => calendar.refetchEvents());
+    }
 
     el._calendar = calendar;
     calendar.render();

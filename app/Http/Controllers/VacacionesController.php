@@ -10,6 +10,7 @@ use App\Models\VacacionesSolicitud;
 use App\Models\Alerta;
 use App\Models\AlertaLeida;
 use App\Models\Departamento;
+use App\Models\Categoria;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Log;
@@ -117,10 +118,14 @@ class VacacionesController extends Controller
 
         $eventos = array_merge($eventos, $eventosSolicitudes);
 
+        // Categorías disponibles para el filtro del calendario
+        $categorias = Categoria::orderBy('nombre')->pluck('nombre');
+
         return view('vacaciones.index', [
             'eventos' => $eventos,
             'solicitudesPendientes' => $solicitudesPendientes,
             'totalSolicitudesPendientes' => $solicitudesPendientes->count(),
+            'categorias' => $categorias,
         ]);
     }
 
