@@ -120,7 +120,13 @@
       "Bash(node capture-parte3.mjs)",
       "Bash(xargs grep -l \"FullCalendar\\\\|Calendar\\\\|calendario\")",
       "Bash(node *)",
-      "Bash(echo \"ignored? exit=$?\")"
+      "Bash(echo \"ignored? exit=$?\")",
+      "Bash(/c/xampp/php/php.exe artisan *)",
+      "Bash(/c/xampp/php/php.exe -l app/Http/Controllers/AsignacionTurnoController.php)",
+      "Bash(/c/xampp/php/php.exe -l app/Http/Controllers/ProfileController.php)",
+      "Bash(/c/xampp/php/php.exe -l app/Models/AsignacionTurno.php)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git rm *)"
     ]
   }
 }

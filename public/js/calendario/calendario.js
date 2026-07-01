@@ -694,6 +694,8 @@
             salidaExistente,
             entrada2Existente,
             salida2Existente,
+            estadoExistente,
+            comentarioExistente,
         }) {
             return new Promise((resolve) => {
                 const hasSecondShiftByDefault = Boolean(entrada2Existente || salida2Existente);
@@ -820,6 +822,15 @@
                                                 <option value="__quitar__">Quitar estado</option>
                                             </select>
                                         </div>
+                                    </div>
+                                    <div id="wrap-comentario" class="${['injustificada', 'justificada'].includes(estadoExistente) ? '' : 'hidden'} mt-3">
+                                        <label class="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200" for="txt-comentario">
+                                            <svg class="h-3.5 w-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                            </svg>
+                                            Comentario (motivo de la ausencia)
+                                        </label>
+                                        <textarea id="txt-comentario" rows="2" maxlength="2000" placeholder="Escribe el motivo de la ausencia..." class="w-full resize-y rounded-xl border border-slate-400/40 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/35 dark:bg-slate-900/60 dark:text-slate-100">${comentarioExistente ? String(comentarioExistente).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''}</textarea>
                                     </div>
                                 </section>
 
@@ -988,6 +999,7 @@
                         entrada2: getValueOrNull('hora-entrada2'),
                         salida2: getValueOrNull('hora-salida2'),
                         removeSecondShift: secondShiftMarkedForRemoval,
+                        comentario: (overlay.querySelector('#txt-comentario')?.value || '').trim(),
                     });
                 });
 
@@ -1016,6 +1028,21 @@
                         pickers.get(id)?.clear?.();
                     });
                 });
+
+                // Mostrar/ocultar el campo de comentario según el estado seleccionado.
+                // Visible al elegir "Injustificada" o si el día ya estaba injustificado
+                // (aunque el select siga en "Sin cambios") para poder editar su comentario.
+                const selEstado = overlay.querySelector('#sel-estado');
+                const wrapComentario = overlay.querySelector('#wrap-comentario');
+                const CON_COMENTARIO = ['injustificada', 'justificada'];
+                const sincronizarComentario = () => {
+                    if (!wrapComentario) return;
+                    const val = selEstado?.value || '';
+                    const mostrar = CON_COMENTARIO.includes(val) || (val === '' && CON_COMENTARIO.includes(estadoExistente));
+                    wrapComentario.classList.toggle('hidden', !mostrar);
+                };
+                selEstado?.addEventListener('change', sincronizarComentario);
+                sincronizarComentario();
 
                 const revealItems = overlay.querySelectorAll('[data-reveal]');
                 if ('IntersectionObserver' in window && revealItems.length > 0 && body) {
@@ -1069,6 +1096,8 @@
             let salidaExistente = '';
             let entrada2Existente = '';
             let salida2Existente = '';
+            let estadoExistente = '';
+            let comentarioExistente = '';
             if (esMismoDia) {
                 const eventos = calendar.getEvents();
                 eventos.forEach(ev => {
@@ -1086,6 +1115,10 @@
                         if (props.salida2 && !salida2Existente) {
                             salida2Existente = props.salida2.substring(0, 5);
                         }
+                        if (props.estado && props.estado !== 'activo' && !estadoExistente) {
+                            estadoExistente = props.estado;
+                            comentarioExistente = props.comentario || '';
+                        }
                     }
                 });
             }
@@ -1098,11 +1131,21 @@
                 salidaExistente,
                 entrada2Existente,
                 salida2Existente,
+                estadoExistente,
+                comentarioExistente,
             });
             if (!formData) return;
 
             const turnoSel = formData.turno || '';
-            const estadoSel = formData.estado || '';
+            let estadoSel = formData.estado || '';
+            const comentario = formData.comentario || '';
+
+            // Si el día ya estaba en una falta (justificada/injustificada) y no se cambia el
+            // estado pero se editó el comentario, reafirmamos ese estado para persistirlo.
+            if (estadoSel === '' && ['injustificada', 'justificada'].includes(estadoExistente) && comentario !== (comentarioExistente || '')) {
+                estadoSel = estadoExistente;
+            }
+
             const horaEntrada = formData.entrada;
             const horaSalida = formData.salida;
             const horaEntrada2 = formData.entrada2;
@@ -1242,6 +1285,7 @@
                 // === 4) ASIGNAR ESTADO (mantiene el turno asignado/existente) ===
                 if (asignaEstado) {
                     const body = { user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: estadoSel };
+                    if (['injustificada', 'justificada'].includes(estadoSel)) body.comentario = comentario;
                     if (!horasAplicadas) aplicarHoras(body);
 
                     if (estadoSel === 'vacaciones') {
@@ -1692,6 +1736,10 @@
                 if (props.estado === 'vacaciones' && props.anio_vacacional) {
                     htmlSimple += `<span style="display:block;font-size:0.7em;opacity:0.85;line-height:1.2;">${props.anio_vacacional}</span>`;
                 }
+                if (['injustificada', 'justificada'].includes(props.estado) && props.comentario) {
+                    const comentarioEsc = String(props.comentario).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    htmlSimple += `<span style="display:block;font-size:0.7em;opacity:0.9;line-height:1.2;white-space:normal;font-style:italic;margin-top:1px;">${comentarioEsc}</span>`;
+                }
                 htmlSimple += `</div>`;
                 return { html: htmlSimple };
             },
@@ -1894,9 +1942,10 @@
                 const turnoNombre = props.turno_nombre || null;
                 const entrada = props.entrada ? props.entrada.substring(0, 5) : null;
                 const salida = props.salida ? props.salida.substring(0, 5) : null;
+                const comentarioTip = (['injustificada', 'justificada'].includes(props.estado) && props.comentario) ? props.comentario : null;
 
                 // Si no hay datos que mostrar, no hacer nada
-                if (!obraNombre && !turnoNombre && !entrada && !salida) return;
+                if (!obraNombre && !turnoNombre && !entrada && !salida && !comentarioTip) return;
 
                 // Crear tooltip
                 const tooltip = document.createElement('div');
@@ -1927,6 +1976,10 @@
                     if (entrada && salida) html += ' - ';
                     if (salida) html += salida;
                     html += `</div>`;
+                }
+                if (comentarioTip) {
+                    const comentarioEsc = String(comentarioTip).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    html += `<div style="margin-top:4px;"><strong>Motivo:</strong> ${comentarioEsc}</div>`;
                 }
                 tooltip.innerHTML = html;
 

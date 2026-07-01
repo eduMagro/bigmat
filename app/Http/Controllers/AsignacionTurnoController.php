@@ -999,6 +999,7 @@ class AsignacionTurnoController extends Controller
                 'salida2'      => 'nullable|date_format:H:i',
                 'obra_id'      => 'nullable|exists:obras,id',
                 'maquina_id'   => 'nullable|exists:maquinas,id',
+                'comentario'   => 'nullable|string|max:2000',
             ]);
 
             if (in_array($request->tipo, ['eliminarEstado', 'eliminarTurnoEstado'])) {
@@ -1198,6 +1199,11 @@ class AsignacionTurnoController extends Controller
 
                     if ($esTurno || $tipo !== 'activo') {
                         $datos['estado'] = $estadoNuevo;
+                        // Comentario libre: solo se conserva en faltas (justificada/injustificada).
+                        // En cualquier otro estado (o al pasar a turno/activo) se limpia.
+                        $datos['comentario'] = in_array($estadoNuevo, ['injustificada', 'justificada'], true)
+                            ? ($request->filled('comentario') ? $request->comentario : null)
+                            : null;
                         if ($esTurno) {
                             $datos['turno_id'] = $turno->id;
                         }
@@ -1489,6 +1495,7 @@ class AsignacionTurnoController extends Controller
 
                     $asignacion->update([
                         'estado' => $nuevoEstado,
+                        'comentario' => null,
                     ]);
                 }
             }
