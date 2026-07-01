@@ -317,7 +317,10 @@ function inicializarCalendario(cfg) {
 
                 return `
                     <div class="usuario-item" data-user-id="${u.id}">
-                        <span class="usuario-nombre">${u.nombre_completo}</span>
+                        <span class="usuario-info">
+                            <span class="usuario-nombre">${u.nombre_completo}</span>
+                            ${u.categoria ? `<span class="usuario-categoria">${u.categoria}</span>` : ''}
+                        </span>
                         <span class="usuario-vacaciones ${claseVacaciones}">
                             ${u.vacaciones_usadas}/${u.vacaciones_totales}
                         </span>
@@ -539,6 +542,30 @@ function inicializarCalendario(cfg) {
             if (userId) {
                 window.location.href = `${cfg.urls.users}/${userId}`;
             }
+        },
+
+        // Render personalizado: nombre y, debajo, la categoría del trabajador
+        eventContent: function (info) {
+            // Los eventos de fondo (preview de selección) usan el render por defecto
+            if (info.event.display === 'background') return undefined;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'fc-event-cuerpo';
+
+            const nombreEl = document.createElement('div');
+            nombreEl.className = 'fc-event-nombre';
+            nombreEl.textContent = info.event.title;
+            wrapper.appendChild(nombreEl);
+
+            const categoria = info.event.extendedProps.categoria;
+            if (categoria) {
+                const catEl = document.createElement('div');
+                catEl.className = 'fc-event-categoria';
+                catEl.textContent = categoria;
+                wrapper.appendChild(catEl);
+            }
+
+            return { domNodes: [wrapper] };
         },
 
         eventDidMount: function (info) {

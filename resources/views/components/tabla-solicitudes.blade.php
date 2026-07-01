@@ -31,7 +31,12 @@
                         }
                     @endphp
                     <tr class="border-t border-gray-200 dark:border-gray-700 solicitud-row" data-solicitud-id="{{ $solicitud->id }}" data-user-id="{{ $solicitud->user_id }}">
-                        <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">{{ $solicitud->user->nombre_completo }}</td>
+                        <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
+                            {{ $solicitud->user->nombre_completo }}
+                            @if ($solicitud->user->categoria)
+                                <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">{{ $solicitud->user->categoria->nombre }}</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-2">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">
                                 {{ $usadas }}/{{ $totales }}

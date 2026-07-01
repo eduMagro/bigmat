@@ -68,6 +68,26 @@
             overflow: visible;
         }
 
+        /* Cuerpo de los eventos del calendario: nombre + categoría */
+        .fc-event-cuerpo {
+            padding: 1px 2px;
+            overflow: hidden;
+        }
+
+        .fc-event-nombre {
+            font-weight: 600;
+            line-height: 1.15;
+            white-space: normal;
+        }
+
+        .fc-event-categoria {
+            font-size: 0.72em;
+            font-weight: 400;
+            opacity: 0.9;
+            line-height: 1.1;
+            white-space: normal;
+        }
+
         .fc .bg-select-range,
         .fc .bg-select-endpoint {
             pointer-events: none !important;
@@ -110,6 +130,12 @@
             border-bottom: none;
         }
 
+        .usuario-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
         .usuario-nombre {
             font-weight: 500;
             color: #1f2937;
@@ -117,6 +143,15 @@
 
         :is(.dark .usuario-nombre) {
             color: #f3f4f6;
+        }
+
+        .usuario-categoria {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        :is(.dark .usuario-categoria) {
+            color: #9ca3af;
         }
 
         .usuario-vacaciones {

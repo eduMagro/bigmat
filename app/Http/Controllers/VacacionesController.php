@@ -28,7 +28,7 @@ class VacacionesController extends Controller
         $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
 
         // Solicitudes pendientes (filtradas por visibilidad)
-        $solicitudesPendientes = VacacionesSolicitud::with('user.incorporacion')
+        $solicitudesPendientes = VacacionesSolicitud::with(['user.incorporacion', 'user.categoria'])
             ->where('estado', 'pendiente')
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->orderBy('fecha_inicio')
@@ -61,7 +61,7 @@ class VacacionesController extends Controller
         });
 
         // Vacaciones asignadas (filtradas por visibilidad)
-        $vacaciones = AsignacionTurno::with(['user', 'turno'])
+        $vacaciones = AsignacionTurno::with(['user.categoria', 'turno'])
             ->where('estado', 'vacaciones')
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
@@ -81,6 +81,7 @@ class VacacionesController extends Controller
                 'allDay' => true,
                 'extendedProps' => [
                     'user_id' => $asignacion->user->id,
+                    'categoria' => $asignacion->user->categoria->nombre ?? null,
                 ],
             ];
         })->toArray();
@@ -108,6 +109,7 @@ class VacacionesController extends Controller
                             'user_id' => $solicitud->user_id,
                             'estado' => 'pendiente',
                             'es_solicitud_vacaciones' => true,
+                            'categoria' => $solicitud->user->categoria->nombre ?? null,
                         ],
                     ];
                 });
@@ -832,7 +834,7 @@ class VacacionesController extends Controller
         $festivos = $this->getFestivosCached();
 
         // Vacaciones aprobadas (filtradas por visibilidad)
-        $vacaciones = AsignacionTurno::with(['user', 'turno'])
+        $vacaciones = AsignacionTurno::with(['user.categoria', 'turno'])
             ->where('estado', 'vacaciones')
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
@@ -849,6 +851,7 @@ class VacacionesController extends Controller
                     'allDay' => true,
                     'extendedProps' => [
                         'user_id' => $asignacion->user->id,
+                        'categoria' => $asignacion->user->categoria->nombre ?? null,
                     ],
                 ];
             })
@@ -856,7 +859,7 @@ class VacacionesController extends Controller
             ->toArray();
 
         // Solicitudes pendientes (filtradas por visibilidad)
-        $solicitudesPendientes = VacacionesSolicitud::with('user')
+        $solicitudesPendientes = VacacionesSolicitud::with('user.categoria')
             ->where('estado', 'pendiente')
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
@@ -880,6 +883,7 @@ class VacacionesController extends Controller
                             'user_id' => $solicitud->user_id,
                             'estado' => 'pendiente',
                             'es_solicitud_vacaciones' => true,
+                            'categoria' => $solicitud->user->categoria->nombre ?? null,
                         ],
                     ];
                 });
@@ -897,7 +901,7 @@ class VacacionesController extends Controller
         $usuariosVisiblesIds = auth()->user()->getUsuariosVisiblesIds();
 
         // Cargar incorporacion para calcular vacaciones_correspondientes (filtrado por visibilidad)
-        $usuarios = User::with('incorporacion')
+        $usuarios = User::with(['incorporacion', 'categoria'])
             ->where('estado', 'activo')
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('id', $usuariosVisiblesIds))
             ->orderBy('name')
@@ -925,6 +929,7 @@ class VacacionesController extends Controller
             return [
                 'id' => $user->id,
                 'nombre_completo' => $user->nombre_completo,
+                'categoria' => $user->categoria->nombre ?? null,
                 'vacaciones_usadas' => $usadas,
                 'vacaciones_totales' => $tope,
                 'vacaciones_restantes' => max(0, $tope - $usadas),
