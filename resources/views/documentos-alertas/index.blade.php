@@ -343,6 +343,11 @@
                                         title="Descargar">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                     </a>
+                                    <a href="{{ route('documentos-alertas.exportar-pdf', $doc->id) }}"
+                                        class="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                                        title="Descargar PDF con usuarios y firmas">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-2.5-1.34M9 11a3 3 0 10-2.5-1.34"/></svg>
+                                    </a>
                                     @if($doc->requiere_firma && $totalFirmas > 0)
                                         <button type="button"
                                             onclick="verFirmas({{ $doc->id }})"

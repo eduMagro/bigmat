@@ -8,11 +8,13 @@ use App\Models\AlertaAdjuntoFirma;
 use App\Models\AlertaLeida;
 use App\Models\Categoria;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use setasign\Fpdi\Fpdi;
 
 class DocumentoAlertaController extends Controller
 {
@@ -338,5 +340,127 @@ class DocumentoAlertaController extends Controller
         }
 
         return $porAsignacion->unique('id')->values();
+    }
+
+    /**
+     * Genera un único PDF que combina una portada con todos los usuarios y sus
+     * firmas + el PDF original del documento.
+     */
+    public function exportarPdf(AlertaAdjunto $documento)
+    {
+        // Cargar la firma con su usuario incluyendo bajas/inactivos: el modelo User
+        // tiene SoftDeletes + global scope, así que sin esto los trabajadores no
+        // activos saldrían como "Usuario #id".
+        $documento->load(['firmas.user' => function ($q) {
+            $q->withoutGlobalScopes()->withTrashed();
+        }]);
+
+        // Filas para la portada: cada firma con su imagen embebida en base64.
+        $filas = $documento->firmas
+            ->sortBy(fn($f) => $f->user?->nombre_completo ?? $f->user?->name ?? '')
+            ->map(function (AlertaAdjuntoFirma $firma) {
+                return [
+                    'nombre'       => $firma->user?->nombre_completo ?? $firma->user?->name ?? 'Usuario #' . $firma->user_id,
+                    'firmado'      => (bool) $firma->firmado,
+                    'fecha'        => $firma->firmado && $firma->firmado_dia ? $firma->firmado_dia->format('d/m/Y H:i') : null,
+                    'firma_base64' => $this->firmaComoBase64($firma),
+                ];
+            })
+            ->values();
+
+        $portada = Pdf::loadView('documentos-alertas.pdf-firmas', [
+            'documento'  => $documento,
+            'generadoEl' => now()->format('d/m/Y H:i'),
+            'filas'      => $filas,
+        ])->setPaper('a4', 'portrait')->output();
+
+        // Nombre de archivo de salida
+        $nombreBase = pathinfo($documento->nombre_original, PATHINFO_FILENAME) ?: 'documento';
+        $nombreSalida = Str::slug($nombreBase) . '_con_firmas.pdf';
+
+        // Ruta absoluta del PDF original del documento (disco public).
+        $rutaOriginal = Storage::disk('public')->exists((string) $documento->ruta)
+            ? Storage::disk('public')->path($documento->ruta)
+            : null;
+
+        // Guardar la portada en un fichero temporal para que FPDI pueda leerla.
+        $tmpDir = storage_path('app/tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+        $tmpPortada = $tmpDir . '/portada_firmas_' . now()->format('Ymd_His') . '_' . Str::lower(Str::random(8)) . '.pdf';
+        file_put_contents($tmpPortada, $portada);
+
+        try {
+            $fpdi = new Fpdi();
+
+            // 1) Páginas de la portada (usuarios + firmas).
+            $this->importarPaginas($fpdi, $tmpPortada);
+
+            // 2) Páginas del documento original. Si FPDI no puede leerlo (PDF con
+            //    características no soportadas), se añade una página de aviso.
+            if ($rutaOriginal) {
+                try {
+                    $this->importarPaginas($fpdi, $rutaOriginal);
+                } catch (\Throwable $e) {
+                    $fpdi->AddPage();
+                    $fpdi->SetFont('Helvetica', 'B', 12);
+                    $fpdi->Cell(0, 12, 'No se pudo incrustar el PDF original del documento.', 0, 1);
+                    $fpdi->SetFont('Helvetica', '', 10);
+                    $fpdi->MultiCell(0, 6, 'Archivo: ' . $documento->nombre_original . "\nMotivo: " . $e->getMessage());
+                }
+            } else {
+                $fpdi->AddPage();
+                $fpdi->SetFont('Helvetica', 'B', 12);
+                $fpdi->Cell(0, 12, 'El archivo PDF original del documento no se encuentra en el servidor.', 0, 1);
+            }
+
+            $contenidoFinal = $fpdi->Output('S');
+        } finally {
+            if (is_file($tmpPortada)) {
+                @unlink($tmpPortada);
+            }
+        }
+
+        return response($contenidoFinal, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $nombreSalida . '"',
+        ]);
+    }
+
+    /**
+     * Importa todas las páginas de un PDF de origen en la instancia FPDI dada,
+     * preservando el tamaño/orientación de cada página.
+     */
+    private function importarPaginas(Fpdi $fpdi, string $rutaPdf): void
+    {
+        $totalPaginas = $fpdi->setSourceFile($rutaPdf);
+        for ($i = 1; $i <= $totalPaginas; $i++) {
+            $tpl = $fpdi->importPage($i);
+            $size = $fpdi->getTemplateSize($tpl);
+            $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $fpdi->useTemplate($tpl);
+        }
+    }
+
+    /**
+     * Devuelve la firma como data URI base64 para embeberla en el PDF, o null.
+     */
+    private function firmaComoBase64(AlertaAdjuntoFirma $firma): ?string
+    {
+        if (!$firma->firmado || empty($firma->firma_ruta) || !Storage::disk('public')->exists($firma->firma_ruta)) {
+            return null;
+        }
+
+        $contenido = Storage::disk('public')->get($firma->firma_ruta);
+        $extension = strtolower(pathinfo($firma->firma_ruta, PATHINFO_EXTENSION)) ?: 'png';
+        $mime = match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'image/png',
+        };
+
+        return 'data:' . $mime . ';base64,' . base64_encode($contenido);
     }
 }

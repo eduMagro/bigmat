@@ -220,6 +220,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
 
     // === DOCUMENTOS / GESTIÓN DE FIRMAS ===
     Route::get('/documentos-alertas', [DocumentoAlertaController::class, 'index'])->name('documentos-alertas.index');
+    Route::get('/documentos-alertas/{documento}/exportar-pdf', [DocumentoAlertaController::class, 'exportarPdf'])->name('documentos-alertas.exportar-pdf');
     Route::post('/documentos-alertas', [DocumentoAlertaController::class, 'store'])->name('documentos-alertas.store');
     Route::post('/documentos-alertas/{documento}/asignar-faltantes', [DocumentoAlertaController::class, 'asignarFirmasFaltantes'])->name('documentos-alertas.asignar-faltantes');
     Route::post('/documentos-alertas/firmas/{firma}/revocar', [DocumentoAlertaController::class, 'revocarFirma'])->name('documentos-alertas.firmas.revocar');
