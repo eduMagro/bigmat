@@ -73,11 +73,15 @@ Documento de uso interno — Recursos Humanos
 28. [Recepción de solicitudes de compra (HPR)](#28-recepción-de-solicitudes-de-compra-hpr)
 29. [Privacidad y consentimiento](#29-privacidad-y-consentimiento)
 
-**Parte 8 — Anexos**
+**Parte 8 — Acceso a la aplicación**
 
-30. [Solución de problemas](#30-solución-de-problemas)
-31. [Glosario de términos](#31-glosario-de-términos)
-32. [Atajos de teclado y preferencias](#32-atajos-de-teclado-y-preferencias)
+30. [Entrar en la aplicación: acceso y contraseña](#30-entrar-en-la-aplicación-acceso-y-contraseña)
+
+**Parte 9 — Anexos**
+
+31. [Solución de problemas](#31-solución-de-problemas)
+32. [Glosario de términos](#32-glosario-de-términos)
+33. [Atajos de teclado y preferencias](#33-atajos-de-teclado-y-preferencias)
 
 <div class="page-break"></div>
 
@@ -1286,11 +1290,79 @@ Al revocar, el sistema avisa de las consecuencias: **se cierra la sesión autom�
 
 <div class="page-break"></div>
 
-# Parte 8 — Anexos
+# Parte 8 — Acceso a la aplicación
 
-## 30. Solución de problemas
+## 30. Entrar en la aplicación: acceso y contraseña
+
+Todo empieza aquí: la **pantalla de acceso** es lo primero que ve cualquier persona, tenga el rol que tenga, cada vez que entra en Bigmat. Este capítulo explica cómo **iniciar sesión** y qué hacer cuando **no recuerdas la contraseña** o el sistema te pide **verificar el correo** o **confirmar la contraseña**.
+
+![Pantalla de acceso (login)](images/24-login.png)
+
+### La pantalla de acceso (login)
+
+En pantallas grandes, la página se divide en **dos mitades**:
+
+- **A la izquierda**, un panel oscuro de presentación con el **logo de Bigmat**, el lema de la plataforma y cuatro rótulos con lo que ofrece: **Gestión de Personal**, **Control de Producción**, **Fichaje de Turnos** e **Informes y Métricas**. Es solo decorativo. En el **móvil** este panel se oculta y en su lugar aparece una cabecera con el logo.
+- **A la derecha**, el **formulario** bajo el título **«Iniciar sesión — Ingresa tus credenciales para acceder al sistema»**:
+  - **Email** — tu correo electrónico. El cursor se sitúa aquí automáticamente. La aplicación **recuerda el último correo** que escribiste y lo rellena por ti la próxima vez.
+  - **Contraseña** — con un icono de **ojo** 👁 a la derecha para **mostrar u ocultar** lo que escribes y comprobar que no hay errores.
+  - Enlace **«¿Olvidaste tu contraseña?»** (abajo a la izquierda) — ver [Recuperar la contraseña](#recuperar-la-contraseña-olvidé-mi-contraseña) más abajo.
+  - Botón **«Iniciar Sesión»**. Al pulsarlo cambia a **«Iniciando…»** y se bloquea un instante para **evitar pulsaciones dobles**.
+
+> **La sesión se mantiene abierta** aunque cierres el navegador: no hace falta marcar ninguna casilla de «recordarme», ya viene activada. Tendrás que volver a entrar si **cierras sesión** manualmente o si pasa mucho tiempo de inactividad.
+
+**A dónde llegas al entrar** depende de tu perfil (se explica en el [capítulo 21](#21-el-panel-principal-y-la-navegación)): los perfiles de **oficina, administración y responsables** llegan al **Panel principal**; los **operarios** entran directamente a **su ficha** para poder fichar.
+
+**Avisos que pueden aparecer sobre el formulario:**
+
+- **Franja amarilla** — tu sesión **caducó** por inactividad; vuelve a iniciar sesión.
+- **Franja azul (informativa)** — por ejemplo, tras **revocar el consentimiento** de las políticas (ver [capítulo 29](#29-privacidad-y-consentimiento)) se te informa de que has cerrado sesión.
+- **Texto en rojo** bajo un campo — el **correo o la contraseña no son correctos**. Revisa que el correo esté bien escrito y usa el icono del **ojo** para comprobar la contraseña.
+
+> **¿Qué contraseña uso la primera vez?** Si tu cuenta se creó desde una **incorporación**, la contraseña inicial son **los números de tu DNI** (sin la letra); conviene cambiarla al entrar. Si te dieron de alta por **registro directo**, es la que definió quien te registró (ver [capítulo 8](#8-preguntas-frecuentes)).
+
+### Recuperar la contraseña («Olvidé mi contraseña»)
+
+Si no recuerdas tu contraseña, pulsa **«¿Olvidaste tu contraseña?»** en la pantalla de acceso. Llegas a una página que pide tu **Correo Electrónico**; escríbelo y pulsa **«Restablecer Contraseña»**.
+
+- El sistema **te envía un correo** con un enlace para elegir una contraseña nueva. Aparece un aviso confirmando el envío.
+- **Revisa la carpeta de spam** si no lo ves en unos minutos. El correo tiene que ser el que administración tenga registrado en tu ficha.
+
+Al abrir el enlace del correo llegas a la pantalla **«Cambiar contraseña»**, con tu **correo** ya escrito y dos campos: **Contraseña** (la nueva) y **Confirmar Contraseña** (repetida). Pulsa **«Cambiar Contraseña»** y ya podrás entrar con la nueva.
+
+> Si el enlace ha **caducado** o da error, vuelve a la pantalla de acceso y pide otro con **«¿Olvidaste tu contraseña?»**.
+
+### «Confirma tu contraseña» (zona segura)
+
+En algunas acciones sensibles, ya con la sesión iniciada, la aplicación puede pedirte que **vuelvas a escribir tu contraseña** con el mensaje **«Esta es una zona segura de la aplicación…»**. Escríbela y pulsa **«Confirmar»** para continuar. Es una comprobación de seguridad puntual, no un cierre de sesión.
+
+### Verificar el correo electrónico
+
+Si tu cuenta requiere **verificar el correo**, verás la pantalla que te pide **revisar tu email** y hacer clic en el enlace que se te ha enviado. Desde ahí puedes:
+
+- **«Reenviar Email»** — si no te llegó el mensaje, envía uno nuevo (aparece un aviso verde de confirmación).
+- **«Cerrar Sesión»** — salir mientras tanto.
+
+### Cerrar sesión
+
+Para salir de forma segura usa **«Cerrar sesión»** desde el menú de la aplicación (en el pie del menú lateral o en el menú de tu perfil). Es lo recomendable en **equipos compartidos**, ya que la sesión permanece abierta entre visitas.
+
+> **Las páginas de políticas** (privacidad, cookies y términos) son **públicas** y se pueden leer **sin iniciar sesión** desde los enlaces del pie o directamente por su dirección (ver [capítulo 29](#29-privacidad-y-consentimiento)).
+
+<div class="page-break"></div>
+
+# Parte 9 — Anexos
+
+## 31. Solución de problemas
 
 Incidencias frecuentes y cómo resolverlas.
+
+### No puedo entrar / he olvidado la contraseña
+
+- **«Estas credenciales no coinciden…»** — el correo o la contraseña son incorrectos. Comprueba el correo y usa el icono del **ojo** 👁 para ver la contraseña mientras la escribes. La primera vez, la contraseña suele ser **los números de tu DNI** (ver [capítulo 30](#30-entrar-en-la-aplicación-acceso-y-contraseña)).
+- **He olvidado la contraseña** — pulsa **«¿Olvidaste tu contraseña?»** en la pantalla de acceso y sigue el enlace que llega por correo (revisa el **spam**). Ver [Recuperar la contraseña](#recuperar-la-contraseña-olvidé-mi-contraseña).
+- **No me llega el correo de recuperación** — el mensaje va al correo que administración tenga en tu ficha; si no es el tuyo o falta, pídeles que lo actualicen.
+- **Me ha echado de repente (franja amarilla)** — la sesión **caducó** por inactividad; vuelve a iniciar sesión.
 
 ### No puedo fichar
 
@@ -1332,7 +1404,7 @@ La **campana** cuenta las **conversaciones sin leer**. Basta con **abrir** el me
 
 <div class="page-break"></div>
 
-## 31. Glosario de términos
+## 32. Glosario de términos
 
 | Término | Qué significa |
 |---|---|
@@ -1360,7 +1432,7 @@ La **campana** cuenta las **conversaciones sin leer**. Basta con **abrir** el me
 
 <div class="page-break"></div>
 
-## 32. Atajos de teclado y preferencias
+## 33. Atajos de teclado y preferencias
 
 ### Atajos de teclado
 
