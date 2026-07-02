@@ -80,8 +80,9 @@ Documento de uso interno — Recursos Humanos
 **Parte 9 — Anexos**
 
 31. [Solución de problemas](#31-solución-de-problemas)
-32. [Glosario de términos](#32-glosario-de-términos)
-33. [Atajos de teclado y preferencias](#33-atajos-de-teclado-y-preferencias)
+32. [Preguntas frecuentes (uso diario)](#32-preguntas-frecuentes-uso-diario)
+33. [Glosario de términos](#33-glosario-de-términos)
+34. [Atajos de teclado y preferencias](#34-atajos-de-teclado-y-preferencias)
 
 <div class="page-break"></div>
 
@@ -1404,7 +1405,149 @@ La **campana** cuenta las **conversaciones sin leer**. Basta con **abrir** el me
 
 <div class="page-break"></div>
 
-## 32. Glosario de términos
+## 32. Preguntas frecuentes (uso diario)
+
+Respuestas rápidas a las dudas más habituales, agrupadas por tema. Para el alta de trabajadores, consulta también las [preguntas frecuentes de la Parte 1](#8-preguntas-frecuentes).
+
+### Acceso y contraseña
+
+**¿Cómo entro la primera vez?**
+Con tu **correo** y, como contraseña inicial, **los números de tu DNI** (sin la letra) si te dieron de alta por incorporación. Conviene cambiarla al entrar (ver [capítulo 30](#30-entrar-en-la-aplicación-acceso-y-contraseña)).
+
+**He olvidado mi contraseña.**
+En la pantalla de acceso pulsa **«¿Olvidaste tu contraseña?»**, escribe tu correo y sigue el enlace que te llega por email (revisa el **spam**).
+
+**¿Cómo cambio mi contraseña?**
+Desde tu propia ficha, en la vista de **Configuración / Administración de Perfil**, con **«Actualizar contraseña»** (ver [capítulo 13](#13-mi-perfil)).
+
+**¿Por qué la aplicación me pide aceptar las políticas?**
+Es obligatorio aceptar **privacidad, cookies y términos** para poder usarla. Marca las tres casillas y pulsa **Aceptar** (ver [capítulo 29](#29-privacidad-y-consentimiento)).
+
+**¿Se cierra sola la sesión?**
+La sesión se mantiene abierta entre visitas; solo se cierra si **sales manualmente** o tras mucho tiempo de inactividad. En equipos compartidos, cierra sesión al terminar.
+
+### Fichajes
+
+**¿Cómo ficho la entrada y la salida?**
+Desde **tu propia ficha** («Mi perfil»), con los botones grandes de fichaje. El sistema usa el **GPS** para comprobar que estás en la zona de trabajo (ver [capítulo 17](#17-fichajes-y-revisión-de-fichajes)).
+
+**No me deja fichar: «No estás dentro de ninguna zona de trabajo».**
+Estás fuera del **radio** de la obra o esa obra no tiene coordenadas. Acércate al lugar o pide a administración que revise las coordenadas y el radio (ver [Solución de problemas](#31-solución-de-problemas)).
+
+**Me he equivocado en una hora, ¿cómo la corrijo?**
+No fiches de nuevo: **pide una revisión de fichajes** y administración la corrige (ver [capítulo 17](#17-fichajes-y-revisión-de-fichajes)).
+
+**¿Quién puede fichar?**
+Solo los perfiles **operario** y **oficina**.
+
+### Vacaciones
+
+**¿Cómo pido vacaciones?**
+Desde el **calendario de tu ficha**, seleccionando los días y enviando la solicitud a la oficina (ver [capítulo 14](#14-vacaciones-solicitud-y-aprobación)).
+
+**¿Cuántos días me corresponden?**
+Dependen del **cupo anual** y de tu **fecha de incorporación** (si entraste a mitad de año, se prorratean). El sistema no te deja solicitar más de los que te quedan.
+
+**¿Quién aprueba mis vacaciones?**
+La **oficina**, desde su panel de vacaciones. Hasta que se aprueban, la solicitud queda **pendiente**.
+
+**¿Puedo anular una solicitud?**
+Sí, mientras esté pendiente puedes eliminarla; una vez aprobada, habla con la oficina para reorganizarla.
+
+### Ausencias y justificantes
+
+**¿Cómo subo un justificante?**
+Desde tu ficha, en el día correspondiente, adjuntando el documento que acredita la ausencia (ver [capítulo 15](#15-justificantes-y-control-de-ausencias)).
+
+**¿Qué diferencia hay entre falta justificada e injustificada?**
+La **justificada** va acompañada de un motivo/justificante; la **injustificada** no. En ambos casos la oficina puede añadir un **comentario** con el motivo.
+
+**¿Quién puede subir justificantes?**
+El propio trabajador (operario/oficina) sobre sus días; la oficina puede además consultarlos y gestionarlos.
+
+### Nóminas
+
+**¿Dónde veo mi nómina?**
+La nómina **se envía por correo electrónico**, no se descarga en pantalla. Revisa tu email (y la carpeta de **spam**) (ver [capítulo 20](#20-nóminas-contratos-y-despidos)).
+
+**No me ha llegado la nómina.**
+Puede que administración aún no la haya **importado** ese mes, o que falte tu correo en la ficha. Comprueba el spam y, si no, avisa a administración.
+
+**¿Cómo se calcula mi sueldo?**
+A partir del **convenio** asociado a tu **categoría** profesional, más las cotizaciones de Seguridad Social y la retención de IRPF (ver [capítulo 25](#25-convenios-seguridad-social-e-irpf)).
+
+**¿Qué es el simulador de nóminas?**
+Una herramienta de la oficina para estimar el **neto desde el bruto** (o al revés) sin generar una nómina real (ver [capítulo 26](#26-el-simulador-de-nóminas)).
+
+### Mensajes y firmas
+
+**¿Qué es la campana de arriba?**
+Es la **mensajería interna**: el número indica las **conversaciones sin leer**. Al **abrir** el mensaje se marca como leído y el contador baja solo (ver [capítulo 18](#18-mensajes-internos-y-firma-de-documentos)).
+
+**Tengo un aviso de mensajes que no se quita.**
+Abre la conversación pendiente; el contador se actualiza automáticamente al leerla.
+
+**¿Cómo firmo un documento que me han enviado?**
+Desde el mensaje con el documento adjunto, usando la opción de **firma** (ver [capítulo 18](#18-mensajes-internos-y-firma-de-documentos)).
+
+### EPIs
+
+**¿Dónde veo los EPIs que me han entregado?**
+En la pantalla de **EPIs por trabajador**; cada persona tiene su agenda de equipos asignados (ver [capítulo 19](#19-epis-equipos-de-protección-individual)).
+
+**¿Cómo asigno un EPI a un trabajador? *(oficina)***
+Desde la ficha del trabajador en EPIs, eligiéndolo del **catálogo**; también se pueden **importar desde Excel** y registrar **compras**.
+
+### Mi perfil y mis datos
+
+**¿Cómo cambio mi foto de perfil?**
+Desde tu ficha, subiendo una imagen (ver [capítulo 13](#13-mi-perfil)).
+
+**¿Cómo veo mi calendario de turnos?**
+En tu ficha aparece el **calendario** con tus turnos, fichajes y estados de cada día (ver [capítulo 11](#11-la-ficha-del-trabajador)).
+
+**¿Puedo pedir una nómina anterior?**
+Sí, desde tu propia ficha con **«Solicitar nómina»**; llegará a tu correo (ver [capítulo 13](#13-mi-perfil)).
+
+### Permisos y visibilidad
+
+**No veo el menú lateral.**
+El menú lateral es para perfiles de **oficina/administración**; los **operarios** entran directamente a su ficha (ver [Solución de problemas](#31-solución-de-problemas)).
+
+**Una opción del menú tiene un candado.**
+Tu perfil **no tiene permiso** para esa sección. Los **responsables** no ven la **Configuración**; si necesitas acceso, pídelo a administración (ver [capítulo 24](#24-departamentos-secciones-y-permisos-de-acceso)).
+
+**No encuentro a un trabajador en los listados.**
+Puede estar **despedido** (solo aparece en la vista Despedidos) o, si eres responsable, **no pertenecer a tus departamentos** (ver [Solución de problemas](#31-solución-de-problemas)).
+
+### Gestión (oficina y RR. HH.)
+
+**¿Cómo doy de alta a un trabajador?**
+Lo recomendable es crear una **incorporación** y enviarle el enlace para que rellene sus datos; para casos puntuales, **Registrar Usuario** directamente (ver [capítulos 4 y 5](#4-vía-recomendada-incorporación-con-enlace)).
+
+**¿Cómo despido o readmito a un trabajador?**
+Con **«Despedir trabajador»** en su ficha; para readmitir, entra en la vista **Despedidos** del listado de usuarios (ver [capítulo 20](#20-nóminas-contratos-y-despidos)).
+
+**¿Cómo genero de golpe los turnos de un trabajador?**
+Con una **plantilla de turnos** aplicada desde el listado de usuarios (botón **Turnos**) (ver [capítulo 23](#23-turnos-y-plantillas)).
+
+**¿Cómo exporto el listado de usuarios?**
+Con el botón **Exportar a Excel** de la cabecera del listado; respeta los **filtros** activos (ver [capítulo 10](#10-el-listado-de-usuarios)).
+
+**¿Cómo cambio el nombre de un departamento?**
+En **Departamentos**, pulsa **«Editar»** en la fila (o doble clic en la tabla resumen): el nombre se edita **en línea** y se guarda con **«Guardar»** (ver [capítulo 24](#24-departamentos-secciones-y-permisos-de-acceso)).
+
+### Preferencias
+
+**¿Cómo activo el modo oscuro?**
+Con el conmutador **Modo Oscuro / Modo Claro** del pie del menú lateral; la aplicación recuerda tu elección (ver [capítulo 34](#34-atajos-de-teclado-y-preferencias)).
+
+**¿Hay atajos de teclado?**
+Sí, para los perfiles con menú lateral: **Ctrl + K** (buscador), **Ctrl + B** (menú), **Ctrl + H** (recientes) y **Esc** (cerrar) (ver [capítulo 34](#34-atajos-de-teclado-y-preferencias)).
+
+<div class="page-break"></div>
+
+## 33. Glosario de términos
 
 | Término | Qué significa |
 |---|---|
@@ -1432,7 +1575,7 @@ La **campana** cuenta las **conversaciones sin leer**. Basta con **abrir** el me
 
 <div class="page-break"></div>
 
-## 33. Atajos de teclado y preferencias
+## 34. Atajos de teclado y preferencias
 
 ### Atajos de teclado
 
