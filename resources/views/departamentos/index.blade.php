@@ -92,23 +92,29 @@
                         </tr>
                     </thead>
                         @forelse ($departamentos as $departamento)
-                    <tbody x-data="{ isExpanded: false }" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody x-data="{ isExpanded: false, editando: false, nombreOriginal: @js($departamento->nombre), departamento: @js(['id' => $departamento->id, 'nombre' => $departamento->nombre, 'descripcion' => $departamento->descripcion]) }" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         <tr class="hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors duration-150">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <button @click="isExpanded = !isExpanded"
-                                    class="flex items-center gap-2 text-left font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-                                    <svg x-show="!isExpanded" class="w-4 h-4" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7" />
-                                    </svg>
-                                    <svg x-show="isExpanded" class="w-4 h-4" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                    {{ $departamento->nombre }}
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button @click="isExpanded = !isExpanded"
+                                        class="flex items-center gap-2 text-left font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                        <svg x-show="!isExpanded" class="w-4 h-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <svg x-show="isExpanded" class="w-4 h-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                        <span x-show="!editando" x-text="departamento.nombre"></span>
+                                    </button>
+                                    <input x-show="editando" x-cloak type="text" x-model="departamento.nombre"
+                                        @keydown.enter.stop.prevent="guardarDepartamento(departamento); nombreOriginal = departamento.nombre; editando = false"
+                                        @keydown.escape="departamento.nombre = nombreOriginal; editando = false"
+                                        class="border border-gray-300 rounded px-2 py-1 text-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="text-gray-700 dark:text-gray-300">{{ $departamento->descripcion ?? '—' }}</span>
@@ -155,15 +161,21 @@
                                         </svg>
                                         Usuarios
                                     </button>
-                                    <a href="{{ route('departamentos.edit', $departamento) }}" wire:navigate
+                                    <button type="button"
+                                        @click="if (editando) { guardarDepartamento(departamento); nombreOriginal = departamento.nombre; editando = false } else { editando = true }"
                                         class="inline-flex items-center px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-white rounded-lg text-xs font-medium transition-colors shadow-sm hover:shadow">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
-                                        Editar
-                                    </a>
+                                        <span x-text="editando ? 'Guardar' : 'Editar'"></span>
+                                    </button>
+                                    <button type="button" x-show="editando" x-cloak
+                                        @click="departamento.nombre = nombreOriginal; editando = false"
+                                        class="inline-flex items-center px-3 py-1.5 bg-gray-400 hover:bg-gray-500 text-white rounded-lg text-xs font-medium transition-colors shadow-sm hover:shadow">
+                                        Cancelar
+                                    </button>
                                     <form action="{{ route('departamentos.destroy', $departamento) }}" method="POST"
                                         class="inline-block"
                                         onsubmit="return confirm('¿Está seguro de eliminar este departamento? Esta acción no se puede deshacer.')">
@@ -215,7 +227,7 @@
             <div class="md:hidden space-y-3 p-3">
                 @forelse ($departamentos as $departamento)
                     <div class="border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-md bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow duration-200"
-                        x-data="{ isExpanded: false }">
+                        x-data="{ isExpanded: false, editando: false, nombreOriginal: @js($departamento->nombre), departamento: @js(['id' => $departamento->id, 'nombre' => $departamento->nombre, 'descripcion' => $departamento->descripcion]) }">
                         <!-- Cabecera del card -->
                         <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-t-xl">
                             <button @click="isExpanded = !isExpanded" class="w-full text-left">
@@ -232,7 +244,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 9l-7 7-7-7" />
                                             </svg>
-                                            {{ $departamento->nombre }}
+                                            <span x-text="departamento.nombre"></span>
                                         </h3>
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                             {{ $departamento->descripcion ?? 'Sin descripción' }}</p>
@@ -261,6 +273,18 @@
 
                         <!-- Botones de acción -->
                         <div class="p-3 space-y-2 bg-white dark:bg-gray-800">
+                            <div x-show="editando" x-cloak class="flex items-center gap-2">
+                                <input type="text" x-model="departamento.nombre"
+                                    @keydown.enter.stop.prevent="guardarDepartamento(departamento); nombreOriginal = departamento.nombre; editando = false"
+                                    @keydown.escape="departamento.nombre = nombreOriginal; editando = false"
+                                    placeholder="Nombre del departamento"
+                                    class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                <button type="button"
+                                    @click="departamento.nombre = nombreOriginal; editando = false"
+                                    class="shrink-0 bg-gray-400 hover:bg-gray-500 text-white py-2 px-3 rounded-lg text-xs font-semibold transition-colors">
+                                    Cancelar
+                                </button>
+                            </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <button @click="openModalSecciones = true; departamentoId = {{ $departamento->id }};"
                                     class="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-3 rounded-lg text-xs font-semibold transition-colors shadow-sm">
@@ -281,14 +305,15 @@
                                 </button>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
-                                <a href="{{ route('departamentos.edit', $departamento) }}" wire:navigate
+                                <button type="button"
+                                    @click="if (editando) { guardarDepartamento(departamento); nombreOriginal = departamento.nombre; editando = false } else { editando = true }"
                                     class="flex items-center justify-center gap-1.5 bg-yellow-400 hover:bg-yellow-500 text-white py-2.5 px-3 rounded-lg text-xs font-semibold transition-colors shadow-sm">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="!editando" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Editar
-                                </a>
+                                    <span x-text="editando ? 'Guardar' : 'Editar'"></span>
+                                </button>
                                 <form action="{{ route('departamentos.destroy', $departamento) }}" method="POST"
                                     onsubmit="return confirm('¿Está seguro de eliminar este departamento?')">
                                     @csrf

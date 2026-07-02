@@ -142,18 +142,15 @@ class AgrupacionTurnoController extends Controller
     }
 
     /**
-     * Eliminar una agrupación de turnos (solo si no tiene usuarios)
+     * Eliminar una agrupación de turnos.
+     *
+     * Las plantillas solo se usan para GENERAR asignaciones de turno puntuales;
+     * ya no existe un vínculo persistente plantilla→trabajador (la columna
+     * users.agrupacion_turno_id se eliminó), por lo que borrar una plantilla no
+     * afecta a los turnos ya generados y no requiere comprobar usuarios asignados.
      */
     public function destroy(AgrupacionTurno $agrupacionesTurno)
     {
-        // Verificar si tiene usuarios asignados
-        if ($agrupacionesTurno->usuarios()->count() > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se puede eliminar: hay empleados con esta plantilla asignada'
-            ], 422);
-        }
-
         try {
             $agrupacionesTurno->delete();
 

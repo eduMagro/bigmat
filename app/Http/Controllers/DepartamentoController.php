@@ -151,7 +151,10 @@ class DepartamentoController extends Controller
 
     public function edit(Departamento $departamento)
     {
-        return view('departamentos.edit', compact('departamento'));
+        // El nombre del departamento se edita en línea desde el listado
+        // (no hay pantalla de edición propia). Se mantiene la ruta por
+        // compatibilidad y se redirige para evitar errores de vista.
+        return redirect()->route('departamentos.index');
     }
 
     public function update(Request $request, Departamento $departamento)
