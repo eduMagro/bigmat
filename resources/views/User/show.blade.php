@@ -286,6 +286,39 @@
     <script defer src="{{ asset('js/calendario/calendario.js') }}?v={{ time() }}"></script>
 
     <script>
+        function describirErrorUbicacion(error) {
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    return 'No has dado permiso de ubicación. Actívalo para esta web en los ajustes del navegador y vuelve a intentarlo.';
+                case error.POSITION_UNAVAILABLE:
+                    return 'Tu dispositivo no pudo determinar la ubicación. Comprueba que el GPS está activado y vuelve a intentarlo.';
+                case error.TIMEOUT:
+                    return 'No se pudo obtener tu ubicación a tiempo. Vuelve a intentarlo (mejor a cielo abierto o cerca de una ventana).';
+                default:
+                    return 'Error al obtener la ubicación: ' + error.message;
+            }
+        }
+
+        // Primer intento rapido (acepta posicion de hace hasta 3 min); si expira,
+        // reintenta con GPS de alta precision y mas margen antes de rendirse
+        function obtenerUbicacionParaFichaje(onOk, onError) {
+            navigator.geolocation.getCurrentPosition(
+                onOk,
+                function(error) {
+                    if (error.code !== error.TIMEOUT) {
+                        onError(describirErrorUbicacion(error));
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                        onOk,
+                        (error2) => onError(describirErrorUbicacion(error2)),
+                        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+                    );
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 180000 }
+            );
+        }
+
         function registrarFichaje(tipo) {
             const boton = event.currentTarget;
             const textoOriginal = boton.querySelector('.texto').textContent;
@@ -294,21 +327,17 @@
             boton.querySelector('.texto').textContent = 'Procesando...';
             boton.classList.add('opacity-50', 'cursor-not-allowed');
 
-            navigator.geolocation.getCurrentPosition(
+            obtenerUbicacionParaFichaje(
                 function(position) {
                     const latitud = position.coords.latitude;
                     const longitud = position.coords.longitude;
                     procesarFichaje(tipo, latitud, longitud, boton, textoOriginal);
                 },
-                function(error) {
-                    mostrarError(error.message, 'Error de ubicación');
+                function(mensaje) {
+                    mostrarError(mensaje, 'Error de ubicación');
                     boton.disabled = false;
                     boton.querySelector('.texto').textContent = textoOriginal;
                     boton.classList.remove('opacity-50', 'cursor-not-allowed');
-                }, {
-                    enableHighAccuracy: false,
-                    timeout: 8000,
-                    maximumAge: 60000
                 }
             );
         }
