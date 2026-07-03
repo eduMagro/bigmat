@@ -24,6 +24,12 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400">Asignaciones de turnos</p>
                         </a>
 
+                        <!-- Planificacion -->
+                        <a href="{{ route('planificacion.trabajadores') }}" class="block p-6 bg-pink-50 dark:bg-pink-900/30 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/50 transition">
+                            <h4 class="font-semibold text-pink-700 dark:text-pink-400">Planificación</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Calendario de trabajadores</p>
+                        </a>
+
                         <!-- Nominas -->
                         <a href="{{ route('nominas.index') }}" class="block p-6 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition">
                             <h4 class="font-semibold text-purple-700 dark:text-purple-400">Nominas</h4>
