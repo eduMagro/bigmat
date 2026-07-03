@@ -130,7 +130,8 @@
       "Bash(xargs -I{} sed -n '{}p' resources/views/configuracion/ajustes/index.blade.php)",
       "PowerShell(node build-pdf.mjs)",
       "PowerShell(php -l app\\\\Http\\\\Controllers\\\\AsignacionTurnoController.php)",
-      "PowerShell(php -l app\\\\Http\\\\Controllers\\\\ProduccionController.php)"
+      "PowerShell(php -l app\\\\Http\\\\Controllers\\\\ProduccionController.php)",
+      "PowerShell(Select-String *)"
     ]
   }
 }
