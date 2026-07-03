@@ -478,22 +478,35 @@ class AsignacionTurnoController extends Controller
             $campoActualizado = 'entrada2';
 
         } elseif ($asignacion->entrada && !$asignacion->salida) {
-            // === CASO 4: Ya tiene entrada sin salida → Advertir ===
-            return response()->json([
-                'warning_confirm' => true,
-                'titulo'          => 'Ya has fichado entrada',
-                'mensaje'         => "Ya fichaste entrada a las {$asignacion->entrada}. ¿Quieres sobrescribir la hora de entrada?",
-                'tipo_confirmacion' => 'sobrescribir_entrada',
+            // === CASO 4: Ya tiene entrada sin salida → Advertir (o sobrescribir si confirma) ===
+            if (!$forzar) {
+                return response()->json([
+                    'warning_confirm' => true,
+                    'titulo'          => 'Ya has fichado entrada',
+                    'mensaje'         => "Ya fichaste entrada a las {$asignacion->entrada}. ¿Quieres sobrescribir la hora de entrada?",
+                    'tipo_confirmacion' => 'sobrescribir_entrada',
+                ]);
+            }
+            $asignacion->update([
+                'entrada' => $horaActual,
+                'obra_id' => $obraEncontrada->id,
             ]);
 
         } elseif ($asignacion->entrada2 && !$asignacion->salida2) {
-            // === CASO 5: Ya tiene entrada2 sin salida2 → Advertir ===
-            return response()->json([
-                'warning_confirm' => true,
-                'titulo'          => 'Ya has fichado segunda entrada',
-                'mensaje'         => "Ya fichaste la segunda entrada a las {$asignacion->entrada2}. ¿Quieres sobrescribir?",
-                'tipo_confirmacion' => 'sobrescribir_entrada2',
+            // === CASO 5: Ya tiene entrada2 sin salida2 → Advertir (o sobrescribir si confirma) ===
+            if (!$forzar) {
+                return response()->json([
+                    'warning_confirm' => true,
+                    'titulo'          => 'Ya has fichado segunda entrada',
+                    'mensaje'         => "Ya fichaste la segunda entrada a las {$asignacion->entrada2}. ¿Quieres sobrescribir?",
+                    'tipo_confirmacion' => 'sobrescribir_entrada2',
+                ]);
+            }
+            $asignacion->update([
+                'entrada2' => $horaActual,
+                'obra_id'  => $obraEncontrada->id,
             ]);
+            $campoActualizado = 'entrada2';
 
         } elseif ($asignacion->entrada2 && $asignacion->salida2) {
             // === CASO 6: Turno partido completo → No permitir más entradas ===
