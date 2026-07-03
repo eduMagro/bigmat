@@ -91,10 +91,15 @@ class ProduccionController extends Controller
             $trabajador = $asignacion->user;
             $turno = $asignacion->turno;
 
-            if (!$trabajador || !$turno) continue;
+            if (!$trabajador) continue;
+
+            $estado = $asignacion->estado ?? 'activo';
+
+            // Estados especiales (vacaciones, baja...) pueden existir sin turno
+            // (p. ej. fines de semana); solo se descartan las activas sin turno
+            if (!$turno && $estado === 'activo') continue;
 
             $fechaStr = $asignacion->fecha->format('Y-m-d');
-            $estado = $asignacion->estado ?? 'activo';
 
             // El resourceId es el ID del trabajador
             $resourceId = $trabajador->id;
@@ -104,7 +109,7 @@ class ProduccionController extends Controller
             if ($mostrarEstado && isset($coloresEstado[$estado])) {
                 $color = $coloresEstado[$estado];
             } else {
-                $color = $coloresPorTurno[$turno->id] ?? $coloresPastel[0];
+                $color = $turno ? ($coloresPorTurno[$turno->id] ?? $coloresPastel[0]) : $coloresPastel[0];
             }
 
             // Formatear entrada/salida reales
@@ -121,8 +126,8 @@ class ProduccionController extends Controller
             $salida2 = $asignacion->salida2 ? Carbon::parse($asignacion->salida2)->format('H:i') : null;
 
             // Calcular start y end basados en el turno
-            $horaInicio = $turno->hora_inicio ?? '00:00:00';
-            $horaFin = $turno->hora_fin ?? '23:59:59';
+            $horaInicio = $turno?->hora_inicio ?? '00:00:00';
+            $horaFin = $turno?->hora_fin ?? '23:59:59';
 
             // Si el turno cruza medianoche (ej: 22:00 - 06:00), el end es al dia siguiente
             $startDateTime = $fechaStr . 'T' . substr($horaInicio, 0, 5) . ':00';
@@ -136,7 +141,7 @@ class ProduccionController extends Controller
 
             $eventos[] = [
                 'id' => 'asig-' . $asignacion->id,
-                'title' => $turno->nombre,
+                'title' => $turno?->nombre ?? ucfirst($estado),
                 'start' => $startDateTime,
                 'end' => $endDateTime,
                 'resourceId' => $resourceId,
@@ -147,7 +152,7 @@ class ProduccionController extends Controller
                     'asignacion_id' => $asignacion->id,
                     'user_id' => $trabajador->id,
                     'turno_id' => $asignacion->turno_id,
-                    'turno_nombre' => $turno->nombre,
+                    'turno_nombre' => $turno?->nombre ?? ucfirst($estado),
                     'estado' => $estado,
                     'entrada' => $entrada,
                     'salida' => $salida,
@@ -260,17 +265,22 @@ class ProduccionController extends Controller
             $trabajador = $asignacion->user;
             $turno = $asignacion->turno;
 
-            if (!$trabajador || !$turno) continue;
+            if (!$trabajador) continue;
+
+            $estado = $asignacion->estado ?? 'activo';
+
+            // Estados especiales (vacaciones, baja...) pueden existir sin turno
+            // (p. ej. fines de semana); solo se descartan las activas sin turno
+            if (!$turno && $estado === 'activo') continue;
 
             $fechaStr = $asignacion->fecha->format('Y-m-d');
-            $estado = $asignacion->estado ?? 'activo';
             $resourceId = $trabajador->id;
 
             $mostrarEstado = $estado !== 'activo';
             if ($mostrarEstado && isset($coloresEstado[$estado])) {
                 $color = $coloresEstado[$estado];
             } else {
-                $color = $coloresPorTurno[$turno->id] ?? $coloresPastel[0];
+                $color = $turno ? ($coloresPorTurno[$turno->id] ?? $coloresPastel[0]) : $coloresPastel[0];
             }
 
             $entrada = $mostrarEstado
@@ -284,8 +294,8 @@ class ProduccionController extends Controller
             $entrada2 = $asignacion->entrada2 ? Carbon::parse($asignacion->entrada2)->format('H:i') : null;
             $salida2 = $asignacion->salida2 ? Carbon::parse($asignacion->salida2)->format('H:i') : null;
 
-            $horaInicio = $turno->hora_inicio ?? '00:00:00';
-            $horaFin = $turno->hora_fin ?? '23:59:59';
+            $horaInicio = $turno?->hora_inicio ?? '00:00:00';
+            $horaFin = $turno?->hora_fin ?? '23:59:59';
 
             $startDateTime = $fechaStr . 'T' . substr($horaInicio, 0, 5) . ':00';
             if ($horaFin < $horaInicio) {
@@ -297,7 +307,7 @@ class ProduccionController extends Controller
 
             $eventos[] = [
                 'id' => 'asig-' . $asignacion->id,
-                'title' => $turno->nombre,
+                'title' => $turno?->nombre ?? ucfirst($estado),
                 'start' => $startDateTime,
                 'end' => $endDateTime,
                 'resourceId' => $resourceId,
@@ -308,7 +318,7 @@ class ProduccionController extends Controller
                     'asignacion_id' => $asignacion->id,
                     'user_id' => $trabajador->id,
                     'turno_id' => $asignacion->turno_id,
-                    'turno_nombre' => $turno->nombre,
+                    'turno_nombre' => $turno?->nombre ?? ucfirst($estado),
                     'estado' => $estado,
                     'entrada' => $entrada,
                     'salida' => $salida,

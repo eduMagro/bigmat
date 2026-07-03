@@ -492,9 +492,21 @@
                     const horaInicio = p.hora_inicio || '--';
                     const horaFin = p.hora_fin || '--';
 
+                    // Fichajes reales debajo del turno (badge gris para distinguirlos del turno)
+                    const badgeFichaje = 'inline-flex items-center gap-0.5 bg-gray-200 text-gray-700 rounded px-1 mt-0.5 text-[10px] leading-tight font-medium';
+                    const iconoReloj = `<svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/></svg>`;
+                    let fichajesHtml = '';
+                    if (p.entrada || p.salida) {
+                        fichajesHtml += `<span class="${badgeFichaje}">${iconoReloj}${p.entrada || '--'} / ${p.salida || '--'}</span>`;
+                    }
+                    if (p.entrada2 || p.salida2) {
+                        fichajesHtml += `<span class="${badgeFichaje}">${iconoReloj}${p.entrada2 || '--'} / ${p.salida2 || '--'}</span>`;
+                    }
+
                     return {
-                        html: `<div class="flex items-center justify-center h-full px-1">
-                            <div class="text-xs font-semibold">${horaInicio} - ${horaFin}</div>
+                        html: `<div class="flex flex-col items-center justify-center h-full px-1 text-center overflow-hidden">
+                            <div class="text-xs font-semibold leading-tight">${p.turno_nombre ? p.turno_nombre + ' · ' : ''}${horaInicio} - ${horaFin}</div>
+                            ${fichajesHtml}
                         </div>`
                     };
                 },
