@@ -15,7 +15,7 @@ import { marked } from 'marked';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = join(__dirname, 'manual-registro-usuarios.md');
 const OUT_HTML = join(__dirname, 'build', 'manual.html');
-const OUT_PDF = join(__dirname, 'manual-registro-usuarios.pdf');
+const OUT_PDF = join(__dirname, 'manual-de-usuario.pdf');
 
 const CHROME_CANDIDATES = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',

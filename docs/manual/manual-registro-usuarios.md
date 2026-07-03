@@ -13,7 +13,7 @@
 
 ## Alta y gestión de trabajadores
 
-**Versión 1.5**
+**Versión 1.8**
 
 Documento de uso interno — Recursos Humanos
 
@@ -83,6 +83,7 @@ Documento de uso interno — Recursos Humanos
 32. [Preguntas frecuentes (uso diario)](#32-preguntas-frecuentes-uso-diario)
 33. [Glosario de términos](#33-glosario-de-términos)
 34. [Atajos de teclado y preferencias](#34-atajos-de-teclado-y-preferencias)
+35. [Avisos automáticos: alertas y correos](#35-avisos-automáticos-alertas-y-correos)
 
 <div class="page-break"></div>
 
@@ -602,7 +603,7 @@ Muestra todas las vacaciones asignadas (en rojo) y los **festivos**. Sirve para 
 - **Aprobar**: si el trabajador tiene **días sin disfrutar del año anterior**, el sistema pregunta primero **a qué año imputar** las vacaciones (año actual o año anterior), o permite cancelar. Tras elegir, la solicitud se aprueba, los días se reflejan en el calendario y la fila desaparece de pendientes.
 - **Denegar**: rechaza la solicitud y la quita de la lista.
 
-En ambos casos se muestra un aviso de confirmación.
+En ambos casos se muestra un aviso de confirmación **y el trabajador recibe un mensaje interno** con el resultado (aprobada o denegada). Ver [Avisos automáticos](#35-avisos-automáticos-alertas-y-correos).
 
 ### Asignar vacaciones directamente (sin solicitud previa)
 
@@ -1598,6 +1599,66 @@ En el pie del menú lateral hay un conmutador **Modo Oscuro / Modo Claro**. La a
 
 - La **última vista y fecha** del calendario (semana/día/mes) en la planificación y en la ficha.
 - La **última vista** usada en las pantallas que lo permiten.
+
+<div class="page-break"></div>
+
+## 35. Avisos automáticos: alertas y correos
+
+La aplicación genera avisos **por sí sola** en determinados momentos, sin que nadie tenga que enviarlos a mano. Hay dos canales distintos:
+
+- **Alertas internas**: llegan a la **bandeja de mensajes** de la aplicación (la campana de la barra superior, ver [Mensajes internos](#18-mensajes-internos-y-firma-de-documentos)). Solo se ven **al entrar en la aplicación**.
+- **Correos electrónicos**: llegan al **email personal** del trabajador o del gestor.
+
+> **Importante:** la mayoría de avisos son **solo alertas internas**. Si la persona no entra en la aplicación, no se entera. Los únicos correos electrónicos que se envían son los tres del segundo apartado.
+
+### Alertas internas automáticas
+
+**Vacaciones**
+
+| Cuándo se genera | Quién la recibe | Qué dice |
+|---|---|---|
+| Un trabajador **solicita vacaciones** | **RR. HH.** y los **responsables de sus departamentos** | «*Nombre* ha solicitado vacaciones del *fecha* al *fecha*» |
+| La oficina **aprueba** una solicitud | El **trabajador** | «Tus vacaciones del *fecha* al *fecha* han sido aprobadas» |
+| La oficina **deniega** una solicitud | El **trabajador** | «Tu solicitud de vacaciones del *fecha* al *fecha* ha sido denegada» |
+| La oficina **asigna vacaciones directamente** en el calendario (sin solicitud) | El **trabajador** | «Se te han asignado vacaciones del *fecha* al *fecha*» |
+
+**Fichajes y turnos**
+
+| Cuándo se genera | Quién la recibe | Qué dice |
+|---|---|---|
+| Un trabajador **pide revisión de fichajes** | El **responsable de su departamento** (si no tiene, el departamento de **Administración**) | El detalle de los días y horas a revisar, con sus observaciones |
+| La revisión se **procesa** | El **trabajador** | Fechas, número de días corregidos y quién la procesó |
+| La revisión se **deniega** | El **trabajador** | Fechas, el **motivo** de la denegación y quién la procesó |
+| Alguien **ficha sin tener turno planificado** (el sistema le crea el turno automáticamente) | Departamentos **Programador** y **Administrador** | «Turno creado automáticamente (*turno*) para *nombre* en *fecha*» |
+| Hay trabajadores **sin fichar la entrada** pasados 30 minutos del inicio de su turno | Departamentos **Programador** y **Administrador** | La lista de trabajadores sin fichar, agrupada por turno |
+
+> El aviso de «sin fichar la entrada» depende de una **tarea programada en el servidor** (comando `fichajes:verificar-entradas`). Si esa tarea no está activa, este aviso no se genera.
+
+**Justificantes**
+
+| Cuándo se genera | Quién la recibe | Qué dice |
+|---|---|---|
+| Un trabajador **sube un justificante** de ausencia | Departamentos **RR. HH.** y **Producción** | Quién lo subió, para qué día y cuántas horas, con **enlace para ver el documento** |
+
+**Nóminas**
+
+| Cuándo se genera | Quién la recibe | Qué dice |
+|---|---|---|
+| RR. HH. **importa las nóminas** del mes | Cada **trabajador** cuya nómina venía en el archivo | «Tu nómina de *mes año* ya está disponible. Puedes solicitarla desde tu perfil» (o «Se ha reimportado…» si es una segunda importación) |
+| En la importación hay **DNIs que no se encuentran** | Quien hizo la **importación** | La lista de DNIs no encontrados, para revisarlos |
+| Un trabajador **solicita su nómina** desde el perfil | El propio **trabajador** | Confirmación de que la nómina se ha enviado a su correo electrónico |
+
+### Correos electrónicos automáticos
+
+Solo hay **tres** situaciones en las que la aplicación envía un email:
+
+| Cuándo se envía | Quién lo recibe | Qué contiene |
+|---|---|---|
+| Un trabajador **solicita su nómina** desde su perfil | El **correo personal** del trabajador | El **PDF de la nómina** adjunto |
+| Un candidato **completa el formulario de incorporación** (la vía del enlace) | Los departamentos **Programador**, **Administrador** y **RR. HH.** | Aviso de que la incorporación está completada y lista para revisar |
+| Alguien pulsa **«Olvidé mi contraseña»** en la pantalla de acceso | El **correo** de esa cuenta | El **enlace para restablecer la contraseña** (ver [Acceso](#30-entrar-en-la-aplicación-acceso-y-contraseña)) |
+
+> Todo lo demás (aprobaciones, denegaciones, mensajes de la oficina, documentos a firmar…) llega **únicamente como alerta interna** dentro de la aplicación.
 
 ---
 
