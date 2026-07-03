@@ -38,19 +38,58 @@
             /* Tooltip */
             .tippy-box[data-theme~="worker"] { background: white; color: #1f2937; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
             .tippy-box[data-theme~="worker"] .tippy-content { padding: 0; }
+
+            /* Movil: toolbar del calendario y leyenda compactas */
+            @media (max-width: 900px) {
+                .fc .fc-toolbar { flex-wrap: wrap; gap: 6px; padding: 0.5rem; border-radius: 0; }
+                .fc .fc-toolbar-title { font-size: 0.95rem !important; }
+                .fc .fc-button { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+                #calendario-toolbar { padding: 0.375rem 0.75rem; }
+                #leyenda-turnos { gap: 0.5rem 0.625rem; }
+            }
+
+            /* Movil en vertical: aviso de girar el dispositivo (la planificacion solo se usa apaisada) */
+            #aviso-girar { display: none; }
+            @media screen and (max-width: 767px) and (orientation: portrait) {
+                #calendario-container { display: none; }
+                #aviso-girar {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 1rem;
+                    min-height: calc(100vh - 120px);
+                    padding: 2rem;
+                    text-align: center;
+                }
+                #aviso-girar svg { animation: girar-telefono 2s ease-in-out infinite; }
+            }
+            @keyframes girar-telefono {
+                0%, 20% { transform: rotate(0deg); }
+                60%, 100% { transform: rotate(-90deg); }
+            }
         </style>
     @endpush
 
+    <div id="aviso-girar" class="text-gray-700 dark:text-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-blue-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <rect x="7" y="2.5" width="10" height="19" rx="2" />
+            <line x1="10.5" y1="18.5" x2="13.5" y2="18.5" stroke-linecap="round" />
+        </svg>
+        <div class="text-lg font-semibold">Gira el dispositivo</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">La planificación se ve mejor en horizontal.<br>Pon el móvil apaisado para continuar.</div>
+    </div>
+
     <div class="py-2" id="calendario-container">
-        <div class="px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2" id="calendario-toolbar">
             <input type="text" id="filtro-eventos" placeholder="Buscar trabajador..."
-                   class="w-64 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm focus:ring focus:ring-blue-300 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">
-            <div class="flex items-center gap-3">
+                   class="w-full sm:w-64 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm focus:ring focus:ring-blue-300 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0" id="leyenda-turnos">
                 <span class="text-xs text-gray-600 dark:text-gray-400">Turnos:</span>
                 @foreach($turnos as $turno)
-                    <span class="flex items-center gap-1">
-                        <span class="w-3 h-3 rounded-full" style="background: {{ $turno->color ?? '#93C5FD' }}"></span>
-                        <span class="text-xs font-medium">{{ $turno->nombre }}</span>
+                    <span class="flex items-center gap-1 flex-shrink-0">
+                        <span class="w-3 h-3 rounded-full flex-shrink-0" style="background: {{ $turno->color ?? '#93C5FD' }}"></span>
+                        <span class="text-xs font-medium whitespace-nowrap">{{ $turno->nombre }}</span>
                     </span>
                 @endforeach
             </div>
@@ -365,7 +404,7 @@
                 },
                 resources: datosCalendario.recursos,
                 resourceOrder: 'orden',
-                resourceAreaWidth: '210px',
+                resourceAreaWidth: window.matchMedia('(max-width: 767px)').matches ? '140px' : '210px',
                 resourceAreaColumns: [{
                     field: 'title',
                     headerContent: 'Trabajadores',
@@ -603,6 +642,11 @@
 
             calendar.render();
             window.calendarioPlanif = calendar;
+
+            // Recalcular tamano al girar el movil (la rotacion CSS cambia las
+            // dimensiones del contenedor sin que FullCalendar se entere solo)
+            window.addEventListener('orientationchange', () => setTimeout(() => calendar.updateSize(), 300));
+            window.matchMedia('(orientation: portrait)').addEventListener('change', () => setTimeout(() => calendar.updateSize(), 300));
 
             // Filtro de busqueda
             const filtro = document.getElementById('filtro-eventos');
