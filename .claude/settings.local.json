@@ -126,7 +126,10 @@
       "Bash(/c/xampp/php/php.exe -l app/Http/Controllers/ProfileController.php)",
       "Bash(/c/xampp/php/php.exe -l app/Models/AsignacionTurno.php)",
       "Bash(echo \"exit: $?\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(xargs -I{} sed -n '{}p' resources/views/configuracion/ajustes/index.blade.php)",
+      "PowerShell(node build-pdf.mjs)",
+      "PowerShell(php -l app\\\\Http\\\\Controllers\\\\AsignacionTurnoController.php)"
     ]
   }
 }
