@@ -115,7 +115,7 @@ class VerificarFichajesEntrada extends Command
 
         foreach ($porTurno as $turno => $trabajadores) {
             $mensajeLineas[] = "";
-            $mensajeLineas[] = "📋 Turno {$turno}:";
+            $mensajeLineas[] = "Turno {$turno}:";
             foreach ($trabajadores as $t) {
                 $mensajeLineas[] = "  • {$t['usuario']->nombre_completo}";
             }
