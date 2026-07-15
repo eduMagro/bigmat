@@ -149,15 +149,9 @@ class VacacionesController extends Controller
                 ], 422);
             }
 
-            // 2) Validar que haya al menos un día laborable (excluir fines de semana, festivos y días ya con vacaciones)
+            // 2) Validar que haya al menos un día solicitable (excluir los que ya tienen vacaciones).
+            // El cupo es de 30 días naturales: findes y festivos también consumen, no se saltan.
             $rango = CarbonPeriod::create($nuevaInicio, $nuevaFin);
-            $festivos = Festivo::whereBetween('fecha', [
-                    $nuevaInicio->copy()->subDays(10),
-                    $nuevaFin->copy()->addDays(10)
-                ])
-                ->pluck('fecha')
-                ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
-                ->toArray();
 
             // Obtener días que ya tienen estado "vacaciones" para este usuario
             $diasYaConVacaciones = AsignacionTurno::where('user_id', auth()->id())
@@ -186,15 +180,12 @@ class VacacionesController extends Controller
 
             // 3) Validar que no se supere el límite de días de vacaciones
             $user = User::with('incorporacion')->find(auth()->id());
-            $inicioAño = Carbon::now()->startOfYear();
 
-            // Días ya aprobados este año
-            $diasYaAsignados = $user->asignacionesTurnos()
-                ->where('estado', 'vacaciones')
-                ->where('fecha', '>=', $inicioAño)
-                ->count();
+            // Días ya imputados a este año. Respeta anio_vacacional igual que aprobar():
+            // contar por fecha natural descuadraba con los días repartidos al año anterior.
+            $diasYaAsignados = $user->vacacionesImputadasEnAnio(Carbon::now()->year);
 
-            // Días en solicitudes pendientes (excluyendo fines de semana y festivos)
+            // Días en solicitudes pendientes (naturales: findes y festivos consumen)
             $solicitudesPendientes = VacacionesSolicitud::where('user_id', $user->id)
                 ->where('estado', 'pendiente')
                 ->get();

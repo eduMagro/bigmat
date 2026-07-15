@@ -1696,9 +1696,21 @@ class ProfileController extends Controller
             ->whereDate('fecha', '<=', $fechaReferencia->toDateString())
             ->count();
 
+        // Días en solicitudes pendientes, repartidos por periodo. Sin esto el
+        // calendario mostraría saldo sin descontar lo que ya está solicitado.
+        $diasSolicitados = VacacionesSolicitud::diasPendientesPorPeriodo($user->id, $clickYear);
+
         return response()->json([
             'fecha_incorporacion' => $user->fecha_incorporacion_efectiva ? $user->fecha_incorporacion_efectiva->format('Y-m-d') : null,
+            // Cupo de cada año, calculado por el modelo (fuente única de verdad).
+            // El calendario los consume tal cual: no debe recalcular el prorrateo.
+            'tope_anterior' => $user->topeVacacionesEnAnio($previousYear),
+            'tope_actual' => $user->topeVacacionesEnAnio($clickYear),
             'dias_asignados' => $diasAsignadosTotal,
+            'dias_solicitados_anterior' => $diasSolicitados['anterior'],
+            'dias_solicitados_actual' => $diasSolicitados['actual'],
+            'dias_solicitados_periodo_gracia' => $diasSolicitados['periodo_gracia'],
+            'dias_solicitados_post_gracia' => $diasSolicitados['post_gracia'],
             'dias_asignados_anterior' => $diasAsignadosAnterior,
             'dias_asignados_actual' => $diasAsignadosActual,
             'dias_usados_periodo_gracia' => $diasUsadosPeriodoGracia,

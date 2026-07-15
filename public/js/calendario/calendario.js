@@ -389,48 +389,31 @@
                 const diasSolicitadosPeriodoGracia = data.dias_solicitados_periodo_gracia || 0;
                 const diasSolicitadosPostGracia = data.dias_solicitados_post_gracia || 0;
 
+                // Cupo de cada año: lo calcula el backend (User::topeVacacionesEnAnio).
+                const topeAnterior = data.tope_anterior ?? 30;
+                const topeActual = data.tope_actual ?? 30;
+
                 if (fechaInc && fechaInc < new Date(clickYear, 0, 1)) {
                     // Usuario incorporado antes de este año
                     const diasUsadosAnterior = (data.dias_asignados_anterior || 0) + diasSolicitadosAnterior;
                     const diasUsadosPeriodoGracia = (data.dias_usados_periodo_gracia || 0) + diasSolicitadosPeriodoGracia;
                     const diasUsadosPostGracia = (data.dias_usados_post_gracia || 0) + diasSolicitadosPostGracia;
 
-                    const generadasAnterior = 30;
-                    const saldoAnterior = Math.max(0, generadasAnterior - diasUsadosAnterior);
+                    const saldoAnterior = Math.max(0, topeAnterior - diasUsadosAnterior);
+                    const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
 
                     if (isGracePeriod) {
                         disponiblesAnterior = Math.max(0, saldoAnterior - diasUsadosPeriodoGracia);
-                        const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
-                        disponiblesActual = 30 - excesoSobreAnterior - diasUsadosPostGracia;
+                        disponiblesActual = topeActual - excesoSobreAnterior - diasUsadosPostGracia;
                         disponiblesTotal = disponiblesAnterior + disponiblesActual;
                     } else {
-                        const excesoSobreAnterior = Math.max(0, diasUsadosPeriodoGracia - saldoAnterior);
-                        disponiblesTotal = 30 - excesoSobreAnterior - diasUsadosPostGracia;
+                        disponiblesTotal = topeActual - excesoSobreAnterior - diasUsadosPostGracia;
                     }
                 } else {
-                    // Usuario incorporado este año - cálculo proporcional PROGRESIVO
-                    // Los días se activan proporcionalmente hasta la fecha de la solicitud
+                    // Usuario incorporado este año: cupo prorrateado disponible por adelantado
                     const diasUsadosEsteAnio = (data.dias_asignados_actual || 0) + diasSolicitadosActual;
 
-                    if (fechaInc) {
-                        const inicioAnio = new Date(clickYear, 0, 1);
-                        const finDeAnio = new Date(clickYear, 11, 31);
-                        const diasTotalesAnio = Math.ceil((finDeAnio - inicioAnio) / (1000 * 60 * 60 * 24)) + 1;
-
-                        // Días desde incorporación hasta la fecha solicitada
-                        const diasHastaFechaSolicitada = Math.max(0, Math.ceil((clickDate - fechaInc) / (1000 * 60 * 60 * 24)) + 1);
-                        // Días que le corresponderían en todo el año
-                        const diasDesdeIncorporacionHastaFinAnio = Math.ceil((finDeAnio - fechaInc) / (1000 * 60 * 60 * 24)) + 1;
-                        const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 30);
-
-                        // Días activados hasta la fecha solicitada (proporcional)
-                        const proporcionTrabajada = Math.min(1, diasHastaFechaSolicitada / diasDesdeIncorporacionHastaFinAnio);
-                        const generadasHastaFecha = Math.floor(generadasTotalesAnio * proporcionTrabajada);
-
-                        disponiblesTotal = generadasHastaFecha - diasUsadosEsteAnio;
-                    } else {
-                        disponiblesTotal = 30 - diasUsadosEsteAnio;
-                    }
+                    disponiblesTotal = topeActual - diasUsadosEsteAnio;
                     disponiblesActual = Math.max(0, disponiblesTotal);
                 }
 
@@ -1461,16 +1444,13 @@
                                         modal.classList.remove('translate-y-full');
                                         modal.classList.add('translate-y-0');
 
-                                        // Calcular vacaciones GENERADAS del año anterior (hasta 31 dic)
-                                        const endOfPrevYear = new Date(previousYear, 11, 31);
+                                        // Cupo del año anterior: lo calcula el backend, ya prorrateado
+                                        // si se incorporó ese mismo año (User::topeVacacionesEnAnio).
                                         let generadasAnterior = 0;
 
                                         if (incorpDate < new Date(clickYear, 0, 1)) {
                                             // La persona ya trabajaba antes de este año
-                                            const prevYearStart = incorpDate > new Date(previousYear, 0, 1) ? incorpDate : new Date(previousYear, 0, 1);
-                                            const diffTimePrev = Math.max(0, endOfPrevYear - prevYearStart);
-                                            const diffDaysPrev = Math.ceil(diffTimePrev / (1000 * 60 * 60 * 24)) + 1;
-                                            generadasAnterior = Math.floor(Math.min((diffDaysPrev / 30) * 2.5, 22)); // Truncado, Max 22 días
+                                            generadasAnterior = data.tope_anterior ?? 30;
                                         }
 
                                         // Días usados del año anterior (en fechas del año anterior) + solicitados
@@ -1502,8 +1482,8 @@
                                             // Si usó más que las del año anterior, el exceso viene del año actual
                                             const excesoSobreAnterior = Math.max(0, usadasPeriodoGracia - saldoAnteriorPositivo);
 
-                                            // Si entró antes de este año, tiene los 30 días completos
-                                            const generadasActual = 30;
+                                            // Si entró antes de este año le corresponde el cupo completo (backend)
+                                            const generadasActual = data.tope_actual ?? 30;
 
                                             // Disponibles del año actual = generadas - exceso - post gracia ya usadas
                                             const disponiblesActual = generadasActual - excesoSobreAnterior - usadasPostGracia;
@@ -1549,8 +1529,8 @@
                                             // Vacaciones perdidas del año anterior (las que no se usaron y caducaron)
                                             const perdidas = Math.max(0, saldoAnteriorAlFinalizar - usadasPeriodoGracia);
 
-                                            // Si entró antes de este año, tiene los 30 días completos
-                                            const generadasActual = 30;
+                                            // Si entró antes de este año le corresponde el cupo completo (backend)
+                                            const generadasActual = data.tope_actual ?? 30;
 
                                             // Total usadas del año actual = exceso del periodo gracia + usadas post gracia
                                             const usadasTotalActual = excesoSobreAnterior + usadasPostGracia;
@@ -1576,26 +1556,13 @@
                                             // Mostrar modal inicial (0 días seleccionados)
                                             updateVacationModal(0);
                                         } else {
-                                            // === PERSONA INCORPORADA ESTE AÑO: cálculo proporcional PROGRESIVO ===
-                                            // Incluir días solicitados pendientes
+                                            // === PERSONA INCORPORADA ESTE AÑO ===
+                                            // Cupo prorrateado por el backend, disponible por adelantado
                                             const diasSolicitadosActual = data.dias_solicitados_actual || 0;
                                             const diasUsadosEsteAnio = (data.dias_asignados_actual || 0) + diasSolicitadosActual;
 
-                                            const inicioAnio = new Date(clickYear, 0, 1);
-                                            const finDeAnio = new Date(clickYear, 11, 31);
-                                            const diasTotalesAnio = Math.ceil((finDeAnio - inicioAnio) / (1000 * 60 * 60 * 24)) + 1;
-
-                                            // Días desde incorporación hasta la fecha clickeada
-                                            const diasHastaFechaClickeada = Math.max(0, Math.ceil((clickDate - incorpDate) / (1000 * 60 * 60 * 24)) + 1);
-                                            // Días que le corresponderían en todo el año
-                                            const diasDesdeIncorporacionHastaFinAnio = Math.ceil((finDeAnio - incorpDate) / (1000 * 60 * 60 * 24)) + 1;
-                                            const generadasTotalesAnio = Math.floor((diasDesdeIncorporacionHastaFinAnio / diasTotalesAnio) * 30);
-
-                                            // Días activados hasta la fecha clickeada (proporcional)
-                                            const proporcionTrabajada = Math.min(1, diasHastaFechaClickeada / diasDesdeIncorporacionHastaFinAnio);
-                                            const generadasHastaFecha = Math.floor(generadasTotalesAnio * proporcionTrabajada);
-
-                                            const disponibles = generadasHastaFecha - diasUsadosEsteAnio;
+                                            const generadasTotalesAnio = data.tope_actual ?? 30;
+                                            const disponibles = generadasTotalesAnio - diasUsadosEsteAnio;
 
                                             // Guardar datos para actualización dinámica
                                             vacationData = {
@@ -1604,7 +1571,6 @@
                                                 previousYear: clickDate.getFullYear() - 1,
                                                 clickYear: clickDate.getFullYear(),
                                                 colorBase: 'text-green-400',
-                                                generadasHastaFecha,
                                                 generadasTotalesAnio
                                             };
 
