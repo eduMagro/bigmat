@@ -367,12 +367,19 @@ class AsignacionTurnoController extends Controller
                 'forzar'   => 'nullable|boolean', // Para confirmar acciones con advertencia
             ]);
 
+            $user = User::findOrFail($request->user_id);
+
+            // Añade el usuario a TODAS las trazas de log de esta petición de fichaje
+            Log::withContext([
+                'user_id' => $user->id,
+                'usuario' => $user->nombre_completo,
+                'tipo'    => $request->tipo,
+            ]);
+
             Log::info('Coordenadas recibidas', [
                 'latitud'  => $request->latitud,
                 'longitud' => $request->longitud,
             ]);
-
-            $user = User::findOrFail($request->user_id);
             if (!in_array($user->rol, ['operario', 'oficina'])) {
                 return response()->json(['error' => 'No tienes permisos para fichar.'], 403);
             }
@@ -403,7 +410,10 @@ class AsignacionTurnoController extends Controller
             /* 5) Para ENTRADA: detectar turno/fecha ----------------------------------- */
             [$turnoDetectado, $fechaTurnoDetectado] = $this->detectarTurnoYFecha($ahora);
             if (!$turnoDetectado || !$fechaTurnoDetectado) {
-                return response()->json(['error' => 'No se pudo determinar el turno para esta hora.'], 403);
+                $horaLegible = $ahora->format('H:i');
+                return response()->json([
+                    'error' => "Ningún turno cubre las {$horaLegible}, así que no se puede registrar una ENTRADA ahora. Si querías fichar tu salida, usa el botón Salida. Si crees que es un error, avisa a tu responsable.",
+                ], 403);
             }
 
             $turnoModelo = Turno::where('nombre', $turnoDetectado)->first();
