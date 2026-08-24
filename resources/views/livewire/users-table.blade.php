@@ -224,7 +224,6 @@
                             <option value="">Selecciona rol</option>
                             <option value="oficina">Oficina</option>
                             <option value="operario">Operario</option>
-                            <option value="transportista">Transportista</option>
                             <option value="visitante">Visitante</option>
                         </select>
                     </td>

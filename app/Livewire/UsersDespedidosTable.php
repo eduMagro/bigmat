@@ -193,7 +193,7 @@ class UsersDespedidosTable extends Component
             'registros'     => $registros,
             'empresas'      => Empresa::orderBy('nombre')->get(),
             'categorias'    => Categoria::orderBy('nombre')->get(),
-            'roles'         => ['operario', 'oficina', 'transportista', 'visitante'],
+            'roles'         => ['operario', 'oficina', 'visitante'],
             'filtrosActivos' => $this->getFiltrosActivos(),
         ]);
     }

@@ -48,17 +48,6 @@ if (!function_exists('usuarioTieneAcceso')) {
             );
         }
 
-        // === Transportista: por prefijos configurados
-        if ($rolUsuario === 'transportista') {
-            $prefijosPermitidosTransportista = config('acceso.prefijos_transportista', []);
-
-            return collect($prefijosPermitidosTransportista)->contains(
-                fn(string $prefijoPermitido) =>
-                $nombreRutaActual === $prefijoPermitido
-                    || Str::startsWith($nombreRutaActual, $prefijoPermitido)
-            );
-        }
-
         // === Oficina: validación por departamentos ↔ secciones
         if ($rolUsuario === 'oficina') {
             $prefijoBaseRuta = obtenerPrefijoBaseDeRuta($nombreRutaActual);

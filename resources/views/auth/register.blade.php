@@ -110,7 +110,6 @@
                                         <option value="">Selecciona</option>
                                         <option value="operario">Operario</option>
                                         <option value="oficina">Oficina</option>
-                                        <option value="transportista">Transportista</option>
                                         <option value="visitante">Visitante</option>
                                     </select>
                                     <x-input-error :messages="$errors->get('rol')" class="{{ $errorClass }}" />

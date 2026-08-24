@@ -395,7 +395,7 @@ class UsersTable extends Component
             'registrosUsuarios' => $registrosUsuarios,
             'empresas' => $this->getEmpresas(),
             'categorias' => $this->getCategorias(),
-            'roles' => ['operario', 'oficina', 'transportista', 'visitante'],
+            'roles' => ['operario', 'oficina', 'visitante'],
             'turnos' => $this->getTurnos(),
             'plantillasParaModal' => $this->getPlantillasParaModal(),
             'filtrosActivos' => $this->getFiltrosActivos(),

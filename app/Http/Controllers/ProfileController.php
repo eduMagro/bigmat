@@ -703,7 +703,7 @@ class ProfileController extends Controller
                 'numero_corto' => 'nullable|string|max:4',
                 'dni' => 'nullable|string|max:20',
                 'empresa_id' => 'nullable|exists:empresas,id',
-                'rol' => 'nullable|string|in:operario,oficina,transportista,visitante',
+                'rol' => 'nullable|string|in:operario,oficina,visitante',
                 'categoria_id' => 'nullable|exists:categorias,id',
                 'maquina_id' => 'nullable|exists:maquinas,id',
                 'turno' => 'nullable|string|in:diurno,nocturno,mañana,flexible',
