@@ -1046,10 +1046,11 @@ class AsignacionTurnoController extends Controller
 
                     if ($asignacion) {
                         $datos = [];
-                        if ($request->filled('entrada')) {
+                        // has() permite enviar null para borrar la hora (la "x" del picker)
+                        if ($request->has('entrada')) {
                             $datos['entrada'] = $request->entrada;
                         }
-                        if ($request->filled('salida')) {
+                        if ($request->has('salida')) {
                             $datos['salida'] = $request->salida;
                         }
                         // Segunda jornada (turno partido): has() permite enviar null para limpiarla
@@ -1392,54 +1393,6 @@ class AsignacionTurnoController extends Controller
                 'success' => false,
                 'message' => 'Error al actualizar la asignación.',
                 'errors' => ['exception' => $e->getMessage()]
-            ], 500);
-        }
-    }
-
-    public function actualizarHoras(Request $request, $id)
-    {
-        try {
-            Log::channel('planificacion_trabajadores_taller')->info('[actualizarHoras] Actualizando horas', [
-                'asignacion_id' => $id,
-                'entrada' => $request->entrada,
-                'salida' => $request->salida,
-                'ejecutado_por' => auth()->id(),
-            ]);
-
-            $request->validate(
-                [
-                    'entrada' => 'nullable|date_format:H:i',
-                    'salida'  => 'nullable|date_format:H:i',
-                ],
-                [
-                    'entrada.date_format' => 'El campo entrada debe tener el formato HH:mm (por ejemplo 08:30).',
-                    'salida.date_format'  => 'El campo salida debe tener el formato HH:mm (por ejemplo 17:45).',
-                ]
-            );
-
-            $asignacion = AsignacionTurno::findOrFail($id);
-            $asignacion->entrada = $request->entrada;
-            $asignacion->salida  = $request->salida;
-            $asignacion->save();
-
-            return response()->json([
-                'ok'      => true,
-                'entrada' => $request->entrada,
-                'salida'  => $request->salida,
-                'message' => 'Horas actualizadas correctamente'
-            ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Errores de validación
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Datos no válidos',
-                'errors'  => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            // Cualquier otro error
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Error al actualizar horas: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -2546,6 +2499,68 @@ class AsignacionTurnoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al mover eventos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualiza las horas de una asignación concreta (edición inline en la
+     * tabla de asignaciones-turnos y diálogo del calendario de planificación).
+     * Solo modifica los campos presentes en la petición; null explícito borra la hora.
+     */
+    public function actualizarHoras(Request $request, $id)
+    {
+        try {
+            Log::channel('planificacion_trabajadores_taller')->info('[actualizarHoras] Actualizando horas', [
+                'asignacion_id' => $id,
+                'entrada'       => $request->entrada,
+                'salida'        => $request->salida,
+                'entrada2'      => $request->entrada2,
+                'salida2'       => $request->salida2,
+                'ejecutado_por' => auth()->id(),
+            ]);
+
+            $request->validate(
+                [
+                    'entrada'  => 'nullable|date_format:H:i',
+                    'salida'   => 'nullable|date_format:H:i',
+                    'entrada2' => 'nullable|date_format:H:i',
+                    'salida2'  => 'nullable|date_format:H:i',
+                ],
+                [
+                    'entrada.date_format'  => 'El campo entrada debe tener el formato HH:mm (por ejemplo 08:30).',
+                    'salida.date_format'   => 'El campo salida debe tener el formato HH:mm (por ejemplo 17:45).',
+                    'entrada2.date_format' => 'El campo entrada2 debe tener el formato HH:mm (por ejemplo 14:00).',
+                    'salida2.date_format'  => 'El campo salida2 debe tener el formato HH:mm (por ejemplo 18:00).',
+                ]
+            );
+
+            $asignacion = AsignacionTurno::findOrFail($id);
+            foreach (['entrada', 'salida', 'entrada2', 'salida2'] as $campo) {
+                if ($request->has($campo)) {
+                    $asignacion->{$campo} = $request->{$campo};
+                }
+            }
+            $asignacion->save();
+
+            return response()->json([
+                'ok'       => true,
+                'entrada'  => $asignacion->entrada,
+                'salida'   => $asignacion->salida,
+                'entrada2' => $asignacion->entrada2,
+                'salida2'  => $asignacion->salida2,
+                'message'  => 'Horas actualizadas correctamente',
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Datos no válidos',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Error al actualizar horas: ' . $e->getMessage(),
             ], 500);
         }
     }

@@ -130,6 +130,7 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::post('/fichar', [AsignacionTurnoController::class, 'fichar'])->name('users.fichar');
     Route::post('/asignaciones-turno/asignar-obra', [AsignacionTurnoController::class, 'asignarObra'])->name('asignaciones-turnos.asignarObra');
     Route::post('/asignaciones-turno/asignar-multiple', [AsignacionTurnoController::class, 'asignarObraMultiple'])->name('asignaciones-turnos.asignarObraMultiple');
+    Route::post('/asignaciones-turno/{id}/actualizar-horas', [AsignacionTurnoController::class, 'actualizarHoras'])->name('asignaciones-turnos.actualizar-horas');
     Route::get('/exportar-asignaciones', [AsignacionTurnoController::class, 'export'])->name('asignaciones-turnos.exportar');
     Route::post('/asignaciones-turnos/destroy', [AsignacionTurnoController::class, 'destroy'])->name('asignaciones-turnos.destroyByPost');
 

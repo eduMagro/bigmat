@@ -974,6 +974,11 @@
                         const val = String(input.value || '').trim();
                         return val || null;
                     };
+                    // Borrado explícito (la "x" del picker): distinto de dejar el campo sin tocar
+                    const fueBorrado = (id) => {
+                        const state = pickers.get(id);
+                        return Boolean(state?.touched && state?.cleared);
+                    };
                     teardown({
                         turno: overlay.querySelector('#sel-turno')?.value || '',
                         estado: overlay.querySelector('#sel-estado')?.value || '',
@@ -981,6 +986,8 @@
                         salida: getValueOrNull('hora-salida'),
                         entrada2: getValueOrNull('hora-entrada2'),
                         salida2: getValueOrNull('hora-salida2'),
+                        entradaBorrada: fueBorrado('hora-entrada'),
+                        salidaBorrada: fueBorrado('hora-salida'),
                         removeSecondShift: secondShiftMarkedForRemoval,
                         comentario: (overlay.querySelector('#txt-comentario')?.value || '').trim(),
                     });
@@ -1133,12 +1140,17 @@
             const horaSalida = formData.salida;
             const horaEntrada2 = formData.entrada2;
             const horaSalida2 = formData.salida2;
+            const entradaBorrada = Boolean(formData.entradaBorrada);
+            const salidaBorrada = Boolean(formData.salidaBorrada);
             const removeSecondShift = Boolean(formData.removeSecondShift);
 
-            // Helper: añade las horas (1ª y 2ª jornada) al body
+            // Helper: añade las horas (1ª y 2ª jornada) al body.
+            // null explícito = borrar la hora en el backend
             const aplicarHoras = (body) => {
                 if (horaEntrada) body.entrada = horaEntrada;
+                else if (entradaBorrada) body.entrada = null;
                 if (horaSalida) body.salida = horaSalida;
+                else if (salidaBorrada) body.salida = null;
                 if (removeSecondShift) {
                     body.entrada2 = null;
                     body.salida2 = null;
@@ -1241,7 +1253,7 @@
                 // === 2) SOLO HORAS (ningún cambio de turno ni estado) ===
                 if (!asignaTurno && !asignaEstado && !quitaEstado) {
                     const body = aplicarHoras({ user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: "soloHoras" });
-                    if (!horaEntrada && !horaSalida && !('entrada2' in body) && !('salida2' in body)) {
+                    if (!('entrada' in body) && !('salida' in body) && !('entrada2' in body) && !('salida2' in body)) {
                         Swal.fire("Aviso", "Selecciona un turno/estado o indica al menos una hora.", "warning");
                         return;
                     }
