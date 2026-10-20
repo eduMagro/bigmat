@@ -801,33 +801,6 @@
             }
         }
 
-        // Oficina/responsable reconoce horas extra o asigna una compensación directamente aprobada
-        async function asignarCompensacionOficina(fecha, calendar) {
-            const datos = await abrirModalCompensacion({
-                fecha,
-                userIdObjetivo: userId,
-                titulo: 'Horas extra / compensación',
-                textoConfirmar: 'Asignar',
-                modoOficina: true,
-                modo: 'ambos',
-            });
-            if (!datos) return false;
-
-            const res = await fetch(routes.compensacionAsignarDirectoUrl || '/compensaciones-horas/asignar-directo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
-                body: JSON.stringify({ user_id: userId, fecha, minutos: datos.minutos, comentario: datos.comentario }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) {
-                Swal.fire('Error', data.error || (data.errors ? Object.values(data.errors).flat().join(' ') : 'No se pudo asignar la compensación.'), 'error');
-                return false;
-            }
-            smartRefetch(calendar, () => actualizarResumenAsistencia(routes.resumenUrl));
-            Swal.fire('Listo', data.message || 'Horas asignadas.', 'success');
-            return true;
-        }
-
         // Swal con botones de opción (devuelve { value } con el data-value pulsado, o {} si se cierra)
         function swalOpciones({ title, html }) {
             return Swal.fire({
@@ -982,9 +955,49 @@
             salida2Existente,
             estadoExistente,
             comentarioExistente,
+            compensacion = null, // { fecha, hoy, existente, cargarSaldo } solo en días sueltos (oficina)
         }) {
             return new Promise((resolve) => {
                 const hasSecondShiftByDefault = Boolean(entrada2Existente || salida2Existente);
+                const BTN_ON = 'border-slate-300/70 bg-white text-slate-700 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:border-slate-500/50 dark:bg-slate-900/70 dark:text-slate-100';
+                const BTN_OFF = 'border-dashed border-blue-400/55 bg-blue-50/85 text-blue-700 hover:bg-blue-100 dark:border-blue-400/45 dark:bg-blue-900/25 dark:text-blue-100';
+                const compExistente = compensacion?.existente || null;
+                const compAbiertoPorDefecto = Boolean(compExistente);
+                const compEstadoTexto = () => {
+                    if (!compExistente) return 'Sin horas extra ni compensación ese día';
+                    const que = Number(compExistente.minutos) > 0 ? 'horas extra' : 'una compensación';
+                    return compExistente.estado === 'pendiente'
+                        ? `Ese día tiene una solicitud pendiente de ${que}: <strong>${escHtml(compExistente.etiqueta)}</strong>. Al guardar quedará aprobada con el tiempo indicado.`
+                        : `Ese día tiene ${que} de <strong>${escHtml(compExistente.etiqueta)}</strong>`;
+                };
+                const compHtml = !compensacion ? '' : `
+                                <section class="flex flex-col gap-3 border-t border-slate-300/50 p-3 dark:border-slate-500/35">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">Horas extra / compensación</p>
+                                            <p id="comp-estado-actual" class="mt-0.5 text-xs text-slate-500 dark:text-slate-300">${compEstadoTexto()}</p>
+                                        </div>
+                                        <button type="button" id="btn-toggle-comp" class="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${compAbiertoPorDefecto ? BTN_ON : BTN_OFF}">
+                                            <span id="btn-toggle-comp-label">${compAbiertoPorDefecto ? 'Quitar' : '+ Añadir'}</span>
+                                        </button>
+                                    </div>
+                                    <div id="panel-comp" class="${compAbiertoPorDefecto ? '' : 'hidden'} flex flex-col gap-2">
+                                        <div id="comp-info" class="text-xs text-slate-500 dark:text-slate-300">Consultando la bolsa de horas…</div>
+                                        <div id="comp-stepper" class="hidden">
+                                            <p class="mb-1 text-xs font-semibold text-slate-700 dark:text-slate-200">Tiempo <span class="font-normal text-gray-400">(+ extra / − compensación)</span></p>
+                                            <div class="flex items-center justify-center gap-2 mb-1">
+                                                <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="-60" title="Una hora menos">−1h</button>
+                                                <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="-paso" title="Un paso menos">−5</button>
+                                                <div id="comp-horas-txt" class="w-32 text-center text-xl font-bold"></div>
+                                                <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="paso" title="Un paso más">+5</button>
+                                                <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="60" title="Una hora más">+1h</button>
+                                            </div>
+                                            <p id="comp-explica" class="text-center text-xs text-gray-500"></p>
+                                            <p id="comp-error" class="hidden text-center text-xs text-red-600"></p>
+                                            <textarea id="comp-comentario" rows="2" maxlength="500" placeholder="Comentario (opcional)" class="mt-2 w-full resize-y rounded-xl border border-slate-400/40 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/35 dark:bg-slate-900/60 dark:text-slate-100">${escHtml(compExistente?.comentario || '')}</textarea>
+                                        </div>
+                                    </div>
+                                </section>`;
                 const parseTime = (time) => {
                     const match = String(time || "").match(/^(\d{1,2}):(\d{1,2})/);
                     if (!match) return { hour: 0, minute: 0 };
@@ -1104,7 +1117,6 @@
                                                 <option value="baja">Baja</option>
                                                 <option value="justificada">Justificada</option>
                                                 <option value="injustificada">Injustificada</option>
-                                                <option value="compensacion">Horas extra / compensación</option>
                                                 <option disabled>─────────</option>
                                                 <option value="__quitar__">Quitar estado</option>
                                             </select>
@@ -1151,6 +1163,7 @@
                                         ${createTimeField("hora-salida2", "Salida", "text-amber-600 dark:text-amber-300", salida2Existente)}
                                     </div>
                                 </section>
+                                ${compHtml}
                             </div>
                         </div>
                         <div class="mt-auto shrink-0 flex justify-end gap-2 border-t border-slate-300/40 bg-white/40 px-3 py-3 dark:border-slate-500/40 dark:bg-slate-900/35">
@@ -1283,7 +1296,34 @@
                         const state = pickers.get(id);
                         return Boolean(state?.touched && state?.cleared);
                     };
+                    let compResultado = null;
+                    let quitarCompensacion = false;
+                    if (compensacion) {
+                        if (compState.habilitado) {
+                            if (compState.cargando) { compError('Espera a que termine de consultar la bolsa de horas.'); return; }
+                            if (!compState.cargado) {
+                                // No se pudo cargar o el día no admite nada: avisar salvo que no haya tocado nada
+                                compError(compState.error || 'No se pudo consultar la bolsa de horas.');
+                                overlay.querySelector('#comp-error')?.classList.remove('hidden');
+                                if (!compExistente) return;
+                            } else {
+                                const m = compState.minutos;
+                                const { paso, puedeExtra, puedeComp, base } = compState;
+                                if (!m || m % paso !== 0) { compError(`Indica el tiempo en pasos de ${paso} minutos.`); return; }
+                                if (m > 0 && !puedeExtra) { compError('Las horas extra solo se reconocen de días ya trabajados.'); return; }
+                                if (m < 0 && (!puedeComp || base + m < 0)) { compError('La bolsa no puede quedar en negativo.'); return; }
+                                const comentarioComp = (overlay.querySelector('#comp-comentario')?.value || '').trim();
+                                const sinCambios = compExistente && compExistente.estado === 'aprobada'
+                                    && Number(compExistente.minutos) === m && (compExistente.comentario || '') === comentarioComp;
+                                if (!sinCambios) compResultado = { minutos: m, comentario: comentarioComp };
+                            }
+                        } else if (compState.quitar && compExistente) {
+                            quitarCompensacion = true;
+                        }
+                    }
                     teardown({
+                        compensacion: compResultado,
+                        quitarCompensacion,
                         turno: overlay.querySelector('#sel-turno')?.value || '',
                         estado: overlay.querySelector('#sel-estado')?.value || '',
                         entrada: getValueOrNull('hora-entrada'),
@@ -1322,6 +1362,160 @@
                         pickers.get(id)?.clear?.();
                     });
                 });
+
+                // --- Horas extra / compensación dentro del mismo modal ---
+                // Se consulta la bolsa al abrir la sección; el valor se guarda junto al turno y las horas.
+                const compState = {
+                    habilitado: compAbiertoPorDefecto, quitar: false, cargado: false, cargando: false, error: null,
+                    minutos: 0, paso: 5, max: 720, base: 0, maxPedir: 0, puedeExtra: false, puedeComp: false,
+                };
+                const panelComp = overlay.querySelector('#panel-comp');
+                const btnToggleComp = overlay.querySelector('#btn-toggle-comp');
+                const btnToggleCompLabel = overlay.querySelector('#btn-toggle-comp-label');
+                const compEstadoActual = overlay.querySelector('#comp-estado-actual');
+                const compError = (msg) => {
+                    const el = overlay.querySelector('#comp-error');
+                    if (!el) return;
+                    el.textContent = msg || '';
+                    el.classList.toggle('hidden', !msg);
+                };
+                const pintarComp = () => {
+                    const txt = overlay.querySelector('#comp-horas-txt');
+                    const res = overlay.querySelector('#comp-resultante');
+                    const explica = overlay.querySelector('#comp-explica');
+                    if (!txt) return;
+                    const m = compState.minutos;
+                    txt.textContent = fmtSaldoHoras(m);
+                    txt.className = 'w-32 text-center text-xl font-bold ' + claseSaldoHoras(m);
+                    if (res) {
+                        const resultante = compState.base + m;
+                        res.textContent = fmtSaldoHoras(resultante);
+                        res.className = 'font-bold text-base ' + claseSaldoHoras(resultante);
+                    }
+                    if (explica) {
+                        const tiempo = fmtSaldoHoras(m, false);
+                        explica.textContent = m < 0
+                            ? `El trabajador se toma ${tiempo} libres este día (restan de la bolsa)`
+                            : `Se le reconocen ${tiempo} extra de este día (suman a la bolsa)`;
+                    }
+                    compError('');
+                };
+                const moverComp = (delta) => {
+                    const { paso, max, maxPedir, puedeExtra, puedeComp } = compState;
+                    let n = compState.minutos + delta;
+                    // El 0 no es una asignación: al cruzarlo se salta al primer paso del otro signo
+                    // si está permitido; si no, se queda en el mínimo del signo actual.
+                    if (n === 0 || Math.sign(n) !== Math.sign(compState.minutos)) {
+                        if (delta > 0) n = puedeExtra ? paso : -paso;
+                        else n = puedeComp ? -paso : paso;
+                    }
+                    const minimo = puedeComp ? -Math.min(max, maxPedir) : paso;
+                    const maximo = puedeExtra ? max : -paso;
+                    compState.minutos = Math.max(minimo, Math.min(maximo, n));
+                    pintarComp();
+                };
+                const cargarComp = async () => {
+                    if (!compensacion || compState.cargado || compState.cargando) return;
+                    compState.cargando = true;
+                    const info = overlay.querySelector('#comp-info');
+                    try {
+                        const saldo = await compensacion.cargarSaldo();
+                        const paso = Number(saldo.paso) || 5;
+                        const max = Number(saldo.minutos_max) || 720;
+                        const hoyStr = saldo.hoy || compensacion.hoy;
+                        const fecha = compensacion.fecha;
+                        const saldoActual = Number(saldo.saldo_min) || 0;
+                        const disponible = Number(saldo.disponible_min) || 0;
+                        // Lo que ya haya ese día (aprobado o pendiente) se sustituye, así que no cuenta como base
+                        let base = disponible;
+                        if (compExistente) {
+                            const m = Number(compExistente.minutos) || 0;
+                            if (compExistente.estado === 'aprobada') base -= m;
+                            else if (m < 0) base -= m; // pendiente negativa ya descontada en disponible
+                        }
+                        const maxPedir = Math.max(0, Math.floor(base / paso) * paso);
+                        const puedeExtra = fecha <= hoyStr;
+                        const puedeComp = fecha >= hoyStr && maxPedir > 0;
+                        Object.assign(compState, { paso, max, base, maxPedir, puedeExtra, puedeComp });
+
+                        if (!puedeExtra && !puedeComp) {
+                            compState.error = fecha > hoyStr
+                                ? `Sin saldo en la bolsa (${fmtSaldoHoras(base)}): no se puede compensar un día futuro, y las horas extra solo se reconocen de días ya trabajados.`
+                                : 'No hay nada que asignar en ese día.';
+                            if (info) info.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-800">${compState.error}</div>`;
+                            return;
+                        }
+
+                        const avisoFijo = !puedeComp
+                            ? (fecha < hoyStr ? 'Día pasado: solo horas extra (+)' : 'Sin saldo en la bolsa: solo horas extra (+)')
+                            : (!puedeExtra ? 'Día futuro: solo compensación (−)' : '');
+                        if (info) info.innerHTML = `
+                            ${puedeExtra ? htmlFichajeDia(saldo.fichaje || null, { modoOficina: true }) : ''}
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="bg-gray-50 rounded-lg p-2">
+                                    <div class="text-gray-500">Bolsa actual</div>
+                                    <div class="font-bold text-base ${claseSaldoHoras(saldoActual)}">${fmtSaldoHoras(saldoActual)}</div>
+                                    ${compExistente && compExistente.estado === 'aprobada' ? `<div class="text-gray-400">incluye ${fmtSaldoHoras(compExistente.minutos)} de este día, que se sustituyen</div>` : ''}
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-2">
+                                    <div class="text-gray-500">Bolsa al guardar</div>
+                                    <div id="comp-resultante" class="font-bold text-base"></div>
+                                    ${avisoFijo ? `<div class="text-amber-700 text-[11px]">${avisoFijo}</div>` : ''}
+                                </div>
+                            </div>`;
+
+                        // Valor inicial: el que ya tenga el día; si no, lo que sugiere el fichaje o 1 h
+                        const sugerida = Math.min(max, Math.max(0, Number(saldo.fichaje?.extra_min) || 0));
+                        let inicial = compExistente ? (Number(compExistente.minutos) || 0) : 0;
+                        if (inicial > 0 && !puedeExtra) inicial = 0;
+                        if (inicial < 0 && (!puedeComp || inicial < -maxPedir)) inicial = puedeComp ? -maxPedir : 0;
+                        if (inicial === 0) {
+                            if (puedeExtra && (!puedeComp || fecha < hoyStr)) inicial = sugerida > 0 ? sugerida : 60;
+                            else inicial = -Math.min(60, maxPedir);
+                        }
+                        compState.minutos = inicial;
+
+                        const stepper = overlay.querySelector('#comp-stepper');
+                        stepper?.classList.remove('hidden');
+                        stepper?.querySelectorAll('.comp-paso').forEach((b) => {
+                            const d = b.dataset.delta;
+                            const delta = d === 'paso' ? paso : (d === '-paso' ? -paso : Number(d));
+                            if (d === 'paso') b.textContent = `+${paso}`;
+                            if (d === '-paso') b.textContent = `−${paso}`;
+                            b.addEventListener('click', () => moverComp(delta));
+                        });
+                        pintarComp();
+                        compState.cargado = true;
+                    } catch (e) {
+                        compState.error = e?.message || 'No se pudo consultar la bolsa de horas.';
+                        if (info) info.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-800">${escHtml(compState.error)}</div>`;
+                    } finally {
+                        compState.cargando = false;
+                    }
+                };
+                const setBotonComp = (activo) => {
+                    if (!btnToggleComp) return;
+                    btnToggleComp.classList.remove(...BTN_ON.split(' '), ...BTN_OFF.split(' '));
+                    btnToggleComp.classList.add(...(activo ? BTN_ON : BTN_OFF).split(' '));
+                    if (btnToggleCompLabel) btnToggleCompLabel.textContent = activo ? 'Quitar' : '+ Añadir';
+                };
+                btnToggleComp?.addEventListener('click', () => {
+                    if (compState.habilitado) {
+                        compState.habilitado = false;
+                        compState.quitar = Boolean(compExistente);
+                        panelComp?.classList.add('hidden');
+                        setBotonComp(false);
+                        if (compEstadoActual && compExistente) compEstadoActual.innerHTML = `Al guardar se quitará <strong>${escHtml(compExistente.etiqueta)}</strong> de este día${compExistente.estado === 'aprobada' ? ' y la bolsa se recalculará' : ''}.`;
+                    } else {
+                        compState.habilitado = true;
+                        compState.quitar = false;
+                        panelComp?.classList.remove('hidden');
+                        setBotonComp(true);
+                        if (compEstadoActual) compEstadoActual.innerHTML = compEstadoTexto();
+                        cargarComp();
+                    }
+                });
+                if (compAbiertoPorDefecto) cargarComp();
 
                 // Mostrar/ocultar el campo de comentario según el estado seleccionado.
                 // Visible al elegir "Injustificada" o si el día ya estaba injustificado
@@ -1392,10 +1586,23 @@
             let salida2Existente = '';
             let estadoExistente = '';
             let comentarioExistente = '';
+            let compensacionExistente = null;
             if (esMismoDia) {
                 const eventos = calendar.getEvents();
                 eventos.forEach(ev => {
                     const props = ev.extendedProps || {};
+                    if (props.es_compensacion) {
+                        if (props.fecha === fechaInicio) {
+                            compensacionExistente = {
+                                id: props.compensacion_id,
+                                minutos: Number(props.minutos) || 0,
+                                estado: props.estado,
+                                etiqueta: props.etiqueta || fmtSaldoHoras(props.minutos),
+                                comentario: props.comentario || '',
+                            };
+                        }
+                        return;
+                    }
                     if (props.fecha === fechaInicio || (ev.startStr && ev.startStr.startsWith(fechaInicio))) {
                         if (props.entrada && !entradaExistente) {
                             entradaExistente = props.entrada.substring(0, 5);
@@ -1427,8 +1634,39 @@
                 salida2Existente,
                 estadoExistente,
                 comentarioExistente,
+                compensacion: esMismoDia ? {
+                    fecha: fechaInicio,
+                    hoy: fechaHoyStr(),
+                    existente: compensacionExistente,
+                    cargarSaldo: () => cargarSaldoCompensacion(userId, fechaInicio),
+                } : null,
             });
             if (!formData) return;
+
+            // Horas extra / compensación indicadas en el mismo modal: se aplican tras guardar turno y horas
+            const compAccion = formData.compensacion || null;
+            const quitarComp = Boolean(formData.quitarCompensacion && compensacionExistente?.id);
+            const hayComp = Boolean(compAccion || quitarComp);
+            const aplicarCompensacion = async () => {
+                if (quitarComp) {
+                    const base = routes.compensacionEliminarUrl || '/compensaciones-horas';
+                    const d = await peticionCompensacion(`${base}/${compensacionExistente.id}`, 'DELETE');
+                    return d.message || 'Horas extra / compensación quitadas.';
+                }
+                if (compAccion) {
+                    const res = await fetch(routes.compensacionAsignarDirectoUrl || '/compensaciones-horas/asignar-directo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
+                        body: JSON.stringify({ user_id: userId, fecha: fechaInicio, minutos: compAccion.minutos, comentario: compAccion.comentario }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.error || (data.errors ? Object.values(data.errors).flat().join(' ') : 'No se pudo asignar la compensación.'));
+                    }
+                    return data.message || 'Horas asignadas.';
+                }
+                return null;
+            };
 
             const turnoSel = formData.turno || '';
             let estadoSel = formData.estado || '';
@@ -1550,25 +1788,6 @@
                     return;
                 }
 
-                // === 1.b) COMPENSACIÓN DE HORAS: no es un estado de la asignación, va a la bolsa ===
-                if (estadoSel === 'compensacion') {
-                    if (!esMismoDia) {
-                        Swal.fire('Aviso', 'La compensación de horas se asigna a un solo día.', 'warning');
-                        return;
-                    }
-                    // Si además se indicaron horas de fichaje, guardarlas primero
-                    const bodyHoras = aplicarHoras({ user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: 'soloHoras' });
-                    if ('entrada' in bodyHoras || 'salida' in bodyHoras || ('entrada2' in bodyHoras && bodyHoras.entrada2) || ('salida2' in bodyHoras && bodyHoras.salida2)) {
-                        const d = await postStore(bodyHoras);
-                        if (!d.success) {
-                            Swal.fire('Error', d.error || 'No se pudieron actualizar las horas.', 'error');
-                            return;
-                        }
-                    }
-                    await asignarCompensacionOficina(fechaInicio, calendar);
-                    return;
-                }
-
                 const asignaTurno = turnoSel !== '';
                 const asignaEstado = estadoSel !== '' && estadoSel !== '__quitar__';
                 const quitaEstado = estadoSel === '__quitar__';
@@ -1576,14 +1795,23 @@
                 // === 2) SOLO HORAS (ningún cambio de turno ni estado) ===
                 if (!asignaTurno && !asignaEstado && !quitaEstado) {
                     const body = aplicarHoras({ user_id: userId, fecha_inicio: fechaInicio, fecha_fin: fechaFin, tipo: "soloHoras" });
-                    if (!('entrada' in body) && !('salida' in body) && !('entrada2' in body) && !('salida2' in body)) {
-                        Swal.fire("Aviso", "Selecciona un turno/estado o indica al menos una hora.", "warning");
+                    // Hay algo que guardar en horas si se indicó alguna o se borró una explícitamente
+                    // (en día suelto el body lleva siempre entrada2/salida2, aunque sean null)
+                    const tieneHoras = Boolean(body.entrada || body.salida || body.entrada2 || body.salida2 || entradaBorrada || salidaBorrada || removeSecondShift);
+                    if (!tieneHoras && !hayComp) {
+                        Swal.fire("Aviso", "Selecciona un turno/estado, indica al menos una hora o añade horas extra / compensación.", "warning");
                         return;
                     }
-                    const data = await postStore(body);
-                    if (data.success) finalizar("Horas actualizadas correctamente.");
-                    else if (typeof mostrarError === 'function') mostrarError(data.error || "No se pudieron actualizar las horas.");
-                    else Swal.fire("Error", data.error || "No se pudieron actualizar las horas.", "error");
+                    if (tieneHoras) {
+                        const data = await postStore(body);
+                        if (!data.success) {
+                            if (typeof mostrarError === 'function') mostrarError(data.error || "No se pudieron actualizar las horas.");
+                            else Swal.fire("Error", data.error || "No se pudieron actualizar las horas.", "error");
+                            return;
+                        }
+                    }
+                    const msgComp = hayComp ? await aplicarCompensacion() : null;
+                    finalizar(tieneHoras ? (msgComp ? `Horas actualizadas. ${msgComp}` : "Horas actualizadas correctamente.") : msgComp);
                     return;
                 }
 
@@ -1627,10 +1855,12 @@
                     }
                 }
 
-                finalizar("Cambios guardados correctamente.");
+                // === 6) HORAS EXTRA / COMPENSACIÓN del mismo modal (tras guardar turno, estado y horas) ===
+                const msgComp = hayComp ? await aplicarCompensacion() : null;
+                finalizar(msgComp ? `Cambios guardados. ${msgComp}` : "Cambios guardados correctamente.");
             } catch (err) {
                 console.error("Error:", err);
-                Swal.fire("Error", "Ocurrió un problema al guardar los cambios.", "error");
+                Swal.fire("Error", err?.message || "Ocurrió un problema al guardar los cambios.", "error");
             }
         }
 
