@@ -964,37 +964,38 @@
                 const compExistente = compensacion?.existente || null;
                 const compAbiertoPorDefecto = Boolean(compExistente);
                 const compEstadoTexto = () => {
-                    if (!compExistente) return 'Sin horas extra ni compensación ese día';
-                    const que = Number(compExistente.minutos) > 0 ? 'horas extra' : 'una compensación';
+                    if (!compExistente) return '';
                     return compExistente.estado === 'pendiente'
-                        ? `Ese día tiene una solicitud pendiente de ${que}: <strong>${escHtml(compExistente.etiqueta)}</strong>. Al guardar quedará aprobada con el tiempo indicado.`
-                        : `Ese día tiene ${que} de <strong>${escHtml(compExistente.etiqueta)}</strong>`;
+                        ? `Solicitud pendiente de <strong>${escHtml(compExistente.etiqueta)}</strong> · al guardar queda aprobada`
+                        : `Ya tiene <strong>${escHtml(compExistente.etiqueta)}</strong> · se sustituyen al guardar`;
                 };
                 const compHtml = !compensacion ? '' : `
                                 <section class="flex flex-col gap-3 border-t border-slate-300/50 p-3 dark:border-slate-500/35">
-                                    <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-center justify-between gap-2">
                                         <div class="min-w-0">
                                             <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">Horas extra / compensación</p>
-                                            <p id="comp-estado-actual" class="mt-0.5 text-xs text-slate-500 dark:text-slate-300">${compEstadoTexto()}</p>
+                                            <p id="comp-estado-actual" class="${compExistente ? '' : 'hidden'} mt-0.5 text-xs text-slate-600 dark:text-slate-300">${compEstadoTexto()}</p>
                                         </div>
                                         <button type="button" id="btn-toggle-comp" class="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${compAbiertoPorDefecto ? BTN_ON : BTN_OFF}">
                                             <span id="btn-toggle-comp-label">${compAbiertoPorDefecto ? 'Quitar' : '+ Añadir'}</span>
                                         </button>
                                     </div>
                                     <div id="panel-comp" class="${compAbiertoPorDefecto ? '' : 'hidden'} flex flex-col gap-2">
-                                        <div id="comp-info" class="text-xs text-slate-500 dark:text-slate-300">Consultando la bolsa de horas…</div>
+                                        <p id="comp-info" class="text-xs text-slate-600 dark:text-slate-300">Consultando la bolsa de horas…</p>
                                         <div id="comp-stepper" class="hidden">
-                                            <p class="mb-1 text-xs font-semibold text-slate-700 dark:text-slate-200">Tiempo <span class="font-normal text-gray-400">(+ extra / − compensación)</span></p>
-                                            <div class="flex items-center justify-center gap-2 mb-1">
+                                            <div class="flex items-center justify-center gap-2">
                                                 <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="-60" title="Una hora menos">−1h</button>
                                                 <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="-paso" title="Un paso menos">−5</button>
-                                                <div id="comp-horas-txt" class="w-32 text-center text-xl font-bold"></div>
+                                                <div class="w-36 text-center">
+                                                    <div id="comp-horas-txt" class="text-2xl font-bold leading-tight"></div>
+                                                    <span id="comp-tipo" class="inline-block rounded-full px-2 text-[11px] font-semibold"></span>
+                                                </div>
                                                 <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="paso" title="Un paso más">+5</button>
                                                 <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none text-slate-900" data-delta="60" title="Una hora más">+1h</button>
                                             </div>
-                                            <p id="comp-explica" class="text-center text-xs text-gray-500"></p>
+                                            <p id="comp-bolsa" class="mt-1 text-center text-xs text-slate-600 dark:text-slate-300"></p>
                                             <p id="comp-error" class="hidden text-center text-xs text-red-600"></p>
-                                            <textarea id="comp-comentario" rows="2" maxlength="500" placeholder="Comentario (opcional)" class="mt-2 w-full resize-y rounded-xl border border-slate-400/40 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/35 dark:bg-slate-900/60 dark:text-slate-100">${escHtml(compExistente?.comentario || '')}</textarea>
+                                            <textarea id="comp-comentario" rows="1" maxlength="500" placeholder="Comentario (opcional)" class="mt-2 w-full resize-y rounded-xl border border-slate-400/40 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-500/35 dark:bg-slate-900/60 dark:text-slate-100">${escHtml(compExistente?.comentario || '')}</textarea>
                                         </div>
                                     </div>
                                 </section>`;
@@ -1381,23 +1382,32 @@
                 };
                 const pintarComp = () => {
                     const txt = overlay.querySelector('#comp-horas-txt');
-                    const res = overlay.querySelector('#comp-resultante');
-                    const explica = overlay.querySelector('#comp-explica');
                     if (!txt) return;
                     const m = compState.minutos;
+                    const { paso, max, maxPedir, puedeExtra, puedeComp, base } = compState;
                     txt.textContent = fmtSaldoHoras(m);
-                    txt.className = 'w-32 text-center text-xl font-bold ' + claseSaldoHoras(m);
-                    if (res) {
-                        const resultante = compState.base + m;
-                        res.textContent = fmtSaldoHoras(resultante);
-                        res.className = 'font-bold text-base ' + claseSaldoHoras(resultante);
+                    txt.className = 'text-2xl font-bold leading-tight ' + claseSaldoHoras(m);
+                    const tipo = overlay.querySelector('#comp-tipo');
+                    if (tipo) {
+                        tipo.textContent = m < 0 ? 'Compensación' : 'Horas extra';
+                        tipo.className = 'inline-block rounded-full px-2 text-[11px] font-semibold ' + (m < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700');
                     }
-                    if (explica) {
-                        const tiempo = fmtSaldoHoras(m, false);
-                        explica.textContent = m < 0
-                            ? `El trabajador se toma ${tiempo} libres este día (restan de la bolsa)`
-                            : `Se le reconocen ${tiempo} extra de este día (suman a la bolsa)`;
+                    const bolsa = overlay.querySelector('#comp-bolsa');
+                    if (bolsa) {
+                        const resultante = base + m;
+                        bolsa.innerHTML = `Bolsa al guardar: <strong class="${claseSaldoHoras(resultante)}">${fmtSaldoHoras(resultante)}</strong>`;
                     }
+                    // Topes: en lugar de explicarlos, se apagan los botones que no se pueden usar
+                    const minimo = puedeComp ? -Math.min(max, maxPedir) : paso;
+                    const maximo = puedeExtra ? max : -paso;
+                    overlay.querySelectorAll('.comp-paso').forEach((b) => {
+                        const d = b.dataset.delta;
+                        const sube = d === 'paso' || Number(d) > 0;
+                        const apagado = sube ? m >= maximo : m <= minimo;
+                        b.disabled = apagado;
+                        b.classList.toggle('opacity-40', apagado);
+                        b.classList.toggle('cursor-not-allowed', apagado);
+                    });
                     compError('');
                 };
                 const moverComp = (delta) => {
@@ -1440,29 +1450,29 @@
 
                         if (!puedeExtra && !puedeComp) {
                             compState.error = fecha > hoyStr
-                                ? `Sin saldo en la bolsa (${fmtSaldoHoras(base)}): no se puede compensar un día futuro, y las horas extra solo se reconocen de días ya trabajados.`
-                                : 'No hay nada que asignar en ese día.';
-                            if (info) info.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-800">${compState.error}</div>`;
+                                ? 'Sin saldo en la bolsa: no se puede compensar un día futuro.'
+                                : 'Nada que asignar ese día.';
+                            if (info) info.innerHTML = `<span class="text-amber-700">${compState.error}</span>`;
                             return;
                         }
 
-                        const avisoFijo = !puedeComp
-                            ? (fecha < hoyStr ? 'Día pasado: solo horas extra (+)' : 'Sin saldo en la bolsa: solo horas extra (+)')
-                            : (!puedeExtra ? 'Día futuro: solo compensación (−)' : '');
-                        if (info) info.innerHTML = `
-                            ${puedeExtra ? htmlFichajeDia(saldo.fichaje || null, { modoOficina: true }) : ''}
-                            <div class="grid grid-cols-2 gap-2 text-xs">
-                                <div class="bg-gray-50 rounded-lg p-2">
-                                    <div class="text-gray-500">Bolsa actual</div>
-                                    <div class="font-bold text-base ${claseSaldoHoras(saldoActual)}">${fmtSaldoHoras(saldoActual)}</div>
-                                    ${compExistente && compExistente.estado === 'aprobada' ? `<div class="text-gray-400">incluye ${fmtSaldoHoras(compExistente.minutos)} de este día, que se sustituyen</div>` : ''}
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-2">
-                                    <div class="text-gray-500">Bolsa al guardar</div>
-                                    <div id="comp-resultante" class="font-bold text-base"></div>
-                                    ${avisoFijo ? `<div class="text-amber-700 text-[11px]">${avisoFijo}</div>` : ''}
-                                </div>
-                            </div>`;
+                        // Una sola línea de contexto: turno, fichaje y lo que sugiere el fichaje (días ya trabajados)
+                        if (info) {
+                            const f = saldo.fichaje || null;
+                            if (!puedeExtra) {
+                                info.classList.add('hidden');
+                            } else if (!f) {
+                                info.textContent = 'Sin turno ese día';
+                            } else {
+                                const partes = [];
+                                if (f.horario) partes.push(`Turno ${escHtml(f.horario)}`);
+                                partes.push(f.fichaje ? `Fichaje ${escHtml(f.fichaje)}` : 'Sin fichaje');
+                                if (f.abierto) partes.push('fichaje sin cerrar');
+                                else if (f.puntual === false) partes.push('entró tarde: sin extras');
+                                else if (Number(f.extra_min) > 0) partes.push(`según fichaje <strong>${escHtml(f.extra_txt || fmtSaldoHoras(f.extra_min))}</strong> extra`);
+                                info.innerHTML = partes.join(' · ');
+                            }
+                        }
 
                         // Valor inicial: el que ya tenga el día; si no, lo que sugiere el fichaje o 1 h
                         const sugerida = Math.min(max, Math.max(0, Number(saldo.fichaje?.extra_min) || 0));
@@ -1488,7 +1498,7 @@
                         compState.cargado = true;
                     } catch (e) {
                         compState.error = e?.message || 'No se pudo consultar la bolsa de horas.';
-                        if (info) info.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-800">${escHtml(compState.error)}</div>`;
+                        if (info) info.innerHTML = `<span class="text-amber-700">${escHtml(compState.error)}</span>`;
                     } finally {
                         compState.cargando = false;
                     }
@@ -1505,13 +1515,19 @@
                         compState.quitar = Boolean(compExistente);
                         panelComp?.classList.add('hidden');
                         setBotonComp(false);
-                        if (compEstadoActual && compExistente) compEstadoActual.innerHTML = `Al guardar se quitará <strong>${escHtml(compExistente.etiqueta)}</strong> de este día${compExistente.estado === 'aprobada' ? ' y la bolsa se recalculará' : ''}.`;
+                        if (compEstadoActual && compExistente) {
+                            compEstadoActual.innerHTML = `<strong>${escHtml(compExistente.etiqueta)}</strong> · se quitará al guardar`;
+                            compEstadoActual.classList.remove('hidden');
+                        }
                     } else {
                         compState.habilitado = true;
                         compState.quitar = false;
                         panelComp?.classList.remove('hidden');
                         setBotonComp(true);
-                        if (compEstadoActual) compEstadoActual.innerHTML = compEstadoTexto();
+                        if (compEstadoActual) {
+                            compEstadoActual.innerHTML = compEstadoTexto();
+                            compEstadoActual.classList.toggle('hidden', !compExistente);
+                        }
                         cargarComp();
                     }
                 });
