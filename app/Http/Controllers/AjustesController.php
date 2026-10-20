@@ -92,7 +92,7 @@ class AjustesController extends Controller
         $validated = $request->validate([
             'bolsa_horas_desde' => ['required', 'date'],
             'bolsa_horas_tolerancia_min' => ['required', 'integer', 'min:0', 'max:180'],
-            'bolsa_horas_min_extra' => ['required', 'integer', 'min:1', 'max:60'],
+            'bolsa_horas_min_extra' => ['required', 'integer', 'min:0', 'max:240'],
         ]);
 
         Configuracion::set('bolsa_horas_desde', $validated['bolsa_horas_desde']);

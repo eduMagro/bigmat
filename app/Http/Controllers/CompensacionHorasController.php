@@ -11,20 +11,22 @@ use App\Services\ComputoHorasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 /**
- * Compensación de horas contra la bolsa del trabajador.
+ * Solicitudes de horas contra la bolsa del trabajador, en minutos (pasos de 5).
  *
- * El trabajador solicita para un día un número de horas con signo (negativo = se las toma
- * libres, positivo = se le reconocen). Oficina o el responsable aprueban o deniegan.
- * Una compensación aprobada cuenta en la bolsa por sus horas y sustituye al fichaje de ese día.
+ * El trabajador solicita para un día un número de minutos con signo:
+ *  - positivo = horas extra de un día ya trabajado (hoy o pasado), que al aprobarse suman a la bolsa;
+ *  - negativo = compensación: tiempo libre de un día (hoy o futuro), que al aprobarse resta.
+ * El responsable de departamento u oficina comprueban el fichaje y aprueban o deniegan.
+ * Solo lo aprobado mueve la bolsa, que no puede quedar en negativo.
  */
 class CompensacionHorasController extends Controller
 {
     /**
      * Saldo de la bolsa del usuario (propio, o de otro si quien consulta puede gestionarlo).
+     * Con ?fecha= devuelve además el fichaje de ese día para orientar una solicitud de extras.
      */
     public function saldo(Request $request)
     {
@@ -34,27 +36,43 @@ class CompensacionHorasController extends Controller
             return response()->json(['error' => 'No tienes permiso para consultar esta bolsa.'], 403);
         }
 
-        return response()->json(array_merge(
-            ComputoHorasService::saldoDisponible($userId),
-            ['horas_max' => CompensacionHoras::HORAS_MAX]
-        ));
+        $extra = [
+            'minutos_max' => CompensacionHoras::MINUTOS_MAX,
+            'paso' => CompensacionHoras::PASO_MINUTOS,
+            'hoy' => Carbon::today()->toDateString(),
+        ];
+
+        if ($request->filled('fecha')) {
+            try {
+                $extra['fichaje'] = ComputoHorasService::fichajeDelDia($userId, $request->input('fecha'));
+            } catch (Throwable $e) {
+                $extra['fichaje'] = null;
+            }
+        }
+
+        return response()->json(array_merge(ComputoHorasService::saldoDisponible($userId), $extra));
     }
 
     /**
-     * El trabajador solicita una compensación de horas para un día.
+     * El trabajador solicita tiempo para un día: extras (+) de un día ya trabajado o una
+     * compensación (-) para hoy o un día futuro.
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validated = $request->validate($this->reglasMinutos() + [
             'fecha' => ['required', 'date'],
-            'horas' => ['required', 'integer', 'not_in:0', 'min:-' . CompensacionHoras::HORAS_MAX, 'max:' . CompensacionHoras::HORAS_MAX],
             'comentario' => ['nullable', 'string', 'max:500'],
         ]);
 
         $user = auth()->user();
         $fecha = Carbon::parse($validated['fecha'])->startOfDay();
+        $minutos = (int) $validated['minutos'];
 
-        if ($fecha->lt(Carbon::today())) {
+        if ($minutos > 0 && $fecha->gt(Carbon::today())) {
+            return response()->json(['error' => 'Las horas extra se solicitan una vez hechas: elige el día de hoy o un día ya trabajado.'], 422);
+        }
+
+        if ($minutos < 0 && $fecha->lt(Carbon::today())) {
             return response()->json(['error' => 'No puedes solicitar compensación para un día ya pasado. Habla con tu responsable.'], 422);
         }
 
@@ -68,20 +86,18 @@ class CompensacionHorasController extends Controller
             ->first();
 
         if ($yaExiste) {
-            $texto = $yaExiste->estado === CompensacionHoras::ESTADO_PENDIENTE ? 'una solicitud pendiente' : 'una compensación aprobada';
-            return response()->json(['error' => "Ya tienes {$texto} para ese día ({$yaExiste->etiquetaHoras()})."], 422);
+            $texto = $yaExiste->estado === CompensacionHoras::ESTADO_PENDIENTE ? 'una solicitud pendiente' : 'una solicitud aprobada';
+            return response()->json(['error' => "Ya tienes {$texto} para ese día ({$yaExiste->etiquetaCorta()})."], 422);
         }
 
-        // La bolsa no puede quedar en negativo: se cuentan también las solicitudes pendientes
-        $horas = (int) $validated['horas'];
-        if ($horas < 0) {
-            $disponible = ComputoHorasService::saldoDisponible($user->id)['disponible'];
-            if ($disponible + $horas < 0) {
-                $maximo = max(0, (int) floor($disponible));
+        // La bolsa no puede quedar en negativo: se cuentan también las compensaciones pendientes
+        if ($minutos < 0) {
+            $disponible = ComputoHorasService::saldoDisponible($user->id)['disponible_min'];
+            if ($disponible + $minutos < 0) {
                 return response()->json([
-                    'error' => $maximo > 0
-                        ? "Tu bolsa no puede quedar en negativo. Como máximo puedes pedir {$maximo} h (tienes " . CompensacionHoras::formatearHoras((int) floor($disponible)) . ' disponibles, contando tus solicitudes pendientes).'
-                        : 'Tu bolsa no puede quedar en negativo. No tienes horas disponibles para compensar.',
+                    'error' => $disponible > 0
+                        ? 'Tu bolsa no puede quedar en negativo. Como máximo puedes pedir ' . CompensacionHoras::formatearMinutos($disponible, false) . ' (contando tus solicitudes pendientes).'
+                        : 'Tu bolsa no puede quedar en negativo. No tienes tiempo disponible para compensar.',
                 ], 422);
             }
         }
@@ -90,23 +106,27 @@ class CompensacionHorasController extends Controller
             $compensacion = CompensacionHoras::create([
                 'user_id' => $user->id,
                 'fecha' => $fecha->toDateString(),
-                'horas' => (int) $validated['horas'],
+                'minutos' => $minutos,
                 'estado' => CompensacionHoras::ESTADO_PENDIENTE,
                 'comentario' => $validated['comentario'] ?? null,
             ]);
 
             $this->avisarResponsables(
                 $user,
-                "{$user->name} ha solicitado una compensación de horas de {$compensacion->etiquetaHoras()} para el {$fecha->format('d/m/Y')}."
+                $compensacion->esExtra()
+                    ? "{$user->name} solicita que se le reconozcan {$compensacion->etiqueta()} extra del {$fecha->format('d/m/Y')}. Revisa su fichaje y acepta o deniega la solicitud."
+                    : "{$user->name} ha solicitado una compensación de horas de {$compensacion->etiqueta()} para el {$fecha->format('d/m/Y')}."
             );
 
             return response()->json([
-                'success' => 'Solicitud de compensación registrada correctamente.',
+                'success' => $compensacion->esExtra()
+                    ? 'Solicitud de horas extra enviada a tu responsable. El tiempo pasará a tu bolsa cuando la apruebe.'
+                    : 'Solicitud de compensación registrada correctamente.',
                 'compensacion' => $this->serializar($compensacion),
                 'saldo' => ComputoHorasService::saldoDisponible($user->id),
             ], 201);
         } catch (Throwable $e) {
-            Log::error('Error al registrar la solicitud de compensación de horas.', [
+            Log::error('Error al registrar la solicitud de horas (extra/compensación).', [
                 'error' => $e->getMessage(),
                 'user_id' => $user->id,
                 'payload' => $validated,
@@ -117,40 +137,44 @@ class CompensacionHorasController extends Controller
     }
 
     /**
-     * Oficina/responsable asigna directamente una compensación aprobada a un trabajador.
+     * Oficina/responsable reconoce horas extra (+, de un día ya trabajado) o asigna una
+     * compensación (-) directamente aprobada a un trabajador.
      * Si ese día ya había una solicitud pendiente o aprobada, se sustituye.
      */
     public function asignarDirecto(Request $request)
     {
         if (!$this->puedeGestionar()) {
-            return response()->json(['error' => 'No tienes permiso para asignar compensaciones.'], 403);
+            return response()->json(['error' => 'No tienes permiso para asignar horas.'], 403);
         }
 
-        $validated = $request->validate([
+        $validated = $request->validate($this->reglasMinutos() + [
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'fecha' => ['required', 'date'],
-            'horas' => ['required', 'integer', 'not_in:0', 'min:-' . CompensacionHoras::HORAS_MAX, 'max:' . CompensacionHoras::HORAS_MAX],
             'comentario' => ['nullable', 'string', 'max:500'],
         ]);
 
         $fecha = Carbon::parse($validated['fecha'])->startOfDay();
+        $minutos = (int) $validated['minutos'];
 
         if ($fecha->lt(ComputoHorasService::fechaInicioBolsa())) {
             return response()->json(['error' => 'La bolsa de horas empieza el ' . ComputoHorasService::fechaInicioBolsa()->format('d/m/Y') . '.'], 422);
         }
 
-        $horas = (int) $validated['horas'];
-        if ($horas < 0) {
+        if ($minutos > 0 && $fecha->gt(Carbon::today())) {
+            return response()->json(['error' => 'Las horas extra se reconocen una vez hechas: elige el día de hoy o un día ya trabajado.'], 422);
+        }
+
+        if ($minutos < 0) {
             // Saldo aprobado sin contar lo que ya hubiera aprobado ese mismo día (se va a sustituir)
-            $saldo = ComputoHorasService::bolsaHorasUsuario((int) $validated['user_id'])['saldo'];
+            $saldo = ComputoHorasService::bolsaHorasUsuario((int) $validated['user_id'])['saldo_min'];
             $aprobadaEseDia = CompensacionHoras::aprobadas()
                 ->where('user_id', $validated['user_id'])
                 ->whereDate('fecha', $fecha->toDateString())
-                ->value('horas');
+                ->value('minutos');
             $saldoSinEseDia = $saldo - (int) ($aprobadaEseDia ?? 0);
-            if ($saldoSinEseDia + $horas < 0) {
+            if ($saldoSinEseDia + $minutos < 0) {
                 return response()->json([
-                    'error' => 'La bolsa del trabajador no puede quedar en negativo. Saldo disponible: ' . CompensacionHoras::formatearHoras((int) floor($saldoSinEseDia)) . '.',
+                    'error' => 'La bolsa del trabajador no puede quedar en negativo. Saldo disponible: ' . CompensacionHoras::formatearMinutos($saldoSinEseDia) . '.',
                 ], 422);
             }
         }
@@ -163,7 +187,7 @@ class CompensacionHorasController extends Controller
         $compensacion = CompensacionHoras::create([
             'user_id' => $validated['user_id'],
             'fecha' => $fecha->toDateString(),
-            'horas' => (int) $validated['horas'],
+            'minutos' => $minutos,
             'estado' => CompensacionHoras::ESTADO_APROBADA,
             'comentario' => $validated['comentario'] ?? null,
             'resuelto_por' => auth()->id(),
@@ -172,12 +196,16 @@ class CompensacionHorasController extends Controller
 
         $this->avisarTrabajador(
             $compensacion,
-            "Se te ha asignado una compensación de horas de {$compensacion->etiquetaHoras()} el {$fecha->format('d/m/Y')}."
+            $compensacion->esExtra()
+                ? "Se te han reconocido {$compensacion->etiqueta()} extra del {$fecha->format('d/m/Y')}. Ya cuentan en tu bolsa de horas."
+                : "Se te ha asignado una compensación de horas de {$compensacion->etiqueta()} el {$fecha->format('d/m/Y')}."
         );
 
         return response()->json([
             'success' => true,
-            'message' => "Compensación de {$compensacion->etiquetaHoras()} asignada.",
+            'message' => $compensacion->esExtra()
+                ? "Horas extra de {$compensacion->etiqueta()} reconocidas."
+                : "Compensación de {$compensacion->etiqueta()} asignada.",
             'compensacion' => $this->serializar($compensacion),
             'saldo' => ComputoHorasService::saldoDisponible((int) $validated['user_id']),
         ]);
@@ -186,7 +214,7 @@ class CompensacionHorasController extends Controller
     public function aprobar($id)
     {
         if (!$this->puedeGestionar()) {
-            return response()->json(['success' => false, 'error' => 'No tienes permiso para aprobar compensaciones.'], 403);
+            return response()->json(['success' => false, 'error' => 'No tienes permiso para aprobar solicitudes de horas.'], 403);
         }
 
         $compensacion = CompensacionHoras::with('user')->findOrFail($id);
@@ -195,12 +223,12 @@ class CompensacionHorasController extends Controller
             return response()->json(['success' => false, 'error' => 'La solicitud ya está ' . $compensacion->estado . '.'], 400);
         }
 
-        if ($compensacion->horas < 0) {
-            $saldo = ComputoHorasService::bolsaHorasUsuario($compensacion->user_id)['saldo'];
-            if ($saldo + $compensacion->horas < 0) {
+        if ($compensacion->minutos < 0) {
+            $saldo = ComputoHorasService::bolsaHorasUsuario($compensacion->user_id)['saldo_min'];
+            if ($saldo + $compensacion->minutos < 0) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'No se puede aprobar: la bolsa quedaría en negativo. Saldo actual ' . CompensacionHoras::formatearHoras((int) floor($saldo)) . ', solicita ' . $compensacion->etiquetaHoras() . '.',
+                    'error' => 'No se puede aprobar: la bolsa quedaría en negativo. Saldo actual ' . CompensacionHoras::formatearMinutos($saldo) . ', solicita ' . $compensacion->etiqueta() . '.',
                 ], 400);
             }
         }
@@ -213,12 +241,16 @@ class CompensacionHorasController extends Controller
 
         $this->avisarTrabajador(
             $compensacion,
-            "Tu compensación de horas de {$compensacion->etiquetaHoras()} del {$compensacion->fecha->format('d/m/Y')} ha sido aprobada."
+            $compensacion->esExtra()
+                ? "Tus {$compensacion->etiqueta()} extra del {$compensacion->fecha->format('d/m/Y')} han sido aprobadas y ya cuentan en tu bolsa de horas."
+                : "Tu compensación de horas de {$compensacion->etiqueta()} del {$compensacion->fecha->format('d/m/Y')} ha sido aprobada."
         );
 
         return response()->json([
             'success' => true,
-            'message' => "Compensación de {$compensacion->etiquetaHoras()} aprobada.",
+            'message' => $compensacion->esExtra()
+                ? "Horas extra de {$compensacion->etiqueta()} aprobadas."
+                : "Compensación de {$compensacion->etiqueta()} aprobada.",
             'compensacion' => $this->serializar($compensacion),
         ]);
     }
@@ -226,7 +258,7 @@ class CompensacionHorasController extends Controller
     public function denegar($id)
     {
         if (!$this->puedeGestionar()) {
-            return response()->json(['success' => false, 'error' => 'No tienes permiso para denegar compensaciones.'], 403);
+            return response()->json(['success' => false, 'error' => 'No tienes permiso para denegar solicitudes de horas.'], 403);
         }
 
         $compensacion = CompensacionHoras::with('user')->findOrFail($id);
@@ -243,7 +275,9 @@ class CompensacionHorasController extends Controller
 
         $this->avisarTrabajador(
             $compensacion,
-            "Tu solicitud de compensación de horas de {$compensacion->etiquetaHoras()} del {$compensacion->fecha->format('d/m/Y')} ha sido denegada."
+            $compensacion->esExtra()
+                ? "Tu solicitud de {$compensacion->etiqueta()} extra del {$compensacion->fecha->format('d/m/Y')} ha sido denegada."
+                : "Tu solicitud de compensación de horas de {$compensacion->etiqueta()} del {$compensacion->fecha->format('d/m/Y')} ha sido denegada."
         );
 
         return response()->json([
@@ -254,7 +288,7 @@ class CompensacionHorasController extends Controller
     }
 
     /**
-     * Eliminar una compensación: el trabajador solo las suyas pendientes;
+     * Eliminar una solicitud: el trabajador solo las suyas pendientes;
      * oficina/responsable cualquiera (pendiente o aprobada).
      */
     public function eliminar($id)
@@ -272,7 +306,7 @@ class CompensacionHorasController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Compensación eliminada.',
+            'message' => 'Solicitud eliminada.',
             'saldo' => ComputoHorasService::saldoDisponible($compensacion->user_id),
         ]);
     }
@@ -293,6 +327,27 @@ class CompensacionHorasController extends Controller
 
     // ------------------------------------------------------------------
 
+    /**
+     * Reglas de validación del campo 'minutos': entero con signo, distinto de 0, en pasos de
+     * PASO_MINUTOS y hasta MINUTOS_MAX en valor absoluto.
+     */
+    private function reglasMinutos(): array
+    {
+        $paso = CompensacionHoras::PASO_MINUTOS;
+
+        return [
+            'minutos' => [
+                'required', 'integer', 'not_in:0',
+                'min:-' . CompensacionHoras::MINUTOS_MAX, 'max:' . CompensacionHoras::MINUTOS_MAX,
+                function ($attr, $value, $fail) use ($paso) {
+                    if ((int) $value % $paso !== 0) {
+                        $fail("El tiempo se solicita en pasos de {$paso} minutos.");
+                    }
+                },
+            ],
+        ];
+    }
+
     private function puedeGestionar(): bool
     {
         $u = auth()->user();
@@ -306,8 +361,10 @@ class CompensacionHorasController extends Controller
             'id' => $c->id,
             'user_id' => $c->user_id,
             'fecha' => $c->fecha->toDateString(),
-            'horas' => $c->horas,
-            'etiqueta' => $c->etiquetaHoras(),
+            'minutos' => $c->minutos,
+            'tipo' => $c->tipo(),
+            'etiqueta' => $c->etiqueta(),
+            'etiqueta_corta' => $c->etiquetaCorta(),
             'estado' => $c->estado,
             'comentario' => $c->comentario,
             'created_at' => $c->created_at?->format('Y-m-d H:i'),
@@ -351,7 +408,7 @@ class CompensacionHorasController extends Controller
                 ]);
             }
         } catch (Throwable $e) {
-            Log::warning('Fallo creando la alerta de compensación de horas.', [
+            Log::warning('Fallo creando la alerta de solicitud de horas.', [
                 'error' => $e->getMessage(),
                 'user_id' => $user->id,
             ]);
@@ -379,7 +436,7 @@ class CompensacionHorasController extends Controller
                 'leida_en' => null,
             ]);
         } catch (Throwable $e) {
-            Log::warning('Fallo creando la alerta al trabajador por compensación de horas.', [
+            Log::warning('Fallo creando la alerta al trabajador por solicitud de horas.', [
                 'error' => $e->getMessage(),
                 'compensacion_id' => $compensacion->id,
             ]);

@@ -58,8 +58,8 @@
                     <th class="px-4 py-2 text-left font-semibold">Trabajador</th>
                     <th class="px-4 py-2 text-right font-semibold">Horas</th>
                     <th class="px-4 py-2 text-right font-semibold" title="Horas teóricas según los turnos asignados en el mes">Previstas</th>
-                    <th class="px-4 py-2 text-right font-semibold" title="Horas fichadas menos previstas en el mes (solo días fichados)">Saldo mes</th>
-                    <th class="px-4 py-2 text-right font-semibold" title="Bolsa de horas acumulada desde el {{ $bolsaDesde }} hasta el fin de este mes">Bolsa</th>
+                    <th class="px-4 py-2 text-right font-semibold" title="Orientativo: horas fichadas menos horas de turno en el mes, en horas enteras según las reglas de la bolsa. No mueve la bolsa.">Saldo mes</th>
+                    <th class="px-4 py-2 text-right font-semibold" title="Bolsa de horas (extras aprobadas menos compensaciones) acumulada desde el {{ $bolsaDesde }} hasta el fin de este mes">Bolsa</th>
                     <th class="px-4 py-2 text-center font-semibold">Días trab.</th>
                     <th class="px-4 py-2 text-center font-semibold">Sin fichaje</th>
                     <th class="px-4 py-2 text-center font-semibold">Vacac.</th>
@@ -89,7 +89,7 @@
                         <td class="px-4 py-2 text-right font-semibold text-gray-900 dark:text-gray-100">{{ $fmtH($f['horas']) }} h</td>
                         <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ $fmtH($f['previstas']) }} h</td>
                         <td class="px-4 py-2 text-right {{ $claseSaldo($f['saldo']) }}">{{ (float) $f['saldo'] != 0 ? $fmtSaldo($f['saldo']) . ' h' : '—' }}</td>
-                        <td class="px-4 py-2 text-right {{ $claseSaldo($f['bolsa']) }}">{{ (float) $f['bolsa'] != 0 ? $fmtSaldo($f['bolsa']) . ' h' : '—' }}</td>
+                        <td class="px-4 py-2 text-right {{ $claseSaldo($f['bolsa']) }}">{{ (int) $f['bolsa'] !== 0 ? \App\Models\CompensacionHoras::formatearMinutos((int) $f['bolsa']) : '—' }}</td>
                         <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $f['dias_trabajados'] }}</td>
                         <td class="px-4 py-2 text-center">
                             @if ($f['dias_incompletos'] > 0)

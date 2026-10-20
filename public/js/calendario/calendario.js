@@ -508,14 +508,21 @@
             const finDate = new Date(fechaFin + "T00:00:00");
             const esSemanaCompleta = !vacacionesSemanasCompletas || (inicioDate.getDay() === 1 && finDate.getDay() === 0);
 
-            const btnCompensacion = esMismoDia
+            // Horas extra: solo de días ya trabajados (hoy o pasados). Compensación: de hoy en adelante.
+            const hoyStr = fechaHoyStr();
+            const btnExtra = esMismoDia && fechaInicio <= hoyStr
+                ? `<button type="button" class="swal2-option-btn px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors" data-value="extra">
+                            Solicitar horas extra
+                        </button>`
+                : '';
+            const btnCompensacion = esMismoDia && fechaInicio >= hoyStr
                 ? `<button type="button" class="swal2-option-btn px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition-colors" data-value="compensacion">
                             Solicitar compensación de horas
                         </button>`
-                : `<button type="button" disabled title="Selecciona un solo día" class="px-4 py-3 bg-teal-600 text-white rounded-lg font-semibold opacity-50 cursor-not-allowed">
-                            Solicitar compensación de horas
-                        </button>
-                        <p class="text-xs text-gray-500 -mt-1">La compensación de horas se pide para un solo día.</p>`;
+                : '';
+            const notaHoras = !esMismoDia
+                ? `<p class="text-xs text-gray-500 -mt-1">Las horas extra y las compensaciones se piden día a día: selecciona un solo día.</p>`
+                : '';
 
             const btnVacaciones = esSemanaCompleta
                 ? `<button type="button" class="swal2-option-btn px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors" data-value="vacaciones">
@@ -532,7 +539,9 @@
                     <p class="text-gray-600 mb-4">${rangoTexto}</p>
                     <div class="flex flex-col gap-3">
                         ${btnVacaciones}
+                        ${btnExtra}
                         ${btnCompensacion}
+                        ${notaHoras}
                         <button type="button" class="swal2-option-btn px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors" data-value="revision">
                             Pedir revision de fichajes
                         </button>
@@ -554,29 +563,72 @@
 
             if (opcion === 'vacaciones') {
                 pedirVacaciones(fechaInicio, fechaFin, calendar);
+            } else if (opcion === 'extra') {
+                pedirCompensacion(fechaInicio, calendar, 'extra');
             } else if (opcion === 'compensacion') {
-                pedirCompensacion(fechaInicio, calendar);
+                pedirCompensacion(fechaInicio, calendar, 'compensacion');
             } else if (opcion === 'revision') {
                 solicitarRevisionFichaje(fechaInicio, fechaFin, calendar);
             }
         }
 
         // ===================== COMPENSACIÓN DE HORAS (bolsa de horas) =====================
-        const fmtSaldoHoras = (v) => {
-            const n = Number(v) || 0;
+        // Minutos -> "+1 h 05 min" / "−45 min" / "+3 h"
+        const fmtSaldoHoras = (v, signo = true) => {
+            const n = Math.round(Number(v) || 0);
             const abs = Math.abs(n);
-            const txt = Number.isInteger(abs) ? String(abs) : abs.toFixed(2).replace('.', ',').replace(/,?0+$/, '');
-            return (n > 0 ? '+' : (n < 0 ? '−' : '')) + txt + ' h';
+            const h = Math.floor(abs / 60);
+            const m = abs % 60;
+            const txt = abs === 0 ? '0 h' : (h > 0 ? (m > 0 ? `${h} h ${String(m).padStart(2, '0')} min` : `${h} h`) : `${m} min`);
+            return (signo ? (n > 0 ? '+' : (n < 0 ? '−' : '')) : '') + txt;
         };
         const claseSaldoHoras = (v) => (Number(v) > 0 ? 'text-emerald-600' : (Number(v) < 0 ? 'text-red-600' : 'text-gray-500'));
         const fmtFechaLarga = (s) => {
             const [y, m, d] = s.split('-');
             return `${d}/${m}/${y}`;
         };
+        const fechaHoyStr = () => {
+            const h = new Date();
+            return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+        };
+        const fmtHorasDec = (v) => {
+            const n = Number(v) || 0;
+            return Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',').replace(/,?0+$/, '');
+        };
+        const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        async function cargarSaldoCompensacion(userIdObjetivo) {
+        /**
+         * Resumen del fichaje de un día (turno, fichaje, horas y extra orientativa según reglas)
+         * para que quien pide o revisa horas extra tenga la referencia a la vista.
+         */
+        function htmlFichajeDia(fichaje, { modoOficina = false } = {}) {
+            if (!fichaje) {
+                return `<div class="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3 text-xs text-amber-800">Ese día no hay turno asignado${modoOficina ? '' : '; tu responsable lo comprobará'}.</div>`;
+            }
+            const partes = [];
+            if (fichaje.turno) partes.push(`Turno <strong>${escHtml(fichaje.turno)}</strong>${fichaje.horario ? ` (${escHtml(fichaje.horario)})` : ''}`);
+            partes.push(fichaje.fichaje ? `Fichaje <strong>${escHtml(fichaje.fichaje)}</strong>` : '<strong>Sin fichaje</strong>');
+            if (Number(fichaje.horas_fichadas) > 0) {
+                partes.push(`${fmtHorasDec(fichaje.horas_fichadas)} h fichadas de ${fmtHorasDec(fichaje.horas_teoricas)} h de turno`);
+            }
+            let sug = '';
+            if (fichaje.abierto) sug = 'El fichaje está sin cerrar.';
+            else if (fichaje.puntual === false) sug = 'Entró tarde: según las reglas de la bolsa ese día no genera horas extra.';
+            else if (Number(fichaje.extra_min) > 0) sug = `Según el fichaje: <strong>${fichaje.extra_txt || fmtSaldoHoras(fichaje.extra_min)}</strong> extra${fichaje.cumple_minimo === false ? ` (por debajo del mínimo de ${fichaje.minimo_min} min)` : ''}.`;
+            else if (Number(fichaje.horas_fichadas) > 0) sug = 'Según el fichaje no hay tiempo extra.';
+            return `<div class="bg-gray-50 rounded-lg p-2 mb-3 text-xs text-gray-600">
+                        <div class="text-gray-500 mb-0.5">Ese día</div>
+                        <div>${partes.join(' · ')}</div>
+                        ${sug ? `<div class="mt-0.5">${sug}</div>` : ''}
+                    </div>`;
+        }
+
+        async function cargarSaldoCompensacion(userIdObjetivo, fecha = null) {
             const base = routes.compensacionSaldoUrl || '/compensaciones-horas/saldo';
-            const url = userIdObjetivo ? `${base}?user_id=${userIdObjetivo}` : base;
+            const params = new URLSearchParams();
+            if (userIdObjetivo) params.set('user_id', userIdObjetivo);
+            if (fecha) params.set('fecha', fecha);
+            const url = params.toString() ? `${base}?${params}` : base;
             const r = await fetch(url, { headers: { Accept: 'application/json' } });
             if (!r.ok) throw new Error(`No se pudo consultar la bolsa de horas (HTTP ${r.status}).`);
             return r.json();
@@ -584,47 +636,85 @@
 
         /**
          * Modal con stepper de horas (+/-) y saldo de la bolsa actualizado en vivo.
-         * Devuelve { horas, comentario } o null si se cancela.
+         * modo: 'extra' (solo +, día ya trabajado), 'compensacion' (solo -, hoy o futuro)
+         * o 'ambos' (oficina/responsable). Devuelve { horas, comentario } o null si se cancela.
          */
-        async function abrirModalCompensacion({ fecha, userIdObjetivo = null, titulo = 'Solicitar compensación de horas', textoConfirmar = 'Enviar solicitud', modoOficina = false }) {
+        async function abrirModalCompensacion({ fecha, userIdObjetivo = null, titulo = null, textoConfirmar = 'Enviar solicitud', modoOficina = false, modo = 'ambos' }) {
             let saldo;
             try {
-                saldo = await cargarSaldoCompensacion(userIdObjetivo);
+                saldo = await cargarSaldoCompensacion(userIdObjetivo, fecha);
             } catch (e) {
                 Swal.fire('Error', e.message, 'error');
                 return null;
             }
-            const max = Number(saldo.horas_max) || 12;
-            const saldoActual = Number(saldo.saldo) || 0;
-            const pendientes = Number(saldo.pendientes) || 0;
-            const disponible = Number(saldo.disponible) || 0;
+            const paso = Number(saldo.paso) || 5;
+            const max = Number(saldo.minutos_max) || 720;
+            const saldoActual = Number(saldo.saldo_min) || 0;
+            const pendientes = Number(saldo.pendientes_min) || 0;
+            const pendientesExtra = Number(saldo.pendientes_extra_min) || 0;
+            const disponible = Number(saldo.disponible_min) || 0;
+            const hoyStr = saldo.hoy || fechaHoyStr();
+            const fichaje = saldo.fichaje || null;
+            const soloExtra = modo === 'extra';
+            const soloComp = modo === 'compensacion';
+
+            // Máximo que se puede pedir sin dejar la bolsa en negativo (en pasos de 5 min)
+            const maxPedir = Math.max(0, Math.floor(disponible / paso) * paso);
+            // Horas extra: solo de días ya trabajados. Compensación: de hoy en adelante y con saldo.
+            const puedeExtra = !soloComp && fecha <= hoyStr;
+            const puedeComp = !soloExtra && fecha >= hoyStr && maxPedir > 0;
+
+            if (!puedeExtra && !puedeComp) {
+                let motivo;
+                if (soloExtra) motivo = 'Las horas extra se solicitan una vez hechas: elige el día de hoy o un día ya trabajado.';
+                else if (soloComp) motivo = fecha < hoyStr
+                    ? 'La compensación se pide para hoy o para un día futuro.'
+                    : `Sin saldo en la bolsa (${fmtSaldoHoras(disponible)} disponibles): no hay horas que compensar.`;
+                else motivo = fecha > hoyStr
+                    ? `Sin saldo en la bolsa (${fmtSaldoHoras(disponible)}): no se puede compensar ese día, y las horas extra solo se reconocen de días ya trabajados.`
+                    : 'No hay nada que hacer en ese día.';
+                Swal.fire('No disponible', motivo, 'info');
+                return null;
+            }
+
+            titulo = titulo || (soloExtra ? 'Solicitar horas extra' : (soloComp ? 'Solicitar compensación de horas' : 'Horas extra / compensación'));
+            const etiquetaHoras = soloExtra ? 'Tiempo extra que solicitas' : (soloComp ? 'Tiempo libre que pides' : 'Tiempo (+ extra / − compensación)');
+            const avisoFijo = (!puedeComp && !soloExtra)
+                ? (fecha < hoyStr ? 'Día pasado: solo se pueden reconocer horas extra (+)' : 'Sin saldo en la bolsa: solo se pueden reconocer horas extra (+)')
+                : ((!puedeExtra && !soloComp) ? 'Día futuro: solo compensación (−); las horas extra se piden de días ya trabajados' : '');
+            const sugerida = Math.min(max, Math.max(0, Number(fichaje?.extra_min) || 0));
 
             const { value, isConfirmed } = await Swal.fire({
                 title: `<span style="font-size:1.1rem">${titulo}</span>`,
                 html: `
                     <div class="text-left text-sm">
                         <p class="text-gray-600 mb-3">Día <strong>${fmtFechaLarga(fecha)}</strong></p>
+                        ${puedeExtra ? htmlFichajeDia(fichaje, { modoOficina }) : ''}
                         <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
                             <div class="bg-gray-50 rounded-lg p-2">
                                 <div class="text-gray-500">Bolsa actual</div>
                                 <div class="font-bold text-base ${claseSaldoHoras(saldoActual)}">${fmtSaldoHoras(saldoActual)}</div>
-                                ${pendientes !== 0 ? `<div class="text-gray-400">${fmtSaldoHoras(pendientes)} en solicitudes pendientes</div>` : ''}
+                                ${pendientes !== 0 ? `<div class="text-gray-400">${fmtSaldoHoras(pendientes)} en compensaciones pendientes</div>` : ''}
+                                ${pendientesExtra !== 0 ? `<div class="text-gray-400">${fmtSaldoHoras(pendientesExtra)} extra pendientes de aprobar</div>` : ''}
                             </div>
                             <div class="bg-gray-50 rounded-lg p-2">
-                                <div class="text-gray-500">Bolsa tras esta compensación</div>
+                                <div class="text-gray-500">Bolsa si se aprueba</div>
                                 <div id="comp-resultante" class="font-bold text-base"></div>
-                                <div id="comp-aviso" class="text-red-600 text-[11px] hidden">La bolsa no puede quedar en negativo</div>
+                                <div id="comp-aviso" class="text-amber-700 text-[11px] ${avisoFijo ? '' : 'hidden'}">${avisoFijo}</div>
                             </div>
                         </div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Horas a compensar</label>
-                        <div class="flex items-center justify-center gap-3 mb-1">
-                            <button type="button" id="comp-menos" class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xl font-bold leading-none">−</button>
-                            <div id="comp-horas-txt" class="w-24 text-center text-2xl font-bold"></div>
-                            <button type="button" id="comp-mas" class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xl font-bold leading-none">+</button>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">${etiquetaHoras} <span class="font-normal text-gray-400">(pasos de ${paso} min)</span></label>
+                        <div class="flex items-center justify-center gap-2 mb-1">
+                            <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="-60" title="Una hora menos">−1h</button>
+                            <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="-${paso}" title="${paso} minutos menos">−${paso}</button>
+                            <div id="comp-horas-txt" class="w-32 text-center text-xl font-bold"></div>
+                            <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="${paso}" title="${paso} minutos más">+${paso}</button>
+                            <button type="button" class="comp-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="60" title="Una hora más">+1h</button>
                         </div>
                         <p id="comp-explica" class="text-center text-xs text-gray-500 mb-3"></p>
                         <label class="block text-xs font-semibold text-gray-700 mb-1" for="comp-comentario">Comentario (opcional)</label>
-                        <textarea id="comp-comentario" rows="2" maxlength="500" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-sm" placeholder="Motivo, hora prevista de salida..."></textarea>
+                        <textarea id="comp-comentario" rows="2" maxlength="500" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-sm" placeholder="${soloExtra ? 'Qué hiciste, hasta qué hora te quedaste...' : 'Motivo, hora prevista de salida...'}"></textarea>
+                        ${!modoOficina ? '<p class="text-[11px] text-gray-400 mt-2">Tu responsable revisará la solicitud. Las horas solo cuentan en la bolsa cuando se aprueban.</p>' : ''}
                     </div>`,
                 showCancelButton: true,
                 confirmButtonText: textoConfirmar,
@@ -633,67 +723,74 @@
                 focusConfirm: false,
                 didOpen: () => {
                     const popup = Swal.getPopup();
-                    // Máximo que se puede pedir sin dejar la bolsa en negativo (horas enteras)
-                    const maxPedir = Math.max(0, Math.floor(disponible));
-                    let horas = maxPedir > 0 ? -1 : 1; // por defecto: tomarse 1 hora libre si hay saldo
+                    // Valor inicial: si se pueden pedir extras, la sugerida según fichaje (o 1); si no, 1 hora libre
+                    let horas; // en minutos, con signo
+                    if (puedeExtra && (soloExtra || !puedeComp || fecha < hoyStr)) horas = sugerida > 0 ? sugerida : 60;
+                    else horas = -Math.min(60, maxPedir);
                     const txt = popup.querySelector('#comp-horas-txt');
                     const res = popup.querySelector('#comp-resultante');
-                    const aviso = popup.querySelector('#comp-aviso');
                     const explica = popup.querySelector('#comp-explica');
+                    const quien = modoOficina ? 'El trabajador' : null;
                     const pintar = () => {
                         txt.textContent = fmtSaldoHoras(horas);
-                        txt.className = 'w-24 text-center text-2xl font-bold ' + claseSaldoHoras(horas);
+                        txt.className = 'w-32 text-center text-xl font-bold ' + claseSaldoHoras(horas);
                         const resultante = disponible + horas;
                         res.textContent = fmtSaldoHoras(resultante);
                         res.className = 'font-bold text-base ' + claseSaldoHoras(resultante);
-                        aviso.classList.toggle('hidden', maxPedir > 0);
-                        if (maxPedir <= 0) aviso.textContent = 'Sin saldo en la bolsa: solo se pueden reconocer horas extra (+)';
+                        const tiempo = fmtSaldoHoras(horas, false);
                         explica.textContent = horas < 0
-                            ? `${modoOficina ? 'El trabajador se toma' : 'Te tomas'} ${Math.abs(horas)} hora${Math.abs(horas) === 1 ? '' : 's'} libre${Math.abs(horas) === 1 ? '' : 's'} este día (restan de la bolsa)`
-                            : `Se ${modoOficina ? 'le ' : 'te '}reconocen ${horas} hora${horas === 1 ? '' : 's'} extra este día (suman a la bolsa)`;
+                            ? `${quien ? quien + ' se toma' : 'Te tomas'} ${tiempo} libres este día (restan de la bolsa al aprobarse)`
+                            : `${quien ? 'Se le reconocen' : 'Pides que se te reconozcan'} ${tiempo} extra de este día (suman a la bolsa al aprobarse)`;
                         popup.dataset.horas = String(horas);
                     };
-                    const paso = (delta) => {
+                    const mover = (delta) => {
                         let n = horas + delta;
-                        if (n === 0) n = delta > 0 ? 1 : -1; // el 0 no es una compensación
-                        // No se puede pedir más de lo que hay en la bolsa
-                        const minimo = -Math.min(max, maxPedir);
-                        if (n < 0 && minimo === 0) n = 1;
-                        horas = Math.max(minimo, Math.min(max, n));
+                        // el 0 no es una solicitud: saltar al primer paso del otro signo si se permite
+                        if (n === 0 || Math.sign(n) !== Math.sign(horas)) {
+                            if (delta > 0) n = puedeExtra ? paso : horas;
+                            else n = puedeComp ? -paso : horas;
+                            if (n === horas) { pintar(); return; }
+                        }
+                        const minimo = puedeComp ? -Math.min(max, maxPedir) : paso;
+                        const maximo = puedeExtra ? max : -paso;
+                        horas = Math.max(minimo, Math.min(maximo, n));
                         pintar();
                     };
-                    popup.querySelector('#comp-menos').addEventListener('click', () => paso(-1));
-                    popup.querySelector('#comp-mas').addEventListener('click', () => paso(1));
+                    popup.querySelectorAll('.comp-paso').forEach((b) => b.addEventListener('click', () => mover(Number(b.dataset.delta))));
                     pintar();
                 },
                 preConfirm: () => {
                     const popup = Swal.getPopup();
                     const horas = Number(popup.dataset.horas);
-                    if (!horas) {
-                        Swal.showValidationMessage('Indica las horas a compensar.');
+                    if (!horas || horas % paso !== 0) {
+                        Swal.showValidationMessage(`Indica el tiempo en pasos de ${paso} minutos.`);
                         return false;
                     }
-                    if (horas < 0 && disponible + horas < 0) {
+                    if (horas > 0 && !puedeExtra) {
+                        Swal.showValidationMessage('Las horas extra solo se piden de días ya trabajados.');
+                        return false;
+                    }
+                    if (horas < 0 && (!puedeComp || disponible + horas < 0)) {
                         Swal.showValidationMessage('La bolsa no puede quedar en negativo.');
                         return false;
                     }
-                    return { horas, comentario: (popup.querySelector('#comp-comentario')?.value || '').trim() };
+                    return { minutos: horas, comentario: (popup.querySelector('#comp-comentario')?.value || '').trim() };
                 },
             });
 
             return isConfirmed ? value : null;
         }
 
-        // El trabajador solicita una compensación de horas para un día
-        async function pedirCompensacion(fecha, calendar) {
-            const datos = await abrirModalCompensacion({ fecha });
+        // El trabajador solicita horas extra ('extra') o una compensación ('compensacion') para un día
+        async function pedirCompensacion(fecha, calendar, modo = 'compensacion') {
+            const datos = await abrirModalCompensacion({ fecha, modo });
             if (!datos) return;
 
             try {
                 const res = await fetch(routes.compensacionStoreUrl || '/compensaciones-horas/solicitar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
-                    body: JSON.stringify({ fecha, horas: datos.horas, comentario: datos.comentario }),
+                    body: JSON.stringify({ fecha, minutos: datos.minutos, comentario: datos.comentario }),
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || data.error) throw new Error(data.error || (data.errors ? Object.values(data.errors).flat().join(' ') : `HTTP ${res.status}`));
@@ -704,21 +801,22 @@
             }
         }
 
-        // Oficina/responsable asigna directamente una compensación aprobada
+        // Oficina/responsable reconoce horas extra o asigna una compensación directamente aprobada
         async function asignarCompensacionOficina(fecha, calendar) {
             const datos = await abrirModalCompensacion({
                 fecha,
                 userIdObjetivo: userId,
-                titulo: 'Asignar compensación de horas',
+                titulo: 'Horas extra / compensación',
                 textoConfirmar: 'Asignar',
                 modoOficina: true,
+                modo: 'ambos',
             });
             if (!datos) return false;
 
             const res = await fetch(routes.compensacionAsignarDirectoUrl || '/compensaciones-horas/asignar-directo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
-                body: JSON.stringify({ user_id: userId, fecha, horas: datos.horas, comentario: datos.comentario }),
+                body: JSON.stringify({ user_id: userId, fecha, minutos: datos.minutos, comentario: datos.comentario }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.success) {
@@ -726,7 +824,7 @@
                 return false;
             }
             smartRefetch(calendar, () => actualizarResumenAsistencia(routes.resumenUrl));
-            Swal.fire('Listo', data.message || 'Compensación asignada.', 'success');
+            Swal.fire('Listo', data.message || 'Horas asignadas.', 'success');
             return true;
         }
 
@@ -1006,7 +1104,7 @@
                                                 <option value="baja">Baja</option>
                                                 <option value="justificada">Justificada</option>
                                                 <option value="injustificada">Injustificada</option>
-                                                <option value="compensacion">Compensación de horas</option>
+                                                <option value="compensacion">Horas extra / compensación</option>
                                                 <option disabled>─────────</option>
                                                 <option value="__quitar__">Quitar estado</option>
                                             </select>
@@ -2138,9 +2236,20 @@
                 if (props.es_compensacion) {
                     const compId = props.compensacion_id;
                     const esPendiente = props.estado === 'pendiente';
+                    const esExtra = Number(props.minutos) > 0;
+                    const nombreTipo = esExtra ? 'Horas extra' : 'Compensación';
                     const puedeGestionar = Boolean(permissions.canAssignStates);
                     const base = routes.compensacionEliminarUrl || '/compensaciones-horas';
                     const fecha = props.fecha || event.startStr?.split('T')[0];
+
+                    // Quien revisa una solicitud de horas extra ve el fichaje de ese día
+                    let fichajeHtml = '';
+                    if (esExtra && esPendiente && puedeGestionar && fecha) {
+                        try {
+                            const info = await cargarSaldoCompensacion(userId, fecha);
+                            fichajeHtml = htmlFichajeDia(info.fichaje || null, { modoOficina: true });
+                        } catch (e) { /* sin fichaje: se muestra igual */ }
+                    }
 
                     const botones = [];
                     if (esPendiente && puedeGestionar) {
@@ -2148,18 +2257,19 @@
                         botones.push(`<button type="button" class="swal2-option-btn px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold" data-value="denegar">Denegar</button>`);
                     }
                     if (puedeGestionar || esPendiente) {
-                        botones.push(`<button type="button" class="swal2-option-btn px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold" data-value="eliminar">${esPendiente ? 'Eliminar solicitud' : 'Eliminar compensación'}</button>`);
+                        botones.push(`<button type="button" class="swal2-option-btn px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold" data-value="eliminar">${esPendiente ? 'Eliminar solicitud' : (esExtra ? 'Quitar horas extra' : 'Eliminar compensación')}</button>`);
                     }
 
                     const { value: accion } = await swalOpciones({
-                        title: esPendiente ? 'Compensación pendiente' : 'Compensación aprobada',
+                        title: `${nombreTipo} · ${esPendiente ? 'pendiente de aprobar' : (esExtra ? 'aprobadas' : 'aprobada')}`,
                         html: `
                             <div class="text-left text-sm">
-                                <p class="text-gray-600 mb-1">Día <strong>${fmtFechaLarga(fecha)}</strong></p>
-                                <p class="mb-1">Horas: <strong class="${claseSaldoHoras(props.horas)}">${props.etiqueta_horas || fmtSaldoHoras(props.horas)}</strong>
-                                    <span class="text-gray-500">(${Number(props.horas) < 0 ? 'horas libres que restan de la bolsa' : 'horas extra que suman a la bolsa'})</span></p>
-                                ${props.comentario ? `<p class="text-gray-500 italic mb-1">${String(props.comentario).replace(/</g, '&lt;')}</p>` : ''}
-                                ${!esPendiente ? '<p class="text-xs text-gray-400 mt-2">Este día cuenta en la bolsa por estas horas, no por el fichaje.</p>' : ''}
+                                <p class="text-gray-600 mb-2">Día <strong>${fmtFechaLarga(fecha)}</strong></p>
+                                ${fichajeHtml}
+                                <p class="mb-1">Tiempo: <strong class="${claseSaldoHoras(props.minutos)}">${props.etiqueta || fmtSaldoHoras(props.minutos)}</strong>
+                                    <span class="text-gray-500">(${esExtra ? 'horas extra que suman a la bolsa al aprobarse' : 'horas libres que restan de la bolsa'})</span></p>
+                                ${props.comentario ? `<p class="text-gray-500 italic mb-1">${escHtml(props.comentario)}</p>` : ''}
+                                ${!esPendiente ? '<p class="text-xs text-gray-400 mt-2">Ya cuenta en la bolsa de horas.</p>' : ''}
                                 ${botones.length ? `<div class="flex flex-col gap-2 mt-3">${botones.join('')}</div>` : ''}
                             </div>`,
                     });
@@ -2167,10 +2277,10 @@
                     if (!accion) return;
                     try {
                         if (accion === 'eliminar') {
-                            const ok = await Swal.fire({ icon: 'warning', title: esPendiente ? 'Eliminar solicitud' : 'Eliminar compensación', text: '¿Seguro?', showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c' }).then((r) => r.isConfirmed);
+                            const ok = await Swal.fire({ icon: 'warning', title: esPendiente ? 'Eliminar solicitud' : `Eliminar ${nombreTipo.toLowerCase()}`, text: esPendiente ? '¿Seguro?' : '¿Seguro? Dejará de contar en la bolsa.', showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c' }).then((r) => r.isConfirmed);
                             if (!ok) return;
                             await peticionCompensacion(`${base}/${compId}`, 'DELETE');
-                            Swal.fire('Eliminada', 'La compensación se ha eliminado.', 'success');
+                            Swal.fire('Eliminada', 'La solicitud se ha eliminado.', 'success');
                         } else {
                             const data = await peticionCompensacion(`${base}/${compId}/${accion}`, 'POST');
                             Swal.fire(accion === 'aprobar' ? 'Aprobada' : 'Denegada', data.message || '', 'success');

@@ -35,8 +35,16 @@ class ProduccionController extends Controller
         $resumenHoras = \App\Services\ComputoHorasService::semanaYMes($trabajadores->pluck('id'));
 
         // Crear recursos para el calendario (cada trabajador es una fila)
-        $recursos = $trabajadores->map(function ($trabajador, $index) use ($resumenHoras) {
+        // Solicitudes de horas pendientes (extras y compensaciones) por trabajador, de cualquier fecha
+        $pendientesPorUsuario = \App\Models\CompensacionHoras::pendientes()
+            ->whereIn('user_id', $trabajadores->pluck('id'))
+            ->orderBy('fecha')
+            ->get()
+            ->groupBy('user_id');
+
+        $recursos = $trabajadores->map(function ($trabajador, $index) use ($resumenHoras, $pendientesPorUsuario) {
             $h = $resumenHoras[$trabajador->id] ?? null;
+            $pend = $pendientesPorUsuario->get($trabajador->id, collect());
             return [
                 'id' => $trabajador->id,
                 'title' => $trabajador->nombre_completo ?? $trabajador->name,
@@ -47,10 +55,19 @@ class ProduccionController extends Controller
                 'horas_mes' => $h['mes']['horas'] ?? 0,
                 'previstas_semana' => $h['semana']['previstas'] ?? 0,
                 'saldo_semana' => $h['semana']['saldo'] ?? 0,
-                'bolsa' => $h['bolsa']['saldo'] ?? 0,
-                'bolsa_extra' => $h['bolsa']['horas_extra'] ?? 0,
-                'bolsa_devueltas' => $h['bolsa']['horas_devueltas'] ?? 0,
+                'bolsa' => $h['bolsa']['saldo_min'] ?? 0,
+                'bolsa_txt' => $h['bolsa']['saldo_txt'] ?? '0 h',
+                'bolsa_extra' => $h['bolsa']['extra_min'] ?? 0,
+                'bolsa_devueltas' => $h['bolsa']['devueltas_min'] ?? 0,
                 'bolsa_desde' => $h['bolsa']['desde'] ?? null,
+                'solicitudes_pendientes' => $pend->map(fn($c) => [
+                    'id' => $c->id,
+                    'fecha' => $c->fecha->toDateString(),
+                    'minutos' => $c->minutos,
+                    'tipo' => $c->tipo(),
+                    'label' => $c->etiquetaCorta(),
+                    'comentario' => $c->comentario,
+                ])->values()->all(),
             ];
         })->values();
 
@@ -64,8 +81,8 @@ class ProduccionController extends Controller
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
-        // Compensaciones de horas aprobadas en el rango: [user|fecha => CompensacionHoras]
-        $compensaciones = \App\Models\CompensacionHoras::aprobadas()
+        // Solicitudes de horas del rango, aprobadas y pendientes: [user|fecha => CompensacionHoras]
+        $compensaciones = \App\Models\CompensacionHoras::whereIn('estado', [\App\Models\CompensacionHoras::ESTADO_APROBADA, \App\Models\CompensacionHoras::ESTADO_PENDIENTE])
             ->whereBetween('fecha', [$fechaHoy->toDateString(), $fechaLimite->toDateString()])
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get()
@@ -176,9 +193,10 @@ class ProduccionController extends Controller
                     'categoria' => $trabajador->categoria?->nombre,
                     'hora_inicio' => substr($horaInicio, 0, 5),
                     'hora_fin' => substr($horaFin, 0, 5),
-                    'compensacion_horas' => null,
+                    'compensacion_minutos' => null,
                     'compensacion_label' => null,
                     'compensacion_id' => null,
+                    'compensacion_estado' => null,
                 ],
             ];
 
@@ -187,43 +205,47 @@ class ProduccionController extends Controller
                 $comp = $compensaciones[$claveComp];
                 $idx = count($eventos) - 1;
                 $eventos[$idx]['extendedProps']['compensacion_id'] = $comp->id;
-                $eventos[$idx]['extendedProps']['compensacion_horas'] = $comp->horas;
-                $eventos[$idx]['extendedProps']['compensacion_label'] = 'Compensación ' . $comp->etiquetaHoras();
+                $eventos[$idx]['extendedProps']['compensacion_minutos'] = $comp->minutos;
+                $eventos[$idx]['extendedProps']['compensacion_label'] = $comp->tituloCalendario();
+                $eventos[$idx]['extendedProps']['compensacion_estado'] = $comp->estado;
                 $compensacionesUsadas[$claveComp] = true;
             }
         }
 
-        // Compensaciones aprobadas en días sin asignación: evento propio de día completo
+        // Solicitudes (aprobadas o pendientes) en días sin asignación: evento propio de día completo
         foreach ($compensaciones as $clave => $comp) {
             if (isset($compensacionesUsadas[$clave]) || !$comp->user_id) {
                 continue;
             }
             $fechaStr = $comp->fecha->toDateString();
+            $pendiente = $comp->estado === \App\Models\CompensacionHoras::ESTADO_PENDIENTE;
+            $label = $comp->tituloCalendario();
             $eventos[] = [
                 'id' => 'comp-' . $comp->id,
-                'title' => 'Compensación ' . $comp->etiquetaHoras(),
+                'title' => $label,
                 'start' => $fechaStr . 'T00:00:00',
                 'end' => $fechaStr . 'T23:59:00',
                 'resourceId' => $comp->user_id,
-                'backgroundColor' => '#99f6e4',
-                'borderColor' => '#0f766e',
+                'backgroundColor' => $pendiente ? '#fef3c7' : '#99f6e4',
+                'borderColor' => $pendiente ? '#f59e0b' : '#0f766e',
                 'textColor' => '#000000',
                 'editable' => false,
                 'extendedProps' => [
                     'asignacion_id' => null,
                     'user_id' => $comp->user_id,
                     'turno_id' => null,
-                    'turno_nombre' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'turno_nombre' => $label,
                     'estado' => 'compensacion',
-                    'entrada' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'entrada' => $label,
                     'salida' => null,
                     'entrada2' => null,
                     'salida2' => null,
                     'hora_inicio' => '00:00',
                     'hora_fin' => '23:59',
-                    'compensacion_horas' => $comp->horas,
-                    'compensacion_label' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'compensacion_minutos' => $comp->minutos,
+                    'compensacion_label' => $label,
                     'compensacion_id' => $comp->id,
+                    'compensacion_estado' => $comp->estado,
                 ],
             ];
         }
@@ -275,8 +297,16 @@ class ProduccionController extends Controller
 
         $resumenHoras = \App\Services\ComputoHorasService::semanaYMes($trabajadores->pluck('id'));
 
-        $recursos = $trabajadores->map(function ($trabajador, $index) use ($resumenHoras) {
+        // Solicitudes de horas pendientes (extras y compensaciones) por trabajador, de cualquier fecha
+        $pendientesPorUsuario = \App\Models\CompensacionHoras::pendientes()
+            ->whereIn('user_id', $trabajadores->pluck('id'))
+            ->orderBy('fecha')
+            ->get()
+            ->groupBy('user_id');
+
+        $recursos = $trabajadores->map(function ($trabajador, $index) use ($resumenHoras, $pendientesPorUsuario) {
             $h = $resumenHoras[$trabajador->id] ?? null;
+            $pend = $pendientesPorUsuario->get($trabajador->id, collect());
             return [
                 'id' => $trabajador->id,
                 'title' => $trabajador->nombre_completo ?? $trabajador->name,
@@ -287,10 +317,19 @@ class ProduccionController extends Controller
                 'horas_mes' => $h['mes']['horas'] ?? 0,
                 'previstas_semana' => $h['semana']['previstas'] ?? 0,
                 'saldo_semana' => $h['semana']['saldo'] ?? 0,
-                'bolsa' => $h['bolsa']['saldo'] ?? 0,
-                'bolsa_extra' => $h['bolsa']['horas_extra'] ?? 0,
-                'bolsa_devueltas' => $h['bolsa']['horas_devueltas'] ?? 0,
+                'bolsa' => $h['bolsa']['saldo_min'] ?? 0,
+                'bolsa_txt' => $h['bolsa']['saldo_txt'] ?? '0 h',
+                'bolsa_extra' => $h['bolsa']['extra_min'] ?? 0,
+                'bolsa_devueltas' => $h['bolsa']['devueltas_min'] ?? 0,
                 'bolsa_desde' => $h['bolsa']['desde'] ?? null,
+                'solicitudes_pendientes' => $pend->map(fn($c) => [
+                    'id' => $c->id,
+                    'fecha' => $c->fecha->toDateString(),
+                    'minutos' => $c->minutos,
+                    'tipo' => $c->tipo(),
+                    'label' => $c->etiquetaCorta(),
+                    'comentario' => $c->comentario,
+                ])->values()->all(),
             ];
         })->values();
 
@@ -302,8 +341,8 @@ class ProduccionController extends Controller
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
 
-        // Compensaciones de horas aprobadas en el rango: [user|fecha => CompensacionHoras]
-        $compensaciones = \App\Models\CompensacionHoras::aprobadas()
+        // Solicitudes de horas del rango, aprobadas y pendientes: [user|fecha => CompensacionHoras]
+        $compensaciones = \App\Models\CompensacionHoras::whereIn('estado', [\App\Models\CompensacionHoras::ESTADO_APROBADA, \App\Models\CompensacionHoras::ESTADO_PENDIENTE])
             ->whereBetween('fecha', [$fechaHoy->toDateString(), $fechaLimite->toDateString()])
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get()
@@ -404,9 +443,10 @@ class ProduccionController extends Controller
                     'categoria' => $trabajador->categoria?->nombre,
                     'hora_inicio' => substr($horaInicio, 0, 5),
                     'hora_fin' => substr($horaFin, 0, 5),
-                    'compensacion_horas' => null,
+                    'compensacion_minutos' => null,
                     'compensacion_label' => null,
                     'compensacion_id' => null,
+                    'compensacion_estado' => null,
                 ],
             ];
 
@@ -415,43 +455,47 @@ class ProduccionController extends Controller
                 $comp = $compensaciones[$claveComp];
                 $idx = count($eventos) - 1;
                 $eventos[$idx]['extendedProps']['compensacion_id'] = $comp->id;
-                $eventos[$idx]['extendedProps']['compensacion_horas'] = $comp->horas;
-                $eventos[$idx]['extendedProps']['compensacion_label'] = 'Compensación ' . $comp->etiquetaHoras();
+                $eventos[$idx]['extendedProps']['compensacion_minutos'] = $comp->minutos;
+                $eventos[$idx]['extendedProps']['compensacion_label'] = $comp->tituloCalendario();
+                $eventos[$idx]['extendedProps']['compensacion_estado'] = $comp->estado;
                 $compensacionesUsadas[$claveComp] = true;
             }
         }
 
-        // Compensaciones aprobadas en días sin asignación: evento propio de día completo
+        // Solicitudes (aprobadas o pendientes) en días sin asignación: evento propio de día completo
         foreach ($compensaciones as $clave => $comp) {
             if (isset($compensacionesUsadas[$clave]) || !$comp->user_id) {
                 continue;
             }
             $fechaStr = $comp->fecha->toDateString();
+            $pendiente = $comp->estado === \App\Models\CompensacionHoras::ESTADO_PENDIENTE;
+            $label = $comp->tituloCalendario();
             $eventos[] = [
                 'id' => 'comp-' . $comp->id,
-                'title' => 'Compensación ' . $comp->etiquetaHoras(),
+                'title' => $label,
                 'start' => $fechaStr . 'T00:00:00',
                 'end' => $fechaStr . 'T23:59:00',
                 'resourceId' => $comp->user_id,
-                'backgroundColor' => '#99f6e4',
-                'borderColor' => '#0f766e',
+                'backgroundColor' => $pendiente ? '#fef3c7' : '#99f6e4',
+                'borderColor' => $pendiente ? '#f59e0b' : '#0f766e',
                 'textColor' => '#000000',
                 'editable' => false,
                 'extendedProps' => [
                     'asignacion_id' => null,
                     'user_id' => $comp->user_id,
                     'turno_id' => null,
-                    'turno_nombre' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'turno_nombre' => $label,
                     'estado' => 'compensacion',
-                    'entrada' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'entrada' => $label,
                     'salida' => null,
                     'entrada2' => null,
                     'salida2' => null,
                     'hora_inicio' => '00:00',
                     'hora_fin' => '23:59',
-                    'compensacion_horas' => $comp->horas,
-                    'compensacion_label' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'compensacion_minutos' => $comp->minutos,
+                    'compensacion_label' => $label,
                     'compensacion_id' => $comp->id,
+                    'compensacion_estado' => $comp->estado,
                 ],
             ];
         }

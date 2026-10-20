@@ -426,32 +426,33 @@
                     <form method="POST" action="{{ route('ajustes.bolsaHoras') }}" class="p-6">
                         @csrf
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Cada día fichado se compara con el horario del turno asignado y el saldo se cuenta en
-                            <strong>horas enteras</strong>. Las horas extra se suman a la bolsa del trabajador solo si entró a
-                            su hora, y se cuentan desde la hora de fin del turno. Si ficha menos horas que las del turno,
-                            las horas enteras que faltan se restan, de modo que las horas extra se devuelven recortando
-                            jornadas posteriores. Los días sin fichaje o con un fichaje incompleto no entran en la bolsa.
+                            La bolsa solo se mueve con solicitudes aprobadas: el trabajador pide <strong>horas extra</strong> de un
+                            día ya trabajado y su responsable las aprueba o deniega tras comprobar el fichaje; después puede
+                            pedir una <strong>compensación</strong> (recortar una jornada) contra su bolsa, que no puede quedar
+                            en negativo. Las solicitudes se hacen en pasos de 5 minutos. El fichaje no suma ni resta por sí solo:
+                            sirve de referencia. Con estos ajustes se calcula la orientación "según fichaje" que ve el responsable:
+                            minutos extra medidos desde la hora de fin del turno, solo si entró puntual.
                         </p>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label for="bolsa_horas_desde" class="block text-sm font-medium text-gray-900 dark:text-gray-100">Acumular desde</label>
                                 <input type="date" id="bolsa_horas_desde" name="bolsa_horas_desde" value="{{ old('bolsa_horas_desde', $bolsaHorasDesde) }}" required
                                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring focus:ring-blue-300 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Fecha desde la que se cuentan las horas extra y devueltas. Útil para poner el contador a cero.</p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Fecha desde la que cuentan las solicitudes aprobadas. Útil para poner el contador a cero.</p>
                                 @error('bolsa_horas_desde') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label for="bolsa_horas_tolerancia_min" class="block text-sm font-medium text-gray-900 dark:text-gray-100">Tolerancia diaria (minutos)</label>
                                 <input type="number" id="bolsa_horas_tolerancia_min" name="bolsa_horas_tolerancia_min" min="0" max="180" step="1" value="{{ old('bolsa_horas_tolerancia_min', $bolsaHorasToleranciaMin) }}" required
                                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring focus:ring-blue-300 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Retraso de entrada admitido para que el día siga contando como puntual y pueda generar horas extra.</p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Retraso de entrada admitido para que el día cuente como puntual en la orientación según fichaje.</p>
                                 @error('bolsa_horas_tolerancia_min') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label for="bolsa_horas_min_extra" class="block text-sm font-medium text-gray-900 dark:text-gray-100">Minutos para completar una hora</label>
-                                <input type="number" id="bolsa_horas_min_extra" name="bolsa_horas_min_extra" min="1" max="60" step="1" value="{{ old('bolsa_horas_min_extra', $bolsaHorasMinExtra) }}" required
+                                <label for="bolsa_horas_min_extra" class="block text-sm font-medium text-gray-900 dark:text-gray-100">Mínimo de minutos extra</label>
+                                <input type="number" id="bolsa_horas_min_extra" name="bolsa_horas_min_extra" min="0" max="240" step="5" value="{{ old('bolsa_horas_min_extra', $bolsaHorasMinExtra) }}" required
                                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring focus:ring-blue-300 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Una hora extra o devuelta cuenta cuando se han completado al menos estos minutos de ella. Con 50: salir 49 min tarde no suma, 50 min suma 1 h, 1 h 50 min suma 2 h.</p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Aviso para quien revisa: si los minutos extra según fichaje no llegan a este mínimo, la solicitud se marca como por debajo del mínimo. No bloquea la aprobación.</p>
                                 @error('bolsa_horas_min_extra') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>

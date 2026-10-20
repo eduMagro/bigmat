@@ -1286,8 +1286,8 @@ class ProfileController extends Controller
     }
 
     /**
-     * Eventos de calendario de las compensaciones de horas del usuario (pendientes y aprobadas).
-     * Negativas: el trabajador se toma horas libres. Positivas: se le reconocen horas.
+     * Eventos de calendario de las solicitudes de horas del usuario (pendientes y aprobadas).
+     * Positivas: horas extra que se le reconocen. Negativas: compensación (horas libres).
      */
     private function eventosCompensaciones(User $user, ?Carbon $fechaInicio = null, ?Carbon $fechaFin = null): array
     {
@@ -1307,16 +1307,17 @@ class ProfileController extends Controller
                 'title' => $c->tituloCalendario(),
                 'start' => $fechaStr,
                 'allDay' => true,
-                'backgroundColor' => $pendiente ? '#fef3c7' : '#0d9488',
-                'borderColor' => $pendiente ? '#f59e0b' : '#0f766e',
+                'backgroundColor' => $pendiente ? '#fef3c7' : ($c->esExtra() ? '#059669' : '#0d9488'),
+                'borderColor' => $pendiente ? '#f59e0b' : ($c->esExtra() ? '#047857' : '#0f766e'),
                 'textColor' => $pendiente ? '#000000' : '#ffffff',
                 'extendedProps' => [
                     'compensacion_id' => $c->id,
                     'es_compensacion' => true,
+                    'tipo' => $c->tipo(),
                     'estado' => $c->estado,
                     'fecha' => $fechaStr,
-                    'horas' => $c->horas,
-                    'etiqueta_horas' => $c->etiquetaHoras(),
+                    'minutos' => $c->minutos,
+                    'etiqueta' => $c->etiqueta(),
                     'comentario' => $c->comentario,
                 ],
             ];

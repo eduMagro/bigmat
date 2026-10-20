@@ -244,10 +244,10 @@
                             @php
                                 $hSemana = $horas['semana'] ?? ['horas' => 0, 'dias_trabajados' => 0, 'dias_incompletos' => 0];
                                 $hMes = $horas['mes'] ?? ['horas' => 0, 'dias_trabajados' => 0, 'dias_incompletos' => 0];
-                                $hBolsa = $horas['bolsa'] ?? ['saldo' => 0, 'horas_extra' => 0, 'horas_devueltas' => 0, 'desde' => null];
+                                $hBolsa = $horas['bolsa'] ?? ['saldo_min' => 0, 'extra_min' => 0, 'devueltas_min' => 0, 'desde' => null];
                                 $fmtH = fn($v) => rtrim(rtrim(number_format((float) $v, 2, ',', '.'), '0'), ',');
-                                $fmtSaldo = fn($v) => ((float) $v > 0 ? '+' : ((float) $v < 0 ? '-' : '')) . $fmtH(abs((float) $v));
-                                $bolsaSaldo = (float) ($hBolsa['saldo'] ?? 0);
+                                $fmtMin = fn($v, $signo = true) => \App\Models\CompensacionHoras::formatearMinutos((int) $v, $signo);
+                                $bolsaSaldo = (int) ($hBolsa['saldo_min'] ?? 0);
                                 $bolsaClase = $bolsaSaldo > 0
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : ($bolsaSaldo < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100');
@@ -288,18 +288,18 @@
                                             @endif
                                         </p>
                                     </div>
-                                    {{-- Bolsa de horas (extra acumuladas menos devueltas) --}}
+                                    {{-- Bolsa de horas (extra aprobadas menos compensadas) --}}
                                     <div class="col-span-2 py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                                        title="Diferencia acumulada entre horas fichadas y horas del turno asignado{{ $bolsaDesde ? ' desde el ' . $bolsaDesde : '' }}">
+                                        title="Horas extra aprobadas menos horas compensadas{{ $bolsaDesde ? ' desde el ' . $bolsaDesde : '' }}. Solo las solicitudes aprobadas mueven la bolsa.">
                                         <div class="flex items-center gap-1.5 mb-0.5">
                                             <svg class="w-3.5 h-3.5 {{ $bolsaSaldo < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             <span class="text-[10px] text-gray-500 dark:text-gray-400">Bolsa de horas</span>
                                         </div>
-                                        <p class="text-lg font-bold leading-tight {{ $bolsaClase }}">{{ $fmtSaldo($bolsaSaldo) }} <span class="text-xs font-medium text-gray-400">h</span></p>
+                                        <p class="text-lg font-bold leading-tight {{ $bolsaClase }}">{{ $fmtMin($bolsaSaldo) }}</p>
                                         <p class="text-[10px] text-gray-500 dark:text-gray-400">
-                                            {{ $fmtH($hBolsa['horas_extra'] ?? 0) }} h extra · {{ $fmtH($hBolsa['horas_devueltas'] ?? 0) }} h devueltas
+                                            {{ $fmtMin($hBolsa['extra_min'] ?? 0, false) }} extra aprobadas · {{ $fmtMin($hBolsa['devueltas_min'] ?? 0, false) }} compensadas
                                         </p>
                                     </div>
                                 </div>
@@ -470,7 +470,7 @@
 
             @endif
 
-            {{-- Solicitudes de compensación de horas pendientes --}}
+            {{-- Solicitudes de horas pendientes: extras (+) y compensaciones (-) --}}
             @php
                 $compensacionesPendientes = \App\Models\CompensacionHoras::where('user_id', $user->id)
                     ->where('estado', 'pendiente')
@@ -489,7 +489,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">Compensaciones de horas</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">Solicitudes de horas</span>
                             <span class="text-xs bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full">{{ $compensacionesPendientes->count() }} pendientes</span>
                         </div>
                         <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': seccionCompensaciones }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,9 +502,24 @@
                                 <div class="flex items-center justify-between p-2 bg-teal-50 dark:bg-teal-900/30 rounded-lg border border-teal-200 dark:border-teal-700" id="comp-pendiente-{{ $comp->id }}">
                                     <div>
                                         <p class="text-xs font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $comp->fecha->format('d/m/Y') }} ·
-                                            <span class="{{ $comp->horas < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }} font-semibold">{{ $comp->etiquetaHoras() }}</span>
+                                            {{ $comp->fecha->format('d/m/Y') }} · {{ $comp->nombreTipo() }}
+                                            <span class="{{ $comp->minutos < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }} font-semibold">{{ $comp->etiqueta() }}</span>
                                         </p>
+                                        @if ($comp->esExtra())
+                                            @php $fich = \App\Services\ComputoHorasService::fichajeDelDia($comp->user_id, $comp->fecha); @endphp
+                                            <p class="text-[10px] text-gray-600 dark:text-gray-300">
+                                                @if (!$fich)
+                                                    Sin turno asignado ese día
+                                                @else
+                                                    {{ $fich['turno'] ? $fich['turno'] . ($fich['horario'] ? ' (' . $fich['horario'] . ')' : '') . ' · ' : '' }}{{ $fich['fichaje'] ? 'Fichaje ' . $fich['fichaje'] : 'Sin fichaje' }}
+                                                    @if ($fich['abierto']) · <span class="text-amber-600">sin cerrar</span>
+                                                    @elseif ($fich['puntual'] === false) · <span class="text-amber-600">entró tarde</span>
+                                                    @elseif ($fich['extra_min'] > 0) · <span class="font-semibold {{ $fich['extra_min'] >= $comp->minutos ? 'text-emerald-600' : 'text-amber-600' }}">según fichaje {{ $fich['extra_txt'] }}</span>
+                                                    @elseif ($fich['horas_fichadas'] > 0) · <span class="text-amber-600">según fichaje no hay tiempo extra</span>
+                                                    @endif
+                                                @endif
+                                            </p>
+                                        @endif
                                         <p class="text-[10px] text-gray-500 dark:text-gray-400">
                                             {{ $comp->comentario ? Str::limit($comp->comentario, 60) . ' · ' : '' }}Solicitado el {{ $comp->created_at->format('d/m/Y H:i') }}
                                         </p>

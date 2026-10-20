@@ -120,7 +120,8 @@ class VacacionesController extends Controller
 
         $eventos = array_merge($eventos, $eventosSolicitudes);
 
-        // Solicitudes de compensación de horas pendientes (con la bolsa actual de cada trabajador)
+        // Solicitudes de horas pendientes: extras (+) y compensaciones (-), con la bolsa actual
+        // de cada trabajador y el fichaje del día para que el responsable compruebe las extras
         $compensacionesPendientes = CompensacionHoras::with(['user.categoria'])
             ->pendientes()
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
@@ -128,8 +129,9 @@ class VacacionesController extends Controller
             ->get();
         $bolsas = \App\Services\ComputoHorasService::bolsaHoras($compensacionesPendientes->pluck('user_id')->unique());
         $compensacionesPendientes->each(function ($c) use ($bolsas) {
-            $c->bolsa_saldo = $bolsas[$c->user_id]['saldo'] ?? 0;
-            $c->bolsa_resultante = $c->bolsa_saldo + $c->horas;
+            $c->bolsa_saldo = $bolsas[$c->user_id]['saldo_min'] ?? 0;
+            $c->bolsa_resultante = $c->bolsa_saldo + $c->minutos;
+            $c->fichaje = $c->esExtra() ? \App\Services\ComputoHorasService::fichajeDelDia($c->user_id, $c->fecha) : null;
         });
 
         // Categorías disponibles para el filtro del calendario

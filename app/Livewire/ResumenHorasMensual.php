@@ -74,7 +74,7 @@ class ResumenHorasMensual extends Component
                 'horas'           => $r['horas'] ?? 0,
                 'previstas'       => $r['previstas'] ?? 0,
                 'saldo'           => $r['saldo'] ?? 0,
-                'bolsa'           => $r['bolsa'] ?? 0,
+                'bolsa'           => $r['bolsa_min'] ?? 0,
                 'dias_trabajados' => $r['dias_trabajados'] ?? 0,
                 'dias_incompletos' => $r['dias_incompletos'] ?? 0,
                 'vacaciones'      => $r['vacaciones'] ?? 0,

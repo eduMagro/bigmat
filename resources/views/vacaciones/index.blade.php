@@ -15,13 +15,13 @@
 
         {{-- Solicitudes de compensación de horas pendientes --}}
         <div id="seccion-compensaciones">
-            <h3 class="text-xl font-semibold text-blue-700 mb-1">Compensaciones de horas pendientes</h3>
+            <h3 class="text-xl font-semibold text-blue-700 mb-1">Solicitudes de horas pendientes</h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Horas negativas: el trabajador se las toma libres y restan de su bolsa. Horas positivas: se le reconocen y suman.
-                Un día con compensación aprobada cuenta en la bolsa por esas horas y no por su fichaje. La bolsa no puede quedar en negativo.
+                <strong>Horas extra (+)</strong>: el trabajador pide que se le reconozcan horas de un día ya trabajado; comprueba su fichaje antes de aprobar.
+                <strong>Compensación (−)</strong>: se toma horas libres contra su bolsa. Solo lo aprobado mueve la bolsa, que no puede quedar en negativo.
             </p>
             @if ($compensacionesPendientes->isEmpty())
-                <p class="text-gray-600 dark:text-gray-400">No hay compensaciones pendientes.</p>
+                <p class="text-gray-600 dark:text-gray-400">No hay solicitudes de horas pendientes.</p>
             @else
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow text-sm">
@@ -29,7 +29,9 @@
                             <tr>
                                 <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Empleado</th>
                                 <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Día</th>
+                                <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Tipo</th>
                                 <th class="px-4 py-2 text-right text-gray-800 dark:text-gray-100">Horas</th>
+                                <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Fichaje ese día</th>
                                 <th class="px-4 py-2 text-right text-gray-800 dark:text-gray-100">Bolsa actual</th>
                                 <th class="px-4 py-2 text-right text-gray-800 dark:text-gray-100">Bolsa tras aprobar</th>
                                 <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Comentario</th>
@@ -39,7 +41,7 @@
                         <tbody>
                             @foreach ($compensacionesPendientes as $c)
                                 @php
-                                    $fmtSaldo = fn($v) => ((float) $v > 0 ? '+' : ((float) $v < 0 ? '−' : '')) . rtrim(rtrim(number_format(abs((float) $v), 2, ',', '.'), '0'), ',') . ' h';
+                                    $fmtSaldo = fn($v) => \App\Models\CompensacionHoras::formatearMinutos((int) $v);
                                     $claseSaldo = fn($v) => (float) $v > 0 ? 'text-emerald-600 dark:text-emerald-400' : ((float) $v < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500');
                                 @endphp
                                 <tr class="border-t border-gray-200 dark:border-gray-700 compensacion-row" data-compensacion-id="{{ $c->id }}">
@@ -49,8 +51,36 @@
                                             <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">{{ $c->user->categoria->nombre }}</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-2 text-gray-800 dark:text-gray-100">{{ $c->fecha->format('d/m/Y') }}</td>
-                                    <td class="px-4 py-2 text-right font-semibold {{ $claseSaldo($c->horas) }}">{{ $c->etiquetaHoras() }}</td>
+                                    <td class="px-4 py-2 text-gray-800 dark:text-gray-100 whitespace-nowrap">{{ $c->fecha->format('d/m/Y') }}</td>
+                                    <td class="px-4 py-2 whitespace-nowrap">
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $c->esExtra() ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300' }}">{{ $c->nombreTipo() }}</span>
+                                    </td>
+                                    <td class="px-4 py-2 text-right font-semibold {{ $claseSaldo($c->minutos) }}">{{ $c->etiqueta() }}</td>
+                                    <td class="px-4 py-2 text-xs text-gray-600 dark:text-gray-300">
+                                        @if (!$c->esExtra())
+                                            <span class="text-gray-400">—</span>
+                                        @elseif (!$c->fichaje)
+                                            <span class="text-amber-600 dark:text-amber-400">Sin turno asignado ese día</span>
+                                        @else
+                                            @php $f = $c->fichaje; @endphp
+                                            <div>
+                                                @if ($f['turno']) <span class="font-medium">{{ $f['turno'] }}</span>{{ $f['horario'] ? ' (' . $f['horario'] . ')' : '' }} · @endif
+                                                {{ $f['fichaje'] ? 'Fichaje ' . $f['fichaje'] : 'Sin fichaje' }}
+                                            </div>
+                                            @if ($f['horas_fichadas'] > 0)
+                                                <div class="text-gray-500 dark:text-gray-400">{{ rtrim(rtrim(number_format($f['horas_fichadas'], 2, ',', '.'), '0'), ',') }} h fichadas de {{ rtrim(rtrim(number_format($f['horas_teoricas'], 2, ',', '.'), '0'), ',') }} h de turno</div>
+                                            @endif
+                                            @if ($f['abierto'])
+                                                <div class="text-amber-600 dark:text-amber-400">Fichaje sin cerrar</div>
+                                            @elseif ($f['puntual'] === false)
+                                                <div class="text-amber-600 dark:text-amber-400">Entró tarde: según las reglas no genera horas extra</div>
+                                            @elseif ($f['extra_min'] > 0)
+                                                <div class="font-semibold {{ $f['extra_min'] >= $c->minutos ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">Según fichaje: {{ $f['extra_txt'] }}{{ $f['cumple_minimo'] ? '' : ' (por debajo del mínimo de ' . $f['minimo_min'] . ' min)' }}</div>
+                                            @elseif ($f['horas_fichadas'] > 0)
+                                                <div class="text-amber-600 dark:text-amber-400">Según fichaje no hay tiempo extra</div>
+                                            @endif
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-2 text-right {{ $claseSaldo($c->bolsa_saldo) }}">{{ $fmtSaldo($c->bolsa_saldo) }}</td>
                                     <td class="px-4 py-2 text-right font-semibold {{ $claseSaldo($c->bolsa_resultante) }}">{{ $fmtSaldo($c->bolsa_resultante) }}</td>
                                     <td class="px-4 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-xs">{{ $c->comentario ?: '—' }}</td>
@@ -86,7 +116,7 @@
                     const tbody = document.querySelector('#seccion-compensaciones tbody');
                     if (tbody && !tbody.querySelector('tr')) {
                         document.querySelector('#seccion-compensaciones .overflow-x-auto').outerHTML =
-                            '<p class="text-gray-600 dark:text-gray-400">No hay compensaciones pendientes.</p>';
+                            '<p class="text-gray-600 dark:text-gray-400">No hay solicitudes de horas pendientes.</p>';
                     }
                     if (window.Swal) Swal.fire({ icon: 'success', title: accion === 'aprobar' ? 'Aprobada' : 'Denegada', text: data.message || '', timer: 1800, showConfirmButton: false });
                 } catch (e) {

@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Solicitud de compensación de horas contra la bolsa de horas del trabajador.
+ * Solicitud de horas contra la bolsa de horas del trabajador.
  *
- * horas: entero con signo. Negativo = el trabajador se toma horas libres (restan de su bolsa).
- * Positivo = se le reconocen horas extra (suman a su bolsa).
+ * minutos: entero con signo, en pasos de 5 minutos.
+ *  - Positivo = horas extra: el trabajador pide que se le reconozca tiempo de un día ya trabajado
+ *    (hoy o pasado). Al aprobarse suma a su bolsa.
+ *  - Negativo = compensación: el trabajador se toma tiempo libre de un día (hoy o futuro). Al
+ *    aprobarse resta de su bolsa, que no puede quedar en negativo.
  */
 class CompensacionHoras extends Model
 {
@@ -18,12 +21,16 @@ class CompensacionHoras extends Model
     public const ESTADO_APROBADA = 'aprobada';
     public const ESTADO_DENEGADA = 'denegada';
 
-    public const HORAS_MAX = 12;
+    /** Paso mínimo de una solicitud, en minutos. */
+    public const PASO_MINUTOS = 5;
+
+    /** Máximo por solicitud: 12 horas. */
+    public const MINUTOS_MAX = 720;
 
     protected $fillable = [
         'user_id',
         'fecha',
-        'horas',
+        'minutos',
         'estado',
         'comentario',
         'resuelto_por',
@@ -32,7 +39,7 @@ class CompensacionHoras extends Model
 
     protected $casts = [
         'fecha' => 'date',
-        'horas' => 'integer',
+        'minutos' => 'integer',
         'resuelto_at' => 'datetime',
     ];
 
@@ -56,17 +63,63 @@ class CompensacionHoras extends Model
         return $query->where('estado', self::ESTADO_APROBADA);
     }
 
-    /**
-     * Etiqueta de las horas con signo: "+3 h" / "−3 h".
-     */
-    public function etiquetaHoras(): string
+    /** Horas extra (positivas) frente a compensación (negativas). */
+    public function esExtra(): bool
     {
-        return self::formatearHoras($this->horas);
+        return $this->minutos > 0;
     }
 
-    public static function formatearHoras(int $horas): string
+    /** 'extra' | 'compensacion' */
+    public function tipo(): string
     {
-        return ($horas > 0 ? '+' : ($horas < 0 ? '−' : '')) . abs($horas) . ' h';
+        return $this->esExtra() ? 'extra' : 'compensacion';
+    }
+
+    /** "Horas extra" / "Compensación" */
+    public function nombreTipo(): string
+    {
+        return $this->esExtra() ? 'Horas extra' : 'Compensación';
+    }
+
+    /**
+     * Etiqueta del tiempo con signo: "+3 h", "−1 h 05 min", "+45 min".
+     */
+    public function etiqueta(): string
+    {
+        return self::formatearMinutos($this->minutos);
+    }
+
+    /**
+     * Formatea minutos como texto legible: 60 -> "1 h", 65 -> "1 h 05 min", 45 -> "45 min".
+     * Con $signo se antepone "+" o "−" (U+2212).
+     */
+    public static function formatearMinutos(int $minutos, bool $signo = true): string
+    {
+        $abs = abs($minutos);
+        $h = intdiv($abs, 60);
+        $m = $abs % 60;
+
+        if ($abs === 0) {
+            $txt = '0 h';
+        } elseif ($h > 0 && $m > 0) {
+            $txt = sprintf('%d h %02d min', $h, $m);
+        } elseif ($h > 0) {
+            $txt = $h . ' h';
+        } else {
+            $txt = $m . ' min';
+        }
+
+        $prefijo = $signo ? ($minutos > 0 ? '+' : ($minutos < 0 ? '−' : '')) : '';
+
+        return $prefijo . $txt;
+    }
+
+    /**
+     * Etiqueta corta con tipo y tiempo: "Extra +3 h" / "Compensación −2 h".
+     */
+    public function etiquetaCorta(): string
+    {
+        return ($this->esExtra() ? 'Extra ' : 'Compensación ') . $this->etiqueta();
     }
 
     /**
@@ -74,10 +127,12 @@ class CompensacionHoras extends Model
      */
     public function tituloCalendario(): string
     {
+        $tipo = $this->esExtra() ? 'Extra' : 'Compensación';
+
         return match ($this->estado) {
-            self::ESTADO_PENDIENTE => 'C. pendiente ' . $this->etiquetaHoras(),
-            self::ESTADO_DENEGADA => 'C. denegada ' . $this->etiquetaHoras(),
-            default => 'Compensación ' . $this->etiquetaHoras(),
+            self::ESTADO_PENDIENTE => $tipo . ' pendiente ' . $this->etiqueta(),
+            self::ESTADO_DENEGADA => $tipo . ' denegada ' . $this->etiqueta(),
+            default => $tipo . ' ' . $this->etiqueta(),
         };
     }
 }
