@@ -30,7 +30,6 @@ class AjustesController extends Controller
 
         $responsablesVenTodos = Configuracion::getBool('responsables_ven_todos', false);
         $vacacionesSemanasCompletas = Configuracion::getBool('vacaciones_semanas_completas', false);
-        $bolsaHorasDesde = \App\Services\ComputoHorasService::fechaInicioBolsa()->format('Y-m-d');
         $bolsaHorasToleranciaMin = \App\Services\ComputoHorasService::toleranciaMinutos();
         $bolsaHorasMinExtra = \App\Services\ComputoHorasService::minutosMinimosExtra();
 
@@ -44,7 +43,6 @@ class AjustesController extends Controller
             'agrupaciones',
             'responsablesVenTodos',
             'vacacionesSemanasCompletas',
-            'bolsaHorasDesde',
             'bolsaHorasToleranciaMin',
             'bolsaHorasMinExtra'
         ));
@@ -90,12 +88,10 @@ class AjustesController extends Controller
     public function actualizarBolsaHoras(Request $request)
     {
         $validated = $request->validate([
-            'bolsa_horas_desde' => ['required', 'date'],
             'bolsa_horas_tolerancia_min' => ['required', 'integer', 'min:0', 'max:180'],
             'bolsa_horas_min_extra' => ['required', 'integer', 'min:0', 'max:240'],
         ]);
 
-        Configuracion::set('bolsa_horas_desde', $validated['bolsa_horas_desde']);
         Configuracion::set('bolsa_horas_tolerancia_min', (string) $validated['bolsa_horas_tolerancia_min']);
         Configuracion::set('bolsa_horas_min_extra', (string) $validated['bolsa_horas_min_extra']);
 

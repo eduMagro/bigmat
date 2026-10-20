@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * marcan como "incompletos".
  *
  * Bolsa de horas: se lleva en MINUTOS y se alimenta exclusivamente de las solicitudes aprobadas
- * (tabla compensaciones_horas, pasos de 5 minutos), desde la fecha configurada en 'bolsa_horas_desde':
+ * (tabla compensaciones_horas, pasos de 5 minutos), sin fecha de inicio: cuentan todas las aprobadas.
  *
  * - Horas extra (+): el trabajador las solicita para un día ya trabajado (hoy o pasado) y el
  *   responsable las aprueba o deniega tras comprobar el fichaje. Oficina también puede
@@ -260,28 +260,6 @@ class ComputoHorasService
         return min(240, max(0, (int) Configuracion::get('bolsa_horas_min_extra', '50')));
     }
 
-    /** Fecha por defecto desde la que se acumula la bolsa: arranque del sistema, todos a cero. */
-    public const BOLSA_DESDE_POR_DEFECTO = '2026-10-21';
-
-    /**
-     * Fecha desde la que se acumula la bolsa de horas (ajuste 'bolsa_horas_desde').
-     * Por defecto, BOLSA_DESDE_POR_DEFECTO (fecha de puesta en marcha de la bolsa).
-     */
-    public static function fechaInicioBolsa(): Carbon
-    {
-        $valor = Configuracion::get('bolsa_horas_desde');
-
-        if ($valor) {
-            try {
-                return Carbon::parse($valor)->startOfDay();
-            } catch (\Throwable $e) {
-                // valor corrupto: caer al valor por defecto
-            }
-        }
-
-        return Carbon::parse(self::BOLSA_DESDE_POR_DEFECTO)->startOfDay();
-    }
-
     /**
      * Retraso de entrada admitido, en minutos, para considerar que entró a su hora
      * (ajuste 'bolsa_horas_tolerancia_min', por defecto 15).
@@ -394,15 +372,18 @@ class ComputoHorasService
      * @param  array<int>  $userIds
      * @return array<int, array<string, int>>  [user_id => [Y-m-d => minutos]]
      */
-    public static function compensacionesAprobadas(array $userIds, Carbon $desde, ?Carbon $hasta = null): array
+    public static function compensacionesAprobadas(array $userIds, ?Carbon $desde = null, ?Carbon $hasta = null): array
     {
         if (empty($userIds)) {
             return [];
         }
 
         $q = CompensacionHoras::aprobadas()
-            ->whereIn('user_id', $userIds)
-            ->where('fecha', '>=', $desde->toDateString());
+            ->whereIn('user_id', $userIds);
+
+        if ($desde) {
+            $q->where('fecha', '>=', $desde->toDateString());
+        }
 
         if ($hasta) {
             $q->where('fecha', '<=', $hasta->toDateString());
@@ -439,7 +420,6 @@ class ComputoHorasService
             'disponible_min' => $disponible,
             'saldo_txt' => CompensacionHoras::formatearMinutos($bolsa['saldo_min']),
             'disponible_txt' => CompensacionHoras::formatearMinutos($disponible),
-            'desde' => $bolsa['desde'],
         ];
     }
 
@@ -475,15 +455,10 @@ class ComputoHorasService
             return [];
         }
 
-        $desde = self::fechaInicioBolsa();
         $incluirFuturas = $hasta === null;
         $hasta = ($hasta ?? Carbon::today())->copy()->startOfDay();
 
-        if ($hasta->lt($desde)) {
-            $hasta = $desde->copy();
-        }
-
-        $compensaciones = self::compensacionesAprobadas($userIds, $desde, $incluirFuturas ? null : $hasta);
+        $compensaciones = self::compensacionesAprobadas($userIds, null, $incluirFuturas ? null : $hasta);
 
         $resultado = [];
 
@@ -511,7 +486,6 @@ class ComputoHorasService
                 'dias_extra' => $diasExtra,
                 'dias_devueltos' => $diasDevueltos,
                 'dias_compensacion' => $diasExtra + $diasDevueltos,
-                'desde' => $desde->toDateString(),
                 'hasta' => $hasta->toDateString(),
             ];
         }
@@ -685,7 +659,6 @@ class ComputoHorasService
             'dias_extra' => 0,
             'dias_devueltos' => 0,
             'dias_compensacion' => 0,
-            'desde' => self::fechaInicioBolsa()->toDateString(),
             'hasta' => Carbon::today()->toDateString(),
         ];
     }

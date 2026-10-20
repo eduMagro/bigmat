@@ -98,7 +98,6 @@ class ResumenHorasMensual extends Component
             'totalHoras' => $filas->sum('horas'),
             'totalPrevistas' => $filas->sum('previstas'),
             'totalSaldo' => $filas->sum('saldo'),
-            'bolsaDesde' => ComputoHorasService::fechaInicioBolsa()->format('d/m/Y'),
             'meses'      => $meses,
             'anios'      => range($anioActual, $anioActual - 5),
         ]);

@@ -76,10 +76,6 @@ class CompensacionHorasController extends Controller
             return response()->json(['error' => 'No puedes solicitar compensación para un día ya pasado. Habla con tu responsable.'], 422);
         }
 
-        if ($fecha->lt(ComputoHorasService::fechaInicioBolsa())) {
-            return response()->json(['error' => 'La bolsa de horas empieza el ' . ComputoHorasService::fechaInicioBolsa()->format('d/m/Y') . '.'], 422);
-        }
-
         $yaExiste = CompensacionHoras::where('user_id', $user->id)
             ->whereDate('fecha', $fecha->toDateString())
             ->whereIn('estado', [CompensacionHoras::ESTADO_PENDIENTE, CompensacionHoras::ESTADO_APROBADA])
@@ -155,10 +151,6 @@ class CompensacionHorasController extends Controller
 
         $fecha = Carbon::parse($validated['fecha'])->startOfDay();
         $minutos = (int) $validated['minutos'];
-
-        if ($fecha->lt(ComputoHorasService::fechaInicioBolsa())) {
-            return response()->json(['error' => 'La bolsa de horas empieza el ' . ComputoHorasService::fechaInicioBolsa()->format('d/m/Y') . '.'], 422);
-        }
 
         if ($minutos > 0 && $fecha->gt(Carbon::today())) {
             return response()->json(['error' => 'Las horas extra se reconocen una vez hechas: elige el día de hoy o un día ya trabajado.'], 422);

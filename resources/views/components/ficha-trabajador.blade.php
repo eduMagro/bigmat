@@ -244,14 +244,13 @@
                             @php
                                 $hSemana = $horas['semana'] ?? ['horas' => 0, 'dias_trabajados' => 0, 'dias_incompletos' => 0];
                                 $hMes = $horas['mes'] ?? ['horas' => 0, 'dias_trabajados' => 0, 'dias_incompletos' => 0];
-                                $hBolsa = $horas['bolsa'] ?? ['saldo_min' => 0, 'extra_min' => 0, 'devueltas_min' => 0, 'desde' => null];
+                                $hBolsa = $horas['bolsa'] ?? ['saldo_min' => 0, 'extra_min' => 0, 'devueltas_min' => 0];
                                 $fmtH = fn($v) => rtrim(rtrim(number_format((float) $v, 2, ',', '.'), '0'), ',');
                                 $fmtMin = fn($v, $signo = true) => \App\Models\CompensacionHoras::formatearMinutos((int) $v, $signo);
                                 $bolsaSaldo = (int) ($hBolsa['saldo_min'] ?? 0);
                                 $bolsaClase = $bolsaSaldo > 0
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : ($bolsaSaldo < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100');
-                                $bolsaDesde = !empty($hBolsa['desde']) ? \Carbon\Carbon::parse($hBolsa['desde'])->format('d/m/Y') : null;
                             @endphp
                             <div>
                                 <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold mb-1.5">Horas trabajadas</p>
@@ -290,7 +289,7 @@
                                     </div>
                                     {{-- Bolsa de horas (extra aprobadas menos compensadas) --}}
                                     <div class="col-span-2 py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                                        title="Horas extra aprobadas menos horas compensadas{{ $bolsaDesde ? ' desde el ' . $bolsaDesde : '' }}. Solo las solicitudes aprobadas mueven la bolsa.">
+                                        title="Horas extra aprobadas menos horas compensadas. Solo las solicitudes aprobadas mueven la bolsa.">
                                         <div class="flex items-center gap-1.5 mb-0.5">
                                             <svg class="w-3.5 h-3.5 {{ $bolsaSaldo < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

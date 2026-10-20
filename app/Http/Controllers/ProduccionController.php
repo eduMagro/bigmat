@@ -59,7 +59,6 @@ class ProduccionController extends Controller
                 'bolsa_txt' => $h['bolsa']['saldo_txt'] ?? '0 h',
                 'bolsa_extra' => $h['bolsa']['extra_min'] ?? 0,
                 'bolsa_devueltas' => $h['bolsa']['devueltas_min'] ?? 0,
-                'bolsa_desde' => $h['bolsa']['desde'] ?? null,
                 'solicitudes_pendientes' => $pend->map(fn($c) => [
                     'id' => $c->id,
                     'fecha' => $c->fecha->toDateString(),
@@ -321,7 +320,6 @@ class ProduccionController extends Controller
                 'bolsa_txt' => $h['bolsa']['saldo_txt'] ?? '0 h',
                 'bolsa_extra' => $h['bolsa']['extra_min'] ?? 0,
                 'bolsa_devueltas' => $h['bolsa']['devueltas_min'] ?? 0,
-                'bolsa_desde' => $h['bolsa']['desde'] ?? null,
                 'solicitudes_pendientes' => $pend->map(fn($c) => [
                     'id' => $c->id,
                     'fecha' => $c->fecha->toDateString(),

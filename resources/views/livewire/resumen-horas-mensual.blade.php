@@ -59,7 +59,7 @@
                     <th class="px-4 py-2 text-right font-semibold">Horas</th>
                     <th class="px-4 py-2 text-right font-semibold" title="Horas teóricas según los turnos asignados en el mes">Previstas</th>
                     <th class="px-4 py-2 text-right font-semibold" title="Orientativo: horas fichadas menos horas de turno en el mes, en horas enteras según las reglas de la bolsa. No mueve la bolsa.">Saldo mes</th>
-                    <th class="px-4 py-2 text-right font-semibold" title="Bolsa de horas (extras aprobadas menos compensaciones) acumulada desde el {{ $bolsaDesde }} hasta el fin de este mes">Bolsa</th>
+                    <th class="px-4 py-2 text-right font-semibold" title="Bolsa de horas (extras aprobadas menos compensaciones) acumulada hasta el fin de este mes">Bolsa</th>
                     <th class="px-4 py-2 text-center font-semibold">Días trab.</th>
                     <th class="px-4 py-2 text-center font-semibold">Sin fichaje</th>
                     <th class="px-4 py-2 text-center font-semibold">Vacac.</th>

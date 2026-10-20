@@ -776,7 +776,7 @@
                         bolsa.className = 'text-[10px] font-semibold mt-0.5 ' +
                             (bolsaN > 0 ? 'text-emerald-600 dark:text-emerald-400' : (bolsaN < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'));
                         const saldoSemanaN = Number(props.saldo_semana) || 0;
-                        bolsa.title = `Bolsa de horas desde ${props.bolsa_desde || ''}: ` +
+                        bolsa.title = `Bolsa de horas: ` +
                             `${fmtSaldoComp(props.bolsa_extra, false)} extra aprobadas, ${fmtSaldoComp(props.bolsa_devueltas, false)} compensadas. ` +
                             `Fichaje vs turno esta semana (orientativo): ${fmtSaldo(saldoSemanaN)}`;
                         bolsa.innerHTML = `Bolsa: ${fmtSaldoComp(bolsaN)}` +

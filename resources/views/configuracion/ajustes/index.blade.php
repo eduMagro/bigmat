@@ -433,14 +433,7 @@
                             sirve de referencia. Con estos ajustes se calcula la orientación "según fichaje" que ve el responsable:
                             minutos extra medidos desde la hora de fin del turno, solo si entró puntual.
                         </p>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label for="bolsa_horas_desde" class="block text-sm font-medium text-gray-900 dark:text-gray-100">Acumular desde</label>
-                                <input type="date" id="bolsa_horas_desde" name="bolsa_horas_desde" value="{{ old('bolsa_horas_desde', $bolsaHorasDesde) }}" required
-                                    class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring focus:ring-blue-300 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Fecha desde la que cuentan las solicitudes aprobadas. Útil para poner el contador a cero.</p>
-                                @error('bolsa_horas_desde') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                            </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="bolsa_horas_tolerancia_min" class="block text-sm font-medium text-gray-900 dark:text-gray-100">Tolerancia diaria (minutos)</label>
                                 <input type="number" id="bolsa_horas_tolerancia_min" name="bolsa_horas_tolerancia_min" min="0" max="180" step="1" value="{{ old('bolsa_horas_tolerancia_min', $bolsaHorasToleranciaMin) }}" required
