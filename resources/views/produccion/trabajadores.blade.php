@@ -353,64 +353,47 @@
             const puedeExtra = fecha <= hoyStr;
             const puedeComp = fecha >= hoyStr && maxPedir > 0;
             if (!puedeExtra && !puedeComp) {
-                Swal.fire({ icon: 'info', title: 'No disponible', text: `Sin saldo en la bolsa (${fmtSaldoComp(saldoActual)}): no se puede compensar ese día, y las horas extra solo se reconocen de días ya trabajados.` });
+                Swal.fire({ icon: 'info', title: 'No disponible', text: fecha > hoyStr ? `Sin saldo en la bolsa (${fmtSaldoComp(saldoActual)}): no se puede compensar un día futuro.` : 'Nada que asignar ese día.' });
                 return null;
             }
             const fichaje = saldo.fichaje || null;
             const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
-            const fmtDec = (v) => { const n = Number(v) || 0; return Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',').replace(/,?0+$/, ''); };
+            // Una línea de contexto para días ya trabajados
             let fichajeHtml = '';
             if (puedeExtra) {
-                if (!fichaje) {
-                    fichajeHtml = '<div class="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3 text-xs text-amber-800">Ese día no tiene turno asignado.</div>';
-                } else {
+                let texto = 'Sin turno ese día';
+                if (fichaje) {
                     const partes = [];
-                    if (fichaje.turno) partes.push(`Turno <strong>${esc(fichaje.turno)}</strong>${fichaje.horario ? ` (${esc(fichaje.horario)})` : ''}`);
-                    partes.push(fichaje.fichaje ? `Fichaje <strong>${esc(fichaje.fichaje)}</strong>` : '<strong>Sin fichaje</strong>');
-                    if (Number(fichaje.horas_fichadas) > 0) partes.push(`${fmtDec(fichaje.horas_fichadas)} h fichadas de ${fmtDec(fichaje.horas_teoricas)} h de turno`);
-                    let sug = '';
-                    if (fichaje.abierto) sug = 'El fichaje está sin cerrar.';
-                    else if (fichaje.puntual === false) sug = 'Entró tarde: según las reglas ese día no genera horas extra.';
-                    else if (Number(fichaje.extra_min) > 0) sug = `Según el fichaje: <strong>${fichaje.extra_txt}</strong> extra${fichaje.cumple_minimo === false ? ` (por debajo del mínimo de ${fichaje.minimo_min} min)` : ''}.`;
-                    else if (Number(fichaje.horas_fichadas) > 0) sug = 'Según el fichaje no hay tiempo extra.';
-                    fichajeHtml = `<div class="bg-gray-50 rounded-lg p-2 mb-3 text-xs text-gray-600"><div class="text-gray-500 mb-0.5">Ese día</div><div>${partes.join(' · ')}</div>${sug ? `<div class="mt-0.5">${sug}</div>` : ''}</div>`;
+                    if (fichaje.horario) partes.push(`Turno ${esc(fichaje.horario)}`);
+                    partes.push(fichaje.fichaje ? `Fichaje ${esc(fichaje.fichaje)}` : 'Sin fichaje');
+                    if (fichaje.abierto) partes.push('fichaje sin cerrar');
+                    else if (fichaje.puntual === false) partes.push('entró tarde: sin extras');
+                    else if (Number(fichaje.extra_min) > 0) partes.push(`según fichaje <strong>${esc(fichaje.extra_txt)}</strong> extra`);
+                    texto = partes.join(' · ');
                 }
+                fichajeHtml = `<p class="text-xs text-gray-600 mb-3">${texto}</p>`;
             }
             const sugerida = Math.min(max, Math.max(0, Number(fichaje?.extra_min) || 0));
-            const avisoFijo = !puedeComp
-                ? (fecha < hoyStr ? 'Día pasado: solo se pueden reconocer horas extra (+)' : 'Sin saldo: solo se pueden reconocer horas extra (+)')
-                : (!puedeExtra ? 'Día futuro: solo compensación (−)' : '');
             const fechaFmt = new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
             const { value, isConfirmed } = await Swal.fire({
                 title: '<span style="font-size:1.1rem">Horas extra / compensación</span>',
                 html: `
                     <div class="text-left text-sm">
-                        <p class="text-gray-600 mb-3">${nombre ? `<strong>${nombre}</strong> · ` : ''}${fechaFmt}</p>
+                        <p class="text-gray-600 mb-2">${nombre ? `<strong>${esc(nombre)}</strong> · ` : ''}${fechaFmt}</p>
                         ${fichajeHtml}
-                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
-                            <div class="bg-gray-50 rounded-lg p-2">
-                                <div class="text-gray-500">Bolsa actual</div>
-                                <div class="font-bold text-base ${claseSaldoComp(saldoActual)}">${fmtSaldoComp(saldoActual)}</div>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-2">
-                                <div class="text-gray-500">Bolsa resultante</div>
-                                <div id="pc-resultante" class="font-bold text-base"></div>
-                                <div id="pc-aviso" class="text-amber-700 text-[11px] ${avisoFijo ? '' : 'hidden'}">${avisoFijo}</div>
-                            </div>
-                        </div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Tiempo (+ extra / − compensación) <span class="font-normal text-gray-400">(pasos de ${paso} min)</span></label>
-                        <div class="flex items-center justify-center gap-2 mb-1">
+                        <div class="flex items-center justify-center gap-2">
                             <button type="button" class="pc-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="-60" title="Una hora menos">−1h</button>
                             <button type="button" class="pc-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="-${paso}" title="${paso} minutos menos">−${paso}</button>
-                            <div id="pc-horas" class="w-32 text-center text-xl font-bold"></div>
+                            <div class="w-36 text-center">
+                                <div id="pc-horas" class="text-2xl font-bold leading-tight"></div>
+                                <span id="pc-tipo" class="inline-block rounded-full px-2 text-[11px] font-semibold"></span>
+                            </div>
                             <button type="button" class="pc-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="${paso}" title="${paso} minutos más">+${paso}</button>
                             <button type="button" class="pc-paso w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-bold leading-none" data-delta="60" title="Una hora más">+1h</button>
                         </div>
-                        <p id="pc-explica" class="text-center text-xs text-gray-500 mb-3"></p>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="pc-comentario">Comentario (opcional)</label>
-                        <textarea id="pc-comentario" rows="2" maxlength="500" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-sm"></textarea>
-                        <p class="text-[11px] text-gray-400 mt-2">Se asigna ya aprobado y se avisa al trabajador. La bolsa no puede quedar en negativo.</p>
+                        <p id="pc-bolsa" class="mt-1 mb-3 text-center text-xs text-gray-600"></p>
+                        <textarea id="pc-comentario" rows="1" maxlength="500" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-sm" placeholder="Comentario (opcional)"></textarea>
                     </div>`,
                 showCancelButton: true,
                 confirmButtonText: 'Asignar',
@@ -421,29 +404,31 @@
                     const popup = Swal.getPopup();
                     let horas = (puedeExtra && (!puedeComp || fecha < hoyStr)) ? (sugerida > 0 ? sugerida : 60) : -Math.min(60, maxPedir); // minutos con signo
                     const txt = popup.querySelector('#pc-horas');
-                    const res = popup.querySelector('#pc-resultante');
-                    const aviso = popup.querySelector('#pc-aviso');
-                    const explica = popup.querySelector('#pc-explica');
+                    const tipo = popup.querySelector('#pc-tipo');
+                    const bolsa = popup.querySelector('#pc-bolsa');
+                    const minimo = puedeComp ? -Math.min(max, maxPedir) : paso;
+                    const maximo = puedeExtra ? max : -paso;
                     const pintar = () => {
                         txt.textContent = fmtSaldoComp(horas);
-                        txt.className = 'w-32 text-center text-xl font-bold ' + claseSaldoComp(horas);
+                        txt.className = 'text-2xl font-bold leading-tight ' + claseSaldoComp(horas);
+                        tipo.textContent = horas < 0 ? 'Compensación' : 'Horas extra';
+                        tipo.className = 'inline-block rounded-full px-2 text-[11px] font-semibold ' + (horas < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700');
                         const resultante = saldoActual + horas;
-                        res.textContent = fmtSaldoComp(resultante);
-                        res.className = 'font-bold text-base ' + claseSaldoComp(resultante);
-                        explica.textContent = horas < 0
-                            ? `El trabajador se toma ${fmtSaldoComp(horas, false)} libres (restan de la bolsa)`
-                            : `Se le reconocen ${fmtSaldoComp(horas, false)} extra de ese día (suman a la bolsa)`;
+                        bolsa.innerHTML = `Bolsa al guardar: <strong class="${claseSaldoComp(resultante)}">${fmtSaldoComp(resultante)}</strong>`;
+                        popup.querySelectorAll('.pc-paso').forEach((b) => {
+                            const apagado = Number(b.dataset.delta) > 0 ? horas >= maximo : horas <= minimo;
+                            b.disabled = apagado;
+                            b.classList.toggle('opacity-40', apagado);
+                            b.classList.toggle('cursor-not-allowed', apagado);
+                        });
                         popup.dataset.horas = String(horas);
                     };
                     const mover = (delta) => {
                         let n = horas + delta;
                         if (n === 0 || Math.sign(n) !== Math.sign(horas)) {
-                            if (delta > 0) n = puedeExtra ? paso : horas;
-                            else n = puedeComp ? -paso : horas;
-                            if (n === horas) { pintar(); return; }
+                            if (delta > 0) n = puedeExtra ? paso : -paso;
+                            else n = puedeComp ? -paso : paso;
                         }
-                        const minimo = puedeComp ? -Math.min(max, maxPedir) : paso;
-                        const maximo = puedeExtra ? max : -paso;
                         horas = Math.max(minimo, Math.min(maximo, n));
                         pintar();
                     };
