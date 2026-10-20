@@ -76,7 +76,12 @@ class PerfilController extends Controller
                 'fichajesRangoUrl' => route('usuarios.fichajes-rango', ['id' => $user->id]),
                 'revisionFichajeStoreUrl' => route('revision-fichaje.store'),
                 'eliminarEstadoVacacionesUrl' => route('vacaciones.eliminarEvento'),
+                'compensacionSaldoUrl' => route('compensaciones.saldo'),
+                'compensacionStoreUrl' => route('compensaciones.solicitar'),
+                'compensacionEliminarUrl' => url('/compensaciones-horas'),
+                'compensacionAsignarDirectoUrl' => route('compensaciones.asignarDirecto'),
             ],
+            'vacacionesSemanasCompletas' => \App\Models\Configuracion::getBool('vacaciones_semanas_completas', false),
             'enableListMonth' => true,
             'mobileBreakpoint' => 768,
             'permissions' => [

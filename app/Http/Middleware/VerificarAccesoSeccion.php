@@ -43,6 +43,11 @@ class VerificarAccesoSeccion
         'vacaciones.misSolicitudesPendientes',
         'vacaciones.eliminarDiasSolicitud',
         'vacaciones.eliminarSolicitud',
+        // Compensación de horas (bolsa de horas): el trabajador consulta su saldo y gestiona sus solicitudes
+        'compensaciones.saldo',
+        'compensaciones.solicitar',
+        'compensaciones.misPendientes',
+        'compensaciones.eliminar',
         // Revision de fichajes
         'usuarios.fichajes-rango',
         'revision-fichaje.store',

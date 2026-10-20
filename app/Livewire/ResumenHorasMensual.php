@@ -72,6 +72,9 @@ class ResumenHorasMensual extends Component
                 'foto'            => $t->ruta_imagen ?? null,
                 'categoria'       => $t->categoria?->nombre,
                 'horas'           => $r['horas'] ?? 0,
+                'previstas'       => $r['previstas'] ?? 0,
+                'saldo'           => $r['saldo'] ?? 0,
+                'bolsa'           => $r['bolsa'] ?? 0,
                 'dias_trabajados' => $r['dias_trabajados'] ?? 0,
                 'dias_incompletos' => $r['dias_incompletos'] ?? 0,
                 'vacaciones'      => $r['vacaciones'] ?? 0,
@@ -93,6 +96,9 @@ class ResumenHorasMensual extends Component
         return view('livewire.resumen-horas-mensual', [
             'filas'      => $filas,
             'totalHoras' => $filas->sum('horas'),
+            'totalPrevistas' => $filas->sum('previstas'),
+            'totalSaldo' => $filas->sum('saldo'),
+            'bolsaDesde' => ComputoHorasService::fechaInicioBolsa()->format('d/m/Y'),
             'meses'      => $meses,
             'anios'      => range($anioActual, $anioActual - 5),
         ]);

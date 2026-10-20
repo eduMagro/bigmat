@@ -11,6 +11,8 @@ use App\Models\Alerta;
 use App\Models\AlertaLeida;
 use App\Models\Departamento;
 use App\Models\Categoria;
+use App\Models\Configuracion;
+use App\Models\CompensacionHoras;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Log;
@@ -118,12 +120,25 @@ class VacacionesController extends Controller
 
         $eventos = array_merge($eventos, $eventosSolicitudes);
 
+        // Solicitudes de compensación de horas pendientes (con la bolsa actual de cada trabajador)
+        $compensacionesPendientes = CompensacionHoras::with(['user.categoria'])
+            ->pendientes()
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
+            ->orderBy('fecha')
+            ->get();
+        $bolsas = \App\Services\ComputoHorasService::bolsaHoras($compensacionesPendientes->pluck('user_id')->unique());
+        $compensacionesPendientes->each(function ($c) use ($bolsas) {
+            $c->bolsa_saldo = $bolsas[$c->user_id]['saldo'] ?? 0;
+            $c->bolsa_resultante = $c->bolsa_saldo + $c->horas;
+        });
+
         // Categorías disponibles para el filtro del calendario
         $categorias = Categoria::orderBy('nombre')->pluck('nombre');
 
         return view('vacaciones.index', [
             'eventos' => $eventos,
             'solicitudesPendientes' => $solicitudesPendientes,
+            'compensacionesPendientes' => $compensacionesPendientes,
             'totalSolicitudesPendientes' => $solicitudesPendientes->count(),
             'categorias' => $categorias,
         ]);
@@ -141,9 +156,11 @@ class VacacionesController extends Controller
             $nuevaInicio = Carbon::parse($validated['fecha_inicio']);
             $nuevaFin = Carbon::parse($validated['fecha_fin']);
 
-            // 1.b) Las vacaciones deben solicitarse por semanas completas (lunes a domingo).
-            // Si empieza en lunes (ISO 1) y termina en domingo (ISO 7), el rango es múltiplo exacto de semanas.
-            if ($nuevaInicio->dayOfWeekIso !== 1 || $nuevaFin->dayOfWeekIso !== 7) {
+            // 1.b) Por defecto el trabajador elige libremente el rango (incluso un día suelto) y el
+            // responsable decide al aprobar. Solo si el ajuste 'vacaciones_semanas_completas' está
+            // activo se exige semana completa: empezar en lunes (ISO 1) y terminar en domingo (ISO 7).
+            $exigeSemanasCompletas = Configuracion::getBool('vacaciones_semanas_completas', false);
+            if ($exigeSemanasCompletas && ($nuevaInicio->dayOfWeekIso !== 1 || $nuevaFin->dayOfWeekIso !== 7)) {
                 return response()->json([
                     'error' => 'Las vacaciones deben solicitarse por semanas completas (de lunes a domingo).',
                 ], 422);

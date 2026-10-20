@@ -1,6 +1,10 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
     @php
         $fmtH = fn($v) => rtrim(rtrim(number_format((float) $v, 2, ',', '.'), '0'), ',');
+        $fmtSaldo = fn($v) => ((float) $v > 0 ? '+' : ((float) $v < 0 ? '-' : '')) . $fmtH(abs((float) $v));
+        $claseSaldo = fn($v) => (float) $v > 0
+            ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+            : ((float) $v < 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-300 dark:text-gray-600');
     @endphp
 
     {{-- Cabecera con selector de mes/año --}}
@@ -53,6 +57,9 @@
                 <tr>
                     <th class="px-4 py-2 text-left font-semibold">Trabajador</th>
                     <th class="px-4 py-2 text-right font-semibold">Horas</th>
+                    <th class="px-4 py-2 text-right font-semibold" title="Horas teóricas según los turnos asignados en el mes">Previstas</th>
+                    <th class="px-4 py-2 text-right font-semibold" title="Horas fichadas menos previstas en el mes (solo días fichados)">Saldo mes</th>
+                    <th class="px-4 py-2 text-right font-semibold" title="Bolsa de horas acumulada desde el {{ $bolsaDesde }} hasta el fin de este mes">Bolsa</th>
                     <th class="px-4 py-2 text-center font-semibold">Días trab.</th>
                     <th class="px-4 py-2 text-center font-semibold">Sin fichaje</th>
                     <th class="px-4 py-2 text-center font-semibold">Vacac.</th>
@@ -80,6 +87,9 @@
                             </a>
                         </td>
                         <td class="px-4 py-2 text-right font-semibold text-gray-900 dark:text-gray-100">{{ $fmtH($f['horas']) }} h</td>
+                        <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ $fmtH($f['previstas']) }} h</td>
+                        <td class="px-4 py-2 text-right {{ $claseSaldo($f['saldo']) }}">{{ (float) $f['saldo'] != 0 ? $fmtSaldo($f['saldo']) . ' h' : '—' }}</td>
+                        <td class="px-4 py-2 text-right {{ $claseSaldo($f['bolsa']) }}">{{ (float) $f['bolsa'] != 0 ? $fmtSaldo($f['bolsa']) . ' h' : '—' }}</td>
                         <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $f['dias_trabajados'] }}</td>
                         <td class="px-4 py-2 text-center">
                             @if ($f['dias_incompletos'] > 0)
@@ -101,7 +111,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400 italic">
+                        <td colspan="11" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400 italic">
                             No hay trabajadores que mostrar.
                         </td>
                     </tr>
@@ -112,6 +122,8 @@
                     <tr>
                         <td class="px-4 py-2 text-right">Total</td>
                         <td class="px-4 py-2 text-right">{{ $fmtH($totalHoras) }} h</td>
+                        <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ $fmtH($totalPrevistas) }} h</td>
+                        <td class="px-4 py-2 text-right {{ $claseSaldo($totalSaldo) }}">{{ (float) $totalSaldo != 0 ? $fmtSaldo($totalSaldo) . ' h' : '—' }}</td>
                         <td colspan="6"></td>
                     </tr>
                 </tfoot>

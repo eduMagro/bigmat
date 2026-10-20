@@ -45,6 +45,12 @@ class ProduccionController extends Controller
                 'categoria' => $trabajador->categoria?->nombre,
                 'horas_semana' => $h['semana']['horas'] ?? 0,
                 'horas_mes' => $h['mes']['horas'] ?? 0,
+                'previstas_semana' => $h['semana']['previstas'] ?? 0,
+                'saldo_semana' => $h['semana']['saldo'] ?? 0,
+                'bolsa' => $h['bolsa']['saldo'] ?? 0,
+                'bolsa_extra' => $h['bolsa']['horas_extra'] ?? 0,
+                'bolsa_devueltas' => $h['bolsa']['horas_devueltas'] ?? 0,
+                'bolsa_desde' => $h['bolsa']['desde'] ?? null,
             ];
         })->values();
 
@@ -57,6 +63,14 @@ class ProduccionController extends Controller
             ->whereBetween('fecha', [$fechaHoy, $fechaLimite])
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
+
+        // Compensaciones de horas aprobadas en el rango: [user|fecha => CompensacionHoras]
+        $compensaciones = \App\Models\CompensacionHoras::aprobadas()
+            ->whereBetween('fecha', [$fechaHoy->toDateString(), $fechaLimite->toDateString()])
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
+            ->get()
+            ->keyBy(fn($c) => $c->user_id . '|' . $c->fecha->toDateString());
+        $compensacionesUsadas = [];
 
         $eventos = [];
 
@@ -162,6 +176,54 @@ class ProduccionController extends Controller
                     'categoria' => $trabajador->categoria?->nombre,
                     'hora_inicio' => substr($horaInicio, 0, 5),
                     'hora_fin' => substr($horaFin, 0, 5),
+                    'compensacion_horas' => null,
+                    'compensacion_label' => null,
+                    'compensacion_id' => null,
+                ],
+            ];
+
+            $claveComp = $trabajador->id . '|' . $fechaStr;
+            if (isset($compensaciones[$claveComp])) {
+                $comp = $compensaciones[$claveComp];
+                $idx = count($eventos) - 1;
+                $eventos[$idx]['extendedProps']['compensacion_id'] = $comp->id;
+                $eventos[$idx]['extendedProps']['compensacion_horas'] = $comp->horas;
+                $eventos[$idx]['extendedProps']['compensacion_label'] = 'Compensación ' . $comp->etiquetaHoras();
+                $compensacionesUsadas[$claveComp] = true;
+            }
+        }
+
+        // Compensaciones aprobadas en días sin asignación: evento propio de día completo
+        foreach ($compensaciones as $clave => $comp) {
+            if (isset($compensacionesUsadas[$clave]) || !$comp->user_id) {
+                continue;
+            }
+            $fechaStr = $comp->fecha->toDateString();
+            $eventos[] = [
+                'id' => 'comp-' . $comp->id,
+                'title' => 'Compensación ' . $comp->etiquetaHoras(),
+                'start' => $fechaStr . 'T00:00:00',
+                'end' => $fechaStr . 'T23:59:00',
+                'resourceId' => $comp->user_id,
+                'backgroundColor' => '#99f6e4',
+                'borderColor' => '#0f766e',
+                'textColor' => '#000000',
+                'editable' => false,
+                'extendedProps' => [
+                    'asignacion_id' => null,
+                    'user_id' => $comp->user_id,
+                    'turno_id' => null,
+                    'turno_nombre' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'estado' => 'compensacion',
+                    'entrada' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'salida' => null,
+                    'entrada2' => null,
+                    'salida2' => null,
+                    'hora_inicio' => '00:00',
+                    'hora_fin' => '23:59',
+                    'compensacion_horas' => $comp->horas,
+                    'compensacion_label' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'compensacion_id' => $comp->id,
                 ],
             ];
         }
@@ -223,6 +285,12 @@ class ProduccionController extends Controller
                 'categoria' => $trabajador->categoria?->nombre,
                 'horas_semana' => $h['semana']['horas'] ?? 0,
                 'horas_mes' => $h['mes']['horas'] ?? 0,
+                'previstas_semana' => $h['semana']['previstas'] ?? 0,
+                'saldo_semana' => $h['semana']['saldo'] ?? 0,
+                'bolsa' => $h['bolsa']['saldo'] ?? 0,
+                'bolsa_extra' => $h['bolsa']['horas_extra'] ?? 0,
+                'bolsa_devueltas' => $h['bolsa']['horas_devueltas'] ?? 0,
+                'bolsa_desde' => $h['bolsa']['desde'] ?? null,
             ];
         })->values();
 
@@ -233,6 +301,14 @@ class ProduccionController extends Controller
             ->whereBetween('fecha', [$fechaHoy, $fechaLimite])
             ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
             ->get();
+
+        // Compensaciones de horas aprobadas en el rango: [user|fecha => CompensacionHoras]
+        $compensaciones = \App\Models\CompensacionHoras::aprobadas()
+            ->whereBetween('fecha', [$fechaHoy->toDateString(), $fechaLimite->toDateString()])
+            ->when($usuariosVisiblesIds !== null, fn($q) => $q->whereIn('user_id', $usuariosVisiblesIds))
+            ->get()
+            ->keyBy(fn($c) => $c->user_id . '|' . $c->fecha->toDateString());
+        $compensacionesUsadas = [];
 
         $eventos = [];
 
@@ -328,6 +404,54 @@ class ProduccionController extends Controller
                     'categoria' => $trabajador->categoria?->nombre,
                     'hora_inicio' => substr($horaInicio, 0, 5),
                     'hora_fin' => substr($horaFin, 0, 5),
+                    'compensacion_horas' => null,
+                    'compensacion_label' => null,
+                    'compensacion_id' => null,
+                ],
+            ];
+
+            $claveComp = $trabajador->id . '|' . $fechaStr;
+            if (isset($compensaciones[$claveComp])) {
+                $comp = $compensaciones[$claveComp];
+                $idx = count($eventos) - 1;
+                $eventos[$idx]['extendedProps']['compensacion_id'] = $comp->id;
+                $eventos[$idx]['extendedProps']['compensacion_horas'] = $comp->horas;
+                $eventos[$idx]['extendedProps']['compensacion_label'] = 'Compensación ' . $comp->etiquetaHoras();
+                $compensacionesUsadas[$claveComp] = true;
+            }
+        }
+
+        // Compensaciones aprobadas en días sin asignación: evento propio de día completo
+        foreach ($compensaciones as $clave => $comp) {
+            if (isset($compensacionesUsadas[$clave]) || !$comp->user_id) {
+                continue;
+            }
+            $fechaStr = $comp->fecha->toDateString();
+            $eventos[] = [
+                'id' => 'comp-' . $comp->id,
+                'title' => 'Compensación ' . $comp->etiquetaHoras(),
+                'start' => $fechaStr . 'T00:00:00',
+                'end' => $fechaStr . 'T23:59:00',
+                'resourceId' => $comp->user_id,
+                'backgroundColor' => '#99f6e4',
+                'borderColor' => '#0f766e',
+                'textColor' => '#000000',
+                'editable' => false,
+                'extendedProps' => [
+                    'asignacion_id' => null,
+                    'user_id' => $comp->user_id,
+                    'turno_id' => null,
+                    'turno_nombre' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'estado' => 'compensacion',
+                    'entrada' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'salida' => null,
+                    'entrada2' => null,
+                    'salida2' => null,
+                    'hora_inicio' => '00:00',
+                    'hora_fin' => '23:59',
+                    'compensacion_horas' => $comp->horas,
+                    'compensacion_label' => 'Compensación ' . $comp->etiquetaHoras(),
+                    'compensacion_id' => $comp->id,
                 ],
             ];
         }

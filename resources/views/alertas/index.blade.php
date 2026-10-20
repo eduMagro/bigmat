@@ -271,8 +271,8 @@
                                 <!-- Columna Acciones -->
                                 <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
                                     <div class="flex justify-center space-x-2">
-                                        @if ($alerta->tipo === 'vacaciones')
-                                            <a href="{{ route('vacaciones.index') }}"
+                                        @if (in_array($alerta->tipo, ['vacaciones', 'compensacion_horas']))
+                                            <a href="{{ route('vacaciones.index') }}{{ $alerta->tipo === 'compensacion_horas' ? '#seccion-compensaciones' : '' }}"
                                                 class="inline-flex items-center px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-150 shadow-sm hover:shadow-md"
                                                 title="Ir a Vacaciones">
                                                 <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">

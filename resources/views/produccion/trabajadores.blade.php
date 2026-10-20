@@ -111,6 +111,9 @@
                 'moverAsignacion' => route('planificacion.moverAsignacion'),
                 'datosFormulario' => route('planificacion.datosFormulario'),
                 'datosCalendario' => route('planificacion.datosCalendario'),
+                'compensacionSaldo' => route('compensaciones.saldo'),
+                'compensacionAsignarDirecto' => route('compensaciones.asignarDirecto'),
+                'compensacionBase' => url('/compensaciones-horas'),
             ],
         ];
     @endphp
@@ -141,24 +144,64 @@
             return el;
         }
 
-        // Menu para evento (turno asignado) - solo eliminar
+        // Menu para evento (turno asignado): compensación de horas y eliminar
         function menuEvento(x, y, event, calendar) {
             const p = event.extendedProps || {};
             if (p.es_festivo) return;
 
             const turnoNombre = p.turno_nombre || event.title;
+            const fechaEvento = event.start
+                ? `${event.start.getFullYear()}-${String(event.start.getMonth() + 1).padStart(2, '0')}-${String(event.start.getDate()).padStart(2, '0')}`
+                : null;
+            const tieneComp = Boolean(p.compensacion_id);
 
             const el = abrirMenu(x, y, `
                 <div class="ctx-menu-header">
                     <div class="font-semibold">${turnoNombre}</div>
                     <div class="text-xs text-gray-500">${p.hora_inicio || ''} - ${p.hora_fin || ''}</div>
+                    ${tieneComp ? `<div class="text-xs font-semibold ${Number(p.compensacion_horas) < 0 ? 'text-red-600' : 'text-emerald-600'}">${p.compensacion_label}</div>` : ''}
                 </div>
-                <button class="ctx-menu-item ctx-menu-danger" data-action="eliminar">
-                    <span>🗑️</span> Eliminar turno
+                <button class="ctx-menu-item" data-action="compensacion">
+                    <span>⏱️</span> ${tieneComp ? 'Cambiar compensación de horas' : 'Compensación de horas…'}
                 </button>
+                ${tieneComp ? `<button class="ctx-menu-item ctx-menu-danger" data-action="quitar-comp"><span>✖️</span> Quitar compensación</button>` : ''}
+                ${p.asignacion_id ? `<button class="ctx-menu-item ctx-menu-danger" data-action="eliminar"><span>🗑️</span> Eliminar turno</button>` : ''}
             `);
 
-            el.querySelector('[data-action="eliminar"]').onclick = async () => {
+            el.querySelector('[data-action="compensacion"]').onclick = async () => {
+                cerrarMenu();
+                if (!fechaEvento) return;
+                await asignarCompensacionPlanif({ userId: p.user_id, nombre: event.getResources?.()[0]?.title || '', fecha: fechaEvento });
+            };
+
+            const btnQuitar = el.querySelector('[data-action="quitar-comp"]');
+            if (btnQuitar) btnQuitar.onclick = async () => {
+                cerrarMenu();
+                const ok = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Quitar compensación',
+                    text: `¿Quitar la ${p.compensacion_label} de este día? Las horas volverán a la bolsa del trabajador.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Quitar',
+                    confirmButtonColor: '#b91c1c'
+                }).then(r => r.isConfirmed);
+                if (!ok) return;
+                try {
+                    const res = await fetch(`${CONFIG.routes.compensacionBase}/${p.compensacion_id}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CONFIG.csrf, Accept: 'application/json' }
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || data.success === false) throw new Error(data.error || `HTTP ${res.status}`);
+                    Swal.fire({ icon: 'success', title: 'Compensación quitada', timer: 1300, showConfirmButton: false });
+                    inicializarCalendario();
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'No se pudo quitar la compensación' });
+                }
+            };
+
+            const btnEliminar = el.querySelector('[data-action="eliminar"]');
+            if (btnEliminar) btnEliminar.onclick = async () => {
                 cerrarMenu();
                 const ok = await Swal.fire({
                     icon: 'warning',
@@ -184,11 +227,131 @@
             };
         }
 
+        // ===== Compensación de horas desde la planificación (oficina) =====
+        const fmtSaldoComp = (v) => {
+            const n = Number(v) || 0;
+            const abs = Math.abs(n);
+            const txt = Number.isInteger(abs) ? String(abs) : abs.toFixed(2).replace('.', ',').replace(/,?0+$/, '');
+            return (n > 0 ? '+' : (n < 0 ? '−' : '')) + txt + ' h';
+        };
+        const claseSaldoComp = (v) => (Number(v) > 0 ? 'text-emerald-600' : (Number(v) < 0 ? 'text-red-600' : 'text-gray-500'));
+
+        // Modal con stepper (+/-) y saldo en vivo; devuelve { horas, comentario } o null
+        async function abrirModalCompensacionPlanif({ userId, nombre, fecha }) {
+            let saldo;
+            try {
+                const r = await fetch(`${CONFIG.routes.compensacionSaldo}?user_id=${userId}`, { headers: { Accept: 'application/json' } });
+                if (!r.ok) throw new Error(`No se pudo consultar la bolsa (HTTP ${r.status})`);
+                saldo = await r.json();
+            } catch (e) {
+                Swal.fire({ icon: 'error', title: 'Error', text: e.message });
+                return null;
+            }
+            const max = Number(saldo.horas_max) || 12;
+            const saldoActual = Number(saldo.saldo) || 0;
+            const maxPedir = Math.max(0, Math.floor(saldoActual));
+            const fechaFmt = new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+            const { value, isConfirmed } = await Swal.fire({
+                title: '<span style="font-size:1.1rem">Compensación de horas</span>',
+                html: `
+                    <div class="text-left text-sm">
+                        <p class="text-gray-600 mb-3">${nombre ? `<strong>${nombre}</strong> · ` : ''}${fechaFmt}</p>
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            <div class="bg-gray-50 rounded-lg p-2">
+                                <div class="text-gray-500">Bolsa actual</div>
+                                <div class="font-bold text-base ${claseSaldoComp(saldoActual)}">${fmtSaldoComp(saldoActual)}</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-2">
+                                <div class="text-gray-500">Bolsa tras la compensación</div>
+                                <div id="pc-resultante" class="font-bold text-base"></div>
+                                <div id="pc-aviso" class="text-red-600 text-[11px] hidden">Sin saldo: solo se pueden reconocer horas extra (+)</div>
+                            </div>
+                        </div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Horas a compensar</label>
+                        <div class="flex items-center justify-center gap-3 mb-1">
+                            <button type="button" id="pc-menos" class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xl font-bold leading-none">−</button>
+                            <div id="pc-horas" class="w-24 text-center text-2xl font-bold"></div>
+                            <button type="button" id="pc-mas" class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-xl font-bold leading-none">+</button>
+                        </div>
+                        <p id="pc-explica" class="text-center text-xs text-gray-500 mb-3"></p>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="pc-comentario">Comentario (opcional)</label>
+                        <textarea id="pc-comentario" rows="2" maxlength="500" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-sm"></textarea>
+                        <p class="text-[11px] text-gray-400 mt-2">Ese día contará en la bolsa por estas horas, no por el fichaje. La bolsa no puede quedar en negativo.</p>
+                    </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Asignar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#0d9488',
+                focusConfirm: false,
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    let horas = maxPedir > 0 ? -1 : 1;
+                    const txt = popup.querySelector('#pc-horas');
+                    const res = popup.querySelector('#pc-resultante');
+                    const aviso = popup.querySelector('#pc-aviso');
+                    const explica = popup.querySelector('#pc-explica');
+                    const pintar = () => {
+                        txt.textContent = fmtSaldoComp(horas);
+                        txt.className = 'w-24 text-center text-2xl font-bold ' + claseSaldoComp(horas);
+                        const resultante = saldoActual + horas;
+                        res.textContent = fmtSaldoComp(resultante);
+                        res.className = 'font-bold text-base ' + claseSaldoComp(resultante);
+                        aviso.classList.toggle('hidden', maxPedir > 0);
+                        explica.textContent = horas < 0
+                            ? `El trabajador se toma ${Math.abs(horas)} hora${Math.abs(horas) === 1 ? '' : 's'} libre${Math.abs(horas) === 1 ? '' : 's'} (restan de la bolsa)`
+                            : `Se le reconocen ${horas} hora${horas === 1 ? '' : 's'} extra (suman a la bolsa)`;
+                        popup.dataset.horas = String(horas);
+                    };
+                    const paso = (delta) => {
+                        let n = horas + delta;
+                        if (n === 0) n = delta > 0 ? 1 : -1;
+                        const minimo = -Math.min(max, maxPedir);
+                        if (n < 0 && minimo === 0) n = 1;
+                        horas = Math.max(minimo, Math.min(max, n));
+                        pintar();
+                    };
+                    popup.querySelector('#pc-menos').addEventListener('click', () => paso(-1));
+                    popup.querySelector('#pc-mas').addEventListener('click', () => paso(1));
+                    pintar();
+                },
+                preConfirm: () => {
+                    const popup = Swal.getPopup();
+                    const horas = Number(popup.dataset.horas);
+                    if (!horas) { Swal.showValidationMessage('Indica las horas a compensar.'); return false; }
+                    if (horas < 0 && saldoActual + horas < 0) { Swal.showValidationMessage('La bolsa no puede quedar en negativo.'); return false; }
+                    return { horas, comentario: (popup.querySelector('#pc-comentario')?.value || '').trim() };
+                }
+            });
+            return isConfirmed ? value : null;
+        }
+
+        async function asignarCompensacionPlanif({ userId, nombre, fecha }) {
+            const datos = await abrirModalCompensacionPlanif({ userId, nombre, fecha });
+            if (!datos) return false;
+            try {
+                const res = await fetch(CONFIG.routes.compensacionAsignarDirecto, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CONFIG.csrf, Accept: 'application/json' },
+                    body: JSON.stringify({ user_id: userId, fecha, horas: datos.horas, comentario: datos.comentario })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.error || (data.errors ? Object.values(data.errors).flat().join(' ') : `HTTP ${res.status}`));
+                Swal.fire({ icon: 'success', title: 'Compensación asignada', text: data.message || '', timer: 1500, showConfirmButton: false });
+                inicializarCalendario();
+                return true;
+            } catch (e) {
+                Swal.fire({ icon: 'error', title: 'No se pudo asignar', text: e.message });
+                return false;
+            }
+        }
+
         // Comprueba si un trabajador ya tiene una asignacion (turno o estado) en una fecha
         function tieneAsignacionEseDia(resourceId, fecha, calendar) {
             return calendar.getEvents().some((e) => {
                 const p = e.extendedProps || {};
                 if (p.es_festivo) return false;
+                if (!p.asignacion_id) return false; // compensación suelta: no bloquea crear el turno
                 if (String(p.user_id) !== String(resourceId)) return false;
                 if (!e.start) return false;
                 const d = e.start;
@@ -231,10 +394,19 @@
             }).join('');
 
             let turnoSeleccionado = null;
+            let pedirCompensacion = false;
             await Swal.fire({
                 title: 'Asignar turno',
                 html: `<div style="font-size:13px;color:#6b7280;margin-bottom:10px">${resource.title} &middot; ${fechaFmt}</div>
-                       <div style="display:flex;flex-direction:column;gap:8px">${opciones}</div>`,
+                       <div style="display:flex;flex-direction:column;gap:8px">${opciones}</div>
+                       <div style="border-top:1px solid #e5e7eb;margin-top:12px;padding-top:10px">
+                           <button type="button" id="opt-compensacion"
+                               style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #99f6e4;border-radius:8px;background:#f0fdfa;cursor:pointer;text-align:left;width:100%">
+                               <span style="width:14px;height:14px;border-radius:50%;background:#0d9488;flex:0 0 auto"></span>
+                               <span style="font-weight:600;color:#115e59">Compensación de horas (sin turno)</span>
+                               <span style="margin-left:auto;color:#6b7280;font-size:12px">día libre con bolsa</span>
+                           </button>
+                       </div>`,
                 showConfirmButton: false,
                 showCancelButton: true,
                 cancelButtonText: 'Cancelar',
@@ -244,8 +416,14 @@
                         btn.addEventListener('mouseleave', () => { btn.style.background = '#fff'; });
                         btn.addEventListener('click', () => { turnoSeleccionado = btn.dataset.id; Swal.close(); });
                     });
+                    Swal.getPopup().querySelector('#opt-compensacion')?.addEventListener('click', () => { pedirCompensacion = true; Swal.close(); });
                 }
             });
+
+            if (pedirCompensacion) {
+                await asignarCompensacionPlanif({ userId: resource.id, nombre: resource.title, fecha });
+                return;
+            }
 
             if (!turnoSeleccionado) return; // cancelado
 
@@ -448,9 +626,26 @@
                         };
                         const horas = document.createElement('div');
                         horas.className = 'text-[10px] text-gray-600 dark:text-gray-300 font-medium mt-0.5';
-                        horas.innerHTML = `<span title="Horas trabajadas esta semana">S: ${fmtH(props.horas_semana)}h</span>` +
-                            ` · <span title="Horas trabajadas este mes">M: ${fmtH(props.horas_mes)}h</span>`;
+                        horas.innerHTML = `<span title="Horas fichadas esta semana (previstas: ${fmtH(props.previstas_semana)}h)">S: ${fmtH(props.horas_semana)}h</span>` +
+                            ` · <span title="Horas fichadas este mes">M: ${fmtH(props.horas_mes)}h</span>`;
                         texto.appendChild(horas);
+
+                        // Bolsa de horas: saldo acumulado de horas extra (+) / devueltas (-)
+                        const fmtSaldo = (v) => {
+                            const n = Number(v) || 0;
+                            return (n > 0 ? '+' : (n < 0 ? '-' : '')) + fmtH(Math.abs(n)) + 'h';
+                        };
+                        const bolsaN = Number(props.bolsa) || 0;
+                        const bolsa = document.createElement('div');
+                        bolsa.className = 'text-[10px] font-semibold mt-0.5 ' +
+                            (bolsaN > 0 ? 'text-emerald-600 dark:text-emerald-400' : (bolsaN < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'));
+                        const saldoSemanaN = Number(props.saldo_semana) || 0;
+                        bolsa.title = `Bolsa de horas desde ${props.bolsa_desde || ''}: ` +
+                            `${fmtH(props.bolsa_extra)}h extra, ${fmtH(props.bolsa_devueltas)}h devueltas. ` +
+                            `Saldo de esta semana: ${fmtSaldo(saldoSemanaN)}`;
+                        bolsa.innerHTML = `Bolsa: ${fmtSaldo(bolsaN)}` +
+                            (saldoSemanaN !== 0 ? ` <span class="font-normal opacity-75">(sem. ${fmtSaldo(saldoSemanaN)})</span>` : '');
+                        texto.appendChild(bolsa);
 
                         a.appendChild(avatar);
                         a.appendChild(texto);
@@ -540,6 +735,10 @@
                     }
                     if (p.entrada2 || p.salida2) {
                         fichajesHtml += `<span class="${badgeFichaje}">${iconoReloj}${p.entrada2 || '--'} / ${p.salida2 || '--'}</span>`;
+                    }
+                    if (p.compensacion_label) {
+                        const compNeg = Number(p.compensacion_horas) < 0;
+                        fichajesHtml += `<span class="inline-flex items-center rounded px-1 mt-0.5 text-[10px] leading-tight font-semibold ${compNeg ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}" title="Compensación de horas aprobada: cuenta en la bolsa por estas horas, no por el fichaje">${p.compensacion_label}</span>`;
                     }
 
                     return {

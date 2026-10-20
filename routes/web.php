@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\VacacionesController;
+use App\Http\Controllers\CompensacionHorasController;
 use App\Http\Controllers\AsignacionTurnoController;
 use App\Http\Controllers\NominaController;
 use App\Http\Controllers\FestivoController;
@@ -111,9 +112,20 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::get('/vacaciones/sobrantes-anio-anterior/{user}', [VacacionesController::class, 'sobrantesAnioAnterior'])->name('vacaciones.sobrantesAnioAnterior');
     Route::resource('vacaciones', VacacionesController::class);
 
+    // === COMPENSACIÓN DE HORAS (bolsa de horas) ===
+    Route::get('/compensaciones-horas/saldo', [CompensacionHorasController::class, 'saldo'])->name('compensaciones.saldo');
+    Route::get('/compensaciones-horas/mis-pendientes', [CompensacionHorasController::class, 'misPendientes'])->name('compensaciones.misPendientes');
+    Route::post('/compensaciones-horas/solicitar', [CompensacionHorasController::class, 'store'])->name('compensaciones.solicitar');
+    Route::post('/compensaciones-horas/asignar-directo', [CompensacionHorasController::class, 'asignarDirecto'])->name('compensaciones.asignarDirecto');
+    Route::post('/compensaciones-horas/{id}/aprobar', [CompensacionHorasController::class, 'aprobar'])->name('compensaciones.aprobar');
+    Route::post('/compensaciones-horas/{id}/denegar', [CompensacionHorasController::class, 'denegar'])->name('compensaciones.denegar');
+    Route::delete('/compensaciones-horas/{id}', [CompensacionHorasController::class, 'eliminar'])->name('compensaciones.eliminar');
+
     // === AJUSTES (Turnos y Festivos) ===
     Route::get('/ajustes', [AjustesController::class, 'index'])->name('ajustes.index');
     Route::post('/ajustes/visibilidad', [AjustesController::class, 'actualizarVisibilidad'])->name('ajustes.visibilidad');
+    Route::post('/ajustes/vacaciones', [AjustesController::class, 'actualizarVacaciones'])->name('ajustes.vacaciones');
+    Route::post('/ajustes/bolsa-horas', [AjustesController::class, 'actualizarBolsaHoras'])->name('ajustes.bolsaHoras');
 
     // === TURNOS Y ASIGNACIONES ===
     Route::resource('turnos', TurnoController::class);

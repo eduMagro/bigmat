@@ -13,6 +13,91 @@
             @endif
         </div>
 
+        {{-- Solicitudes de compensación de horas pendientes --}}
+        <div id="seccion-compensaciones">
+            <h3 class="text-xl font-semibold text-blue-700 mb-1">Compensaciones de horas pendientes</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Horas negativas: el trabajador se las toma libres y restan de su bolsa. Horas positivas: se le reconocen y suman.
+                Un día con compensación aprobada cuenta en la bolsa por esas horas y no por su fichaje. La bolsa no puede quedar en negativo.
+            </p>
+            @if ($compensacionesPendientes->isEmpty())
+                <p class="text-gray-600 dark:text-gray-400">No hay compensaciones pendientes.</p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow text-sm">
+                        <thead class="bg-gray-100 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Empleado</th>
+                                <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Día</th>
+                                <th class="px-4 py-2 text-right text-gray-800 dark:text-gray-100">Horas</th>
+                                <th class="px-4 py-2 text-right text-gray-800 dark:text-gray-100">Bolsa actual</th>
+                                <th class="px-4 py-2 text-right text-gray-800 dark:text-gray-100">Bolsa tras aprobar</th>
+                                <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Comentario</th>
+                                <th class="px-4 py-2 text-left text-gray-800 dark:text-gray-100">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($compensacionesPendientes as $c)
+                                @php
+                                    $fmtSaldo = fn($v) => ((float) $v > 0 ? '+' : ((float) $v < 0 ? '−' : '')) . rtrim(rtrim(number_format(abs((float) $v), 2, ',', '.'), '0'), ',') . ' h';
+                                    $claseSaldo = fn($v) => (float) $v > 0 ? 'text-emerald-600 dark:text-emerald-400' : ((float) $v < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500');
+                                @endphp
+                                <tr class="border-t border-gray-200 dark:border-gray-700 compensacion-row" data-compensacion-id="{{ $c->id }}">
+                                    <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
+                                        <a href="{{ route('users.show', $c->user_id) }}" class="hover:underline">{{ $c->user->nombre_completo ?? $c->user->name }}</a>
+                                        @if ($c->user->categoria)
+                                            <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">{{ $c->user->categoria->nombre }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-800 dark:text-gray-100">{{ $c->fecha->format('d/m/Y') }}</td>
+                                    <td class="px-4 py-2 text-right font-semibold {{ $claseSaldo($c->horas) }}">{{ $c->etiquetaHoras() }}</td>
+                                    <td class="px-4 py-2 text-right {{ $claseSaldo($c->bolsa_saldo) }}">{{ $fmtSaldo($c->bolsa_saldo) }}</td>
+                                    <td class="px-4 py-2 text-right font-semibold {{ $claseSaldo($c->bolsa_resultante) }}">{{ $fmtSaldo($c->bolsa_resultante) }}</td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-xs">{{ $c->comentario ?: '—' }}</td>
+                                    <td class="px-4 py-2 whitespace-nowrap">
+                                        <button type="button" onclick="resolverCompensacion({{ $c->id }}, 'aprobar', this)"
+                                            class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Aprobar</button>
+                                        <button type="button" onclick="resolverCompensacion({{ $c->id }}, 'denegar', this)"
+                                            class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 ml-2">Denegar</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+
+        <script>
+            async function resolverCompensacion(id, accion, btn) {
+                const row = btn.closest('tr');
+                const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                row.querySelectorAll('button').forEach((b) => (b.disabled = true));
+                const textoOriginal = btn.textContent;
+                btn.textContent = 'Procesando...';
+                try {
+                    const res = await fetch(`{{ url('/compensaciones-horas') }}/${id}/${accion}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, Accept: 'application/json' },
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                    row.remove();
+                    const tbody = document.querySelector('#seccion-compensaciones tbody');
+                    if (tbody && !tbody.querySelector('tr')) {
+                        document.querySelector('#seccion-compensaciones .overflow-x-auto').outerHTML =
+                            '<p class="text-gray-600 dark:text-gray-400">No hay compensaciones pendientes.</p>';
+                    }
+                    if (window.Swal) Swal.fire({ icon: 'success', title: accion === 'aprobar' ? 'Aprobada' : 'Denegada', text: data.message || '', timer: 1800, showConfirmButton: false });
+                } catch (e) {
+                    row.querySelectorAll('button').forEach((b) => (b.disabled = false));
+                    btn.textContent = textoOriginal;
+                    if (window.Swal) Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'No se pudo procesar la solicitud.' });
+                    else alert(e.message || 'No se pudo procesar la solicitud.');
+                }
+            }
+        </script>
+
         {{-- Calendario de vacaciones --}}
         <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">

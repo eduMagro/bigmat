@@ -384,7 +384,12 @@ class ProfileController extends Controller
                 'eliminarSolicitudUrl' => url('/vacaciones/solicitud'),
                 'eliminarDiasSolicitudUrl' => route('vacaciones.eliminarDiasSolicitud'),
                 'eliminarEstadoVacacionesUrl' => route('vacaciones.eliminarEvento'),
+                'compensacionSaldoUrl' => route('compensaciones.saldo'),
+                'compensacionStoreUrl' => route('compensaciones.solicitar'),
+                'compensacionEliminarUrl' => url('/compensaciones-horas'),
+                'compensacionAsignarDirectoUrl' => route('compensaciones.asignarDirecto'),
             ],
+            'vacacionesSemanasCompletas' => \App\Models\Configuracion::getBool('vacaciones_semanas_completas', false),
             'enableListMonth' => true,
             'mobileBreakpoint' => 768,
             'permissions' => [
@@ -1103,6 +1108,9 @@ class ProfileController extends Controller
 
         $eventos = $eventos->merge($vacaciones);
 
+        // 6. Compensaciones de horas (pendientes y aprobadas)
+        $eventos = $eventos->merge($this->eventosCompensaciones($user));
+
         return response()->json($eventos);
     }
 
@@ -1271,7 +1279,48 @@ class ProfileController extends Controller
             }
         }
 
+        // Compensaciones de horas del rango (pendientes y aprobadas)
+        $eventos = array_merge($eventos, $this->eventosCompensaciones($user, $fechaInicio, $fechaFin));
+
         return $eventos;
+    }
+
+    /**
+     * Eventos de calendario de las compensaciones de horas del usuario (pendientes y aprobadas).
+     * Negativas: el trabajador se toma horas libres. Positivas: se le reconocen horas.
+     */
+    private function eventosCompensaciones(User $user, ?Carbon $fechaInicio = null, ?Carbon $fechaFin = null): array
+    {
+        $q = \App\Models\CompensacionHoras::where('user_id', $user->id)
+            ->whereIn('estado', ['pendiente', 'aprobada']);
+
+        if ($fechaInicio && $fechaFin) {
+            $q->whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()]);
+        }
+
+        return $q->get()->map(function ($c) {
+            $pendiente = $c->estado === 'pendiente';
+            $fechaStr = $c->fecha->toDateString();
+
+            return [
+                'id' => 'comp-' . $c->id,
+                'title' => $c->tituloCalendario(),
+                'start' => $fechaStr,
+                'allDay' => true,
+                'backgroundColor' => $pendiente ? '#fef3c7' : '#0d9488',
+                'borderColor' => $pendiente ? '#f59e0b' : '#0f766e',
+                'textColor' => $pendiente ? '#000000' : '#ffffff',
+                'extendedProps' => [
+                    'compensacion_id' => $c->id,
+                    'es_compensacion' => true,
+                    'estado' => $c->estado,
+                    'fecha' => $fechaStr,
+                    'horas' => $c->horas,
+                    'etiqueta_horas' => $c->etiquetaHoras(),
+                    'comentario' => $c->comentario,
+                ],
+            ];
+        })->values()->all();
     }
 
     public function destroy(Request $request, $id)
