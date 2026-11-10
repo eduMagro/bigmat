@@ -1350,13 +1350,13 @@ class ProfileController extends Controller
     }
 
     /**
-     * Eventos de calendario de las solicitudes de horas del usuario (pendientes y aprobadas).
+     * Eventos de calendario de las solicitudes de horas del usuario (pendientes, aprobadas y denegadas).
      * Positivas: horas extra que se le reconocen. Negativas: compensación (horas libres).
      */
     private function eventosCompensaciones(User $user, ?Carbon $fechaInicio = null, ?Carbon $fechaFin = null): array
     {
         $q = \App\Models\CompensacionHoras::where('user_id', $user->id)
-            ->whereIn('estado', ['pendiente', 'aprobada']);
+            ->whereIn('estado', ['pendiente', 'aprobada', 'denegada']);
 
         if ($fechaInicio && $fechaFin) {
             $q->whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()]);
@@ -1364,6 +1364,7 @@ class ProfileController extends Controller
 
         return $q->get()->map(function ($c) {
             $pendiente = $c->estado === 'pendiente';
+            $denegada = $c->estado === 'denegada';
             $fechaStr = $c->fecha->toDateString();
 
             return [
@@ -1371,9 +1372,9 @@ class ProfileController extends Controller
                 'title' => $c->tituloCalendario(),
                 'start' => $fechaStr,
                 'allDay' => true,
-                'backgroundColor' => $pendiente ? '#fef3c7' : ($c->esExtra() ? '#059669' : '#0d9488'),
-                'borderColor' => $pendiente ? '#f59e0b' : ($c->esExtra() ? '#047857' : '#0f766e'),
-                'textColor' => $pendiente ? '#000000' : '#ffffff',
+                'backgroundColor' => $denegada ? '#fee2e2' : ($pendiente ? '#fef3c7' : ($c->esExtra() ? '#059669' : '#0d9488')),
+                'borderColor' => $denegada ? '#dc2626' : ($pendiente ? '#f59e0b' : ($c->esExtra() ? '#047857' : '#0f766e')),
+                'textColor' => $denegada ? '#7f1d1d' : ($pendiente ? '#000000' : '#ffffff'),
                 'extendedProps' => [
                     'compensacion_id' => $c->id,
                     'es_compensacion' => true,

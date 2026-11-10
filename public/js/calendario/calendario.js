@@ -1575,7 +1575,7 @@
                 eventos.forEach(ev => {
                     const props = ev.extendedProps || {};
                     if (props.es_compensacion) {
-                        if (props.fecha === fechaInicio) {
+                        if (props.fecha === fechaInicio && props.estado !== 'denegada') {
                             compensacionExistente = {
                                 id: props.compensacion_id,
                                 minutos: Number(props.minutos) || 0,
@@ -2481,6 +2481,7 @@
                 if (props.es_compensacion) {
                     const compId = props.compensacion_id;
                     const esPendiente = props.estado === 'pendiente';
+                    const esDenegada = props.estado === 'denegada';
                     const esExtra = Number(props.minutos) > 0;
                     const nombreTipo = esExtra ? 'Horas extra' : 'Compensación';
                     const puedeGestionar = Boolean(permissions.canAssignStates);
@@ -2502,19 +2503,19 @@
                         botones.push(`<button type="button" class="swal2-option-btn px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold" data-value="denegar">Denegar</button>`);
                     }
                     if (puedeGestionar || esPendiente) {
-                        botones.push(`<button type="button" class="swal2-option-btn px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold" data-value="eliminar">${esPendiente ? 'Eliminar solicitud' : (esExtra ? 'Quitar horas extra' : 'Eliminar compensación')}</button>`);
+                        botones.push(`<button type="button" class="swal2-option-btn px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold" data-value="eliminar">${(esPendiente || esDenegada) ? 'Eliminar solicitud' : (esExtra ? 'Quitar horas extra' : 'Eliminar compensación')}</button>`);
                     }
 
                     const { value: accion } = await swalOpciones({
-                        title: `${nombreTipo} · ${esPendiente ? 'pendiente de aprobar' : (esExtra ? 'aprobadas' : 'aprobada')}`,
+                        title: `${nombreTipo} · ${esPendiente ? 'pendiente de aprobar' : (esDenegada ? (esExtra ? 'denegadas' : 'denegada') : (esExtra ? 'aprobadas' : 'aprobada'))}`,
                         html: `
                             <div class="text-left text-sm">
                                 <p class="text-gray-600 mb-2">Día <strong>${fmtFechaLarga(fecha)}</strong></p>
                                 ${fichajeHtml}
                                 <p class="mb-1">Tiempo: <strong class="${claseSaldoHoras(props.minutos)}">${props.etiqueta || fmtSaldoHoras(props.minutos)}</strong>
-                                    <span class="text-gray-500">(${esExtra ? 'horas extra que suman a la bolsa al aprobarse' : 'horas libres que restan de la bolsa'})</span></p>
+                                    <span class="text-gray-500">(${esDenegada ? 'solicitud denegada: no cuenta en la bolsa' : (esExtra ? 'horas extra que suman a la bolsa al aprobarse' : 'horas libres que restan de la bolsa')})</span></p>
                                 ${props.comentario ? `<p class="text-gray-500 italic mb-1">${escHtml(props.comentario)}</p>` : ''}
-                                ${!esPendiente ? '<p class="text-xs text-gray-400 mt-2">Ya cuenta en la bolsa de horas.</p>' : ''}
+                                ${(!esPendiente && !esDenegada) ? '<p class="text-xs text-gray-400 mt-2">Ya cuenta en la bolsa de horas.</p>' : ''}
                                 ${botones.length ? `<div class="flex flex-col gap-2 mt-3">${botones.join('')}</div>` : ''}
                             </div>`,
                     });
@@ -2522,7 +2523,7 @@
                     if (!accion) return;
                     try {
                         if (accion === 'eliminar') {
-                            const ok = await Swal.fire({ icon: 'warning', title: esPendiente ? 'Eliminar solicitud' : `Eliminar ${nombreTipo.toLowerCase()}`, text: esPendiente ? '¿Seguro?' : '¿Seguro? Dejará de contar en la bolsa.', showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c' }).then((r) => r.isConfirmed);
+                            const ok = await Swal.fire({ icon: 'warning', title: (esPendiente || esDenegada) ? 'Eliminar solicitud' : `Eliminar ${nombreTipo.toLowerCase()}`, text: (esPendiente || esDenegada) ? '¿Seguro?' : '¿Seguro? Dejará de contar en la bolsa.', showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c' }).then((r) => r.isConfirmed);
                             if (!ok) return;
                             await peticionCompensacion(`${base}/${compId}`, 'DELETE');
                             Swal.fire('Eliminada', 'La solicitud se ha eliminado.', 'success');
