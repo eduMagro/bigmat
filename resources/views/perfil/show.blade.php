@@ -704,6 +704,12 @@
             boton.querySelector('.texto').textContent = 'Procesando...';
             boton.classList.add('opacity-50', 'cursor-not-allowed');
 
+            // Usuario con fichaje libre (Ajustes): no se pide ni se envía la ubicación
+            if (@json((bool) auth()->user()->fichaje_sin_geolocalizacion)) {
+                procesarFichaje(tipo, null, null, boton, textoOriginal);
+                return;
+            }
+
             obtenerUbicacionParaFichaje(
                 function(position) {
                     const latitud = position.coords.latitude;

@@ -86,6 +86,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'puede_usar_asistente' => 'boolean',
         'puede_modificar_bd' => 'boolean',
+        'fichaje_sin_geolocalizacion' => 'boolean',
         'acepta_politica_privacidad' => 'boolean',
         'acepta_politica_cookies' => 'boolean',
         'fecha_aceptacion_politicas' => 'date',

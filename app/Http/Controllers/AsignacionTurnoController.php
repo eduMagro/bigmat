@@ -362,12 +362,20 @@ class AsignacionTurnoController extends Controller
             $request->validate([
                 'user_id'  => 'required|exists:users,id',
                 'tipo'     => 'required|in:entrada,salida',
-                'latitud'  => 'required|numeric',
-                'longitud' => 'required|numeric',
+                // La ubicación solo es obligatoria si el usuario no tiene fichaje libre (se comprueba abajo)
+                'latitud'  => 'nullable|numeric',
+                'longitud' => 'nullable|numeric',
                 'forzar'   => 'nullable|boolean', // Para confirmar acciones con advertencia
             ]);
 
             $user = User::findOrFail($request->user_id);
+
+            // Fichaje libre de geolocalización (se asigna por usuario desde Ajustes)
+            $sinGeolocalizacion = (bool) $user->fichaje_sin_geolocalizacion;
+
+            if (!$sinGeolocalizacion && (!$request->filled('latitud') || !$request->filled('longitud'))) {
+                return response()->json(['error' => 'No se ha recibido tu ubicación. Activa la ubicación y vuelve a intentarlo.'], 422);
+            }
 
             // Añade el usuario a TODAS las trazas de log de esta petición de fichaje
             Log::withContext([
@@ -385,13 +393,17 @@ class AsignacionTurnoController extends Controller
             }
 
             /* 2) Obra cercana --------------------------------------------------------- */
-            if ($user->email === 'eduardo.magro@pacoreyes.com') {
+            if ($sinGeolocalizacion) {
+                // Sin ubicación no hay obra que detectar: se conserva la que ya tuviera la asignación
+                $obraEncontrada = null;
+                Log::info('Fichaje sin geolocalización (usuario exento)');
+            } elseif ($user->email === 'eduardo.magro@pacoreyes.com') {
                 $obraEncontrada = Obra::first();
             } else {
                 $obraEncontrada = $this->buscarObraCercana($request->latitud, $request->longitud);
             }
 
-            if (!$obraEncontrada) {
+            if (!$obraEncontrada && !$sinGeolocalizacion) {
                 return response()->json(['error' => 'No estás dentro de ninguna zona de trabajo o no hay lugares configurados.'], 403);
             }
 
@@ -466,7 +478,7 @@ class AsignacionTurnoController extends Controller
                 'turno_id' => $turnoModelo->id,
                 'estado'   => 'activo',
                 'entrada'  => $horaActual,
-                'obra_id'  => $obraEncontrada->id,
+                'obra_id'  => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
 
             $this->notificarProgramadores($user, "Turno creado automáticamente ({$turnoDetectado}) para {$user->nombre_completo} en {$fechaTurnoDetectado}.");
@@ -476,14 +488,14 @@ class AsignacionTurnoController extends Controller
             $asignacion->update([
                 'estado'   => 'activo',
                 'entrada'  => $horaActual,
-                'obra_id'  => $obraEncontrada->id,
+                'obra_id'  => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
 
         } elseif ($asignacion->entrada && $asignacion->salida && !$asignacion->entrada2) {
             // === CASO 3: Tiene entrada y salida, sin entrada2 → Registrar entrada2 (turno partido) ===
             $asignacion->update([
                 'entrada2' => $horaActual,
-                'obra_id'  => $obraEncontrada->id,
+                'obra_id'  => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
             $campoActualizado = 'entrada2';
 
@@ -499,7 +511,7 @@ class AsignacionTurnoController extends Controller
             }
             $asignacion->update([
                 'entrada' => $horaActual,
-                'obra_id' => $obraEncontrada->id,
+                'obra_id' => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
 
         } elseif ($asignacion->entrada2 && !$asignacion->salida2) {
@@ -514,7 +526,7 @@ class AsignacionTurnoController extends Controller
             }
             $asignacion->update([
                 'entrada2' => $horaActual,
-                'obra_id'  => $obraEncontrada->id,
+                'obra_id'  => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
             $campoActualizado = 'entrada2';
 
@@ -537,7 +549,7 @@ class AsignacionTurnoController extends Controller
         return response()->json([
             'success'     => $mensaje,
             'warning'     => $warning,
-            'obra_nombre' => $obraEncontrada->obra,
+            'obra_nombre' => $obraEncontrada?->obra ?? 'Sin geolocalización',
             'campo'       => $campoActualizado,
             'estado'      => $this->getEstadoFichaje($asignacion->fresh()),
         ]);
@@ -578,14 +590,14 @@ class AsignacionTurnoController extends Controller
             // Si forzar, registrar salida sin entrada
             $asignacion->update([
                 'salida'  => $horaActual,
-                'obra_id' => $obraEncontrada->id,
+                'obra_id' => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
 
         } elseif ($asignacion->entrada && !$asignacion->salida) {
             // === CASO 3: Tiene entrada sin salida → Registrar salida ===
             $asignacion->update([
                 'salida'  => $horaActual,
-                'obra_id' => $obraEncontrada->id,
+                'obra_id' => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
 
         } elseif ($asignacion->entrada && $asignacion->salida && !$asignacion->entrada2) {
@@ -602,7 +614,7 @@ class AsignacionTurnoController extends Controller
             // === CASO 5: Tiene entrada2 sin salida2 → Registrar salida2 ===
             $asignacion->update([
                 'salida2' => $horaActual,
-                'obra_id' => $obraEncontrada->id,
+                'obra_id' => $obraEncontrada?->id ?? $asignacion?->obra_id,
             ]);
             $campoActualizado = 'salida2';
 
@@ -619,7 +631,7 @@ class AsignacionTurnoController extends Controller
 
         return response()->json([
             'success'     => $mensaje,
-            'obra_nombre' => $obraEncontrada->obra,
+            'obra_nombre' => $obraEncontrada?->obra ?? 'Sin geolocalización',
             'campo'       => $campoActualizado,
             'estado'      => $this->getEstadoFichaje($asignacion->fresh()),
         ]);

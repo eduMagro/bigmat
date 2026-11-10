@@ -126,6 +126,8 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::post('/ajustes/visibilidad', [AjustesController::class, 'actualizarVisibilidad'])->name('ajustes.visibilidad');
     Route::post('/ajustes/vacaciones', [AjustesController::class, 'actualizarVacaciones'])->name('ajustes.vacaciones');
     Route::post('/ajustes/bolsa-horas', [AjustesController::class, 'actualizarBolsaHoras'])->name('ajustes.bolsaHoras');
+    Route::post('/ajustes/fichaje-libre', [AjustesController::class, 'agregarFichajeLibre'])->name('ajustes.fichajeLibre.agregar');
+    Route::delete('/ajustes/fichaje-libre/{user}', [AjustesController::class, 'quitarFichajeLibre'])->name('ajustes.fichajeLibre.quitar');
 
     // === TURNOS Y ASIGNACIONES ===
     Route::resource('turnos', TurnoController::class);

@@ -9,7 +9,9 @@ use App\Models\Obra;
 use App\Models\Categoria;
 use App\Models\AgrupacionTurno;
 use App\Models\Configuracion;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AjustesController extends Controller
 {
@@ -33,7 +35,18 @@ class AjustesController extends Controller
         $bolsaHorasToleranciaMin = \App\Services\ComputoHorasService::toleranciaMinutos();
         $bolsaHorasMinExtra = \App\Services\ComputoHorasService::minutosMinimosExtra();
 
+        // Fichaje libre de geolocalización: exentos actuales y candidatos a añadir
+        $usuariosFichajeLibre = User::where('fichaje_sin_geolocalizacion', true)
+            ->orderBy('name')->orderBy('primer_apellido')
+            ->get();
+        $usuariosCandidatosFichajeLibre = User::where('estado', 'activo')
+            ->where('fichaje_sin_geolocalizacion', false)
+            ->orderBy('name')->orderBy('primer_apellido')
+            ->get();
+
         return view('configuracion.ajustes.index', compact(
+            'usuariosFichajeLibre',
+            'usuariosCandidatosFichajeLibre',
             'turnos',
             'festivos',
             'anioActual',
@@ -96,5 +109,43 @@ class AjustesController extends Controller
         Configuracion::set('bolsa_horas_min_extra', (string) $validated['bolsa_horas_min_extra']);
 
         return back()->with('success', 'Ajustes de la bolsa de horas actualizados correctamente.');
+    }
+
+    /**
+     * Permitir a un usuario fichar sin geolocalización.
+     */
+    public function agregarFichajeLibre(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        $user = User::findOrFail($validated['user_id']);
+        $this->cambiarFichajeLibre($user, true);
+
+        return back()->with('success', "{$user->nombre_completo} ya puede fichar sin geolocalización.");
+    }
+
+    /**
+     * Volver a exigir la geolocalización a un usuario al fichar.
+     */
+    public function quitarFichajeLibre(User $user)
+    {
+        $this->cambiarFichajeLibre($user, false);
+
+        return back()->with('success', "{$user->nombre_completo} vuelve a fichar con geolocalización.");
+    }
+
+    private function cambiarFichajeLibre(User $user, bool $activo): void
+    {
+        // Asignación directa: el campo no es fillable a propósito
+        $user->fichaje_sin_geolocalizacion = $activo;
+        $user->save();
+
+        Log::info('Fichaje sin geolocalización ' . ($activo ? 'activado' : 'desactivado'), [
+            'user_id' => $user->id,
+            'usuario' => $user->nombre_completo,
+            'cambiado_por' => auth()->id(),
+        ]);
     }
 }

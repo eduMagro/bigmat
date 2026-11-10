@@ -458,6 +458,68 @@
                 </div>
             </div>
 
+            <!-- ===== SECCION FICHAJE SIN GEOLOCALIZACION ===== -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Fichaje sin geolocalización</h3>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div class="p-6">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Los usuarios de esta lista pueden fichar entrada y salida <strong>desde cualquier sitio</strong>:
+                            no se les pide la ubicación ni se comprueba que estén dentro del radio de un lugar de trabajo.
+                            El resto sigue fichando con geolocalización.
+                        </p>
+
+                        <form method="POST" action="{{ route('ajustes.fichajeLibre.agregar') }}" class="flex items-start gap-4">
+                            @csrf
+                            <div class="flex-1">
+                                <select name="user_id" required
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring focus:ring-blue-300 focus:border-blue-500">
+                                    <option value="">Selecciona un usuario...</option>
+                                    @foreach($usuariosCandidatosFichajeLibre as $candidato)
+                                        <option value="{{ $candidato->id }}">{{ $candidato->nombre_completo }}</option>
+                                    @endforeach
+                                </select>
+                                @error('user_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg">
+                                Añadir
+                            </button>
+                        </form>
+                    </div>
+
+                    <table class="w-full text-sm">
+                        <tbody>
+                            @forelse($usuariosFichajeLibre as $exento)
+                                <tr class="border-t border-gray-200 dark:border-gray-700">
+                                    <td class="px-4 py-3 text-gray-900 dark:text-gray-100">
+                                        {{ $exento->nombre_completo }}
+                                        @if($exento->estado !== 'activo')
+                                            <span class="text-gray-600 dark:text-gray-400">(no activo)</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <form method="POST" action="{{ route('ajustes.fichajeLibre.quitar', $exento) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-sm font-medium text-red-600">Quitar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr class="border-t border-gray-200 dark:border-gray-700">
+                                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                                        Ningún usuario tiene fichaje libre: todos fichan con geolocalización.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- ===== SECCION EMPRESAS ===== -->
             <div class="mb-8">
                 <div class="flex justify-between items-center mb-4">
