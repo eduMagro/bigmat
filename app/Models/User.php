@@ -52,7 +52,6 @@ class User extends Authenticatable
         'maquina_id',
         'turno',
         'turno_actual',
-        'dias_vacaciones',
         'estado',
         'fecha_baja',
         'updated_by',

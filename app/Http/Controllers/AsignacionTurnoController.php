@@ -574,13 +574,56 @@ class AsignacionTurnoController extends Controller
             $asignacion = $this->buscarAsignacionRecienteParaSalida($user, $ahora);
         }
 
+        // Sin entrada fichada: usar la asignación planificada del día (o del turno en curso,
+        // que de madrugada puede pertenecer al día anterior) aunque no tenga entrada
+        [$turnoDetectado, $fechaTurnoDetectado] = [null, null];
         if (!$asignacion) {
-            // === CASO 1: No existe asignación → No se puede fichar salida ===
+            [$turnoDetectado, $fechaTurnoDetectado] = $this->detectarTurnoYFecha($ahora);
+            $fechas = array_unique(array_filter([$fechaTurnoDetectado, $ahora->toDateString()]));
+
+            foreach ($fechas as $fecha) {
+                $asignacion = $user->asignacionesTurnos()->whereDate('fecha', $fecha)->first();
+                if ($asignacion) {
+                    break;
+                }
+            }
+        }
+
+        if (!$asignacion) {
+            // === CASO 1: No existe asignación → Advertir; si confirma, crear registro solo con salida ===
+            if (!$forzar) {
+                return response()->json([
+                    'warning_confirm' => true,
+                    'titulo'          => 'No has fichado entrada',
+                    'mensaje'         => 'No tienes registro de entrada para hoy. ¿Quieres registrar la salida de todas formas? Se creará un registro solo con la hora de salida.',
+                    'tipo_confirmacion' => 'salida_sin_entrada',
+                ]);
+            }
+
+            $fechaNueva = $fechaTurnoDetectado ?? $ahora->toDateString();
+            $turnoModelo = $turnoDetectado ? Turno::where('nombre', $turnoDetectado)->first() : null;
+
+            $user->asignacionesTurnos()
+                ->onlyTrashed()
+                ->whereDate('fecha', $fechaNueva)
+                ->forceDelete();
+
+            $asignacion = AsignacionTurno::create([
+                'user_id'  => $user->id,
+                'fecha'    => $fechaNueva,
+                'turno_id' => $turnoModelo?->id,
+                'estado'   => 'activo',
+                'salida'   => $horaActual,
+                'obra_id'  => $obraEncontrada?->id,
+            ]);
+
+            $this->notificarProgramadores($user, "Salida sin entrada: registro creado automáticamente para {$user->nombre_completo} en {$fechaNueva}.");
+
             return response()->json([
-                'warning_confirm' => true,
-                'titulo'          => 'No has fichado entrada',
-                'mensaje'         => 'No tienes registro de entrada para hoy. ¿Quieres registrar la salida de todas formas? Se creará un registro solo con la hora de salida.',
-                'tipo_confirmacion' => 'salida_sin_entrada',
+                'success'     => 'Salida registrada (sin entrada).',
+                'obra_nombre' => $obraEncontrada?->obra ?? 'Sin geolocalización',
+                'campo'       => 'salida',
+                'estado'      => $this->getEstadoFichaje($asignacion->fresh()),
             ]);
         }
 
