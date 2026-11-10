@@ -1822,7 +1822,9 @@ class ProfileController extends Controller
                 'salida' => $asignacion?->salida ? substr($asignacion->salida, 0, 5) : null,
                 'entrada2' => $asignacion?->entrada2 ? substr($asignacion->entrada2, 0, 5) : null,
                 'salida2' => $asignacion?->salida2 ? substr($asignacion->salida2, 0, 5) : null,
-                'completo' => $asignacion && $asignacion->entrada && $asignacion->salida,
+                // Incompleto también si hay segunda entrada (turno partido) sin su salida
+                'completo' => $asignacion && $asignacion->entrada && $asignacion->salida
+                    && !($asignacion->entrada2 && !$asignacion->salida2),
             ];
         }
 

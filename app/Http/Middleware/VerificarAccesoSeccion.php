@@ -38,6 +38,7 @@ class VerificarAccesoSeccion
         'usuarios.getVacationData',
         // Fichaje
         'users.fichar',
+        'csrf.token',
         // Vacaciones (solicitar)
         'vacaciones.solicitar',
         'vacaciones.misSolicitudesPendientes',

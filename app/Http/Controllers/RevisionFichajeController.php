@@ -118,6 +118,12 @@ class RevisionFichajeController extends Controller
                 $horasActualizadas = true;
             }
 
+            // Turno partido: rellenar la segunda salida si fichó la segunda entrada y falta
+            if (!empty($asignacion->entrada2) && empty($asignacion->salida2) && $turno->hora_fin2) {
+                $asignacion->salida2 = $turno->hora_fin2;
+                $horasActualizadas = true;
+            }
+
             if ($horasActualizadas) {
                 // Marcar como revisado
                 $asignacion->revisado_at = now();
@@ -176,6 +182,9 @@ class RevisionFichajeController extends Controller
             if (!$asignacion) {
                 $completo = false;
             } elseif (!$entrada || !$salida) {
+                $completo = false;
+            } elseif ($entrada2 && !$salida2) {
+                // Turno partido: segunda entrada sin su salida
                 $completo = false;
             }
 

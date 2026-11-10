@@ -882,6 +882,7 @@
                 const response = await fetch(routes.revisionFichajeStoreUrl, {
                     method: 'POST',
                     headers: {
+                        'Accept': 'application/json',
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                     },
@@ -892,10 +893,13 @@
                     }),
                 });
 
-                const data = await response.json();
+                // Si la sesión caducó, el layout renueva el token y reintenta solo (partials/sesion)
+                const data = window.leerRespuestaJson
+                    ? await window.leerRespuestaJson(response)
+                    : await response.json();
 
                 if (!response.ok || data.error) {
-                    throw new Error(data.error || 'Error al enviar la solicitud');
+                    throw new Error(data.error || data.message || 'Error al enviar la solicitud');
                 }
 
                 Swal.fire({
@@ -910,7 +914,7 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: error.message || 'No se pudo enviar la solicitud.',
+                    text: (window.mensajeErrorFichaje ? window.mensajeErrorFichaje(error) : error.message) || 'No se pudo enviar la solicitud.',
                     confirmButtonColor: '#1e3a5f',
                 });
             }

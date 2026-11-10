@@ -142,6 +142,8 @@ Route::middleware(['auth', 'verified', 'politicas.verificar', 'acceso.verificar'
     Route::delete('/agrupaciones-turnos/{agrupacionesTurno}', [AgrupacionTurnoController::class, 'destroy'])->name('agrupaciones-turnos.destroy');
     Route::patch('/agrupaciones-turnos/{agrupacionesTurno}/toggle', [AgrupacionTurnoController::class, 'toggleActivo'])->name('agrupaciones-turnos.toggle');
     Route::post('/fichar', [AsignacionTurnoController::class, 'fichar'])->name('users.fichar');
+    // Token CSRF fresco para reintentar envíos cuando la sesión caducó (ver partials/sesion.blade.php)
+    Route::get('/csrf-token', fn() => response()->json(['token' => csrf_token()]))->name('csrf.token');
     Route::post('/asignaciones-turno/asignar-obra', [AsignacionTurnoController::class, 'asignarObra'])->name('asignaciones-turnos.asignarObra');
     Route::post('/asignaciones-turno/asignar-multiple', [AsignacionTurnoController::class, 'asignarObraMultiple'])->name('asignaciones-turnos.asignarObraMultiple');
     Route::post('/asignaciones-turno/{id}/actualizar-horas', [AsignacionTurnoController::class, 'actualizarHoras'])->name('asignaciones-turnos.actualizar-horas');

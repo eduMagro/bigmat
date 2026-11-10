@@ -285,9 +285,6 @@
     {{-- Usar script desde public (no migrado a Vite aún) --}}
     <script defer src="{{ asset('js/calendario/calendario.js') }}?v={{ time() }}"></script>
 
-    @include('partials.fichaje-sesion')
-
-
     <script>
         function describirErrorUbicacion(error) {
             switch (error.code) {
