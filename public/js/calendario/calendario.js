@@ -909,6 +909,9 @@
                     confirmButtonColor: '#1e3a5f',
                 });
 
+                // Que la solicitud recién enviada aparezca en el calendario
+                if (calendar) calendar.refetchEvents();
+
             } catch (error) {
                 console.error('Error enviando solicitud:', error);
                 Swal.fire({
@@ -2440,6 +2443,38 @@
                     });
 
                     return; // Salir, no mostrar tooltip normal
+                }
+
+                // --- SOLICITUDES DE REVISION DE FICHAJES: solo informativo ---
+                if (props.es_revision_fichaje) {
+                    const estados = {
+                        pendiente: { texto: 'Pendiente de revisar', bg: '#e0e7ff', borde: '#6366f1', color: '#3730a3' },
+                        resuelta: { texto: 'Aprobada', bg: '#dcfce7', borde: '#16a34a', color: '#166534' },
+                        denegada: { texto: 'Denegada', bg: '#fee2e2', borde: '#dc2626', color: '#7f1d1d' },
+                    };
+                    const est = estados[props.estado_revision] || estados.pendiente;
+                    const fmt = (s) => String(s || '').split('-').reverse().join('/');
+                    const rango = props.fecha_inicio === props.fecha_fin
+                        ? `Día <strong>${fmt(props.fecha_inicio)}</strong>`
+                        : `Del <strong>${fmt(props.fecha_inicio)}</strong> al <strong>${fmt(props.fecha_fin)}</strong>`;
+
+                    Swal.fire({
+                        title: 'Revisión de fichajes',
+                        html: `
+                            <div style="text-align: left; font-size: 14px;">
+                                <div style="background: ${est.bg}; border: 1px solid ${est.borde}; border-radius: 8px; padding: 12px; margin-bottom: 12px; color: ${est.color};">
+                                    <strong>Estado:</strong> ${est.texto}
+                                    ${props.resuelta_en ? `<span style="display:block;font-size:12px;margin-top:2px;">Resuelta el ${escHtml(props.resuelta_en)}</span>` : ''}
+                                </div>
+                                <p style="margin: 0 0 6px 0;">${rango}</p>
+                                ${props.solicitada_en ? `<p style="margin: 0 0 6px 0; color: #6b7280; font-size: 13px;">Solicitada el ${escHtml(props.solicitada_en)}</p>` : ''}
+                                ${props.observaciones ? `<p style="margin: 0 0 6px 0;"><strong>Tus observaciones:</strong> ${escHtml(props.observaciones)}</p>` : ''}
+                                ${props.motivo_denegacion ? `<p style="margin: 0;"><strong>Motivo de la denegación:</strong> ${escHtml(props.motivo_denegacion)}</p>` : ''}
+                            </div>`,
+                        confirmButtonText: 'Cerrar',
+                        confirmButtonColor: '#1e3a5f',
+                    });
+                    return;
                 }
 
                 // --- COMPENSACIONES DE HORAS: gestionar desde el calendario ---

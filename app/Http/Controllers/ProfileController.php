@@ -1111,6 +1111,9 @@ class ProfileController extends Controller
         // 6. Compensaciones de horas (pendientes y aprobadas)
         $eventos = $eventos->merge($this->eventosCompensaciones($user));
 
+        // 7. Solicitudes de revisión de fichajes (pendientes, aprobadas y denegadas)
+        $eventos = $eventos->merge($this->eventosRevisionesFichaje($user));
+
         return response()->json($eventos);
     }
 
@@ -1281,6 +1284,67 @@ class ProfileController extends Controller
 
         // Compensaciones de horas del rango (pendientes y aprobadas)
         $eventos = array_merge($eventos, $this->eventosCompensaciones($user, $fechaInicio, $fechaFin));
+
+        // Solicitudes de revisión de fichajes del rango
+        $eventos = array_merge($eventos, $this->eventosRevisionesFichaje($user, $fechaInicio, $fechaFin));
+
+        return $eventos;
+    }
+
+    /**
+     * Eventos de calendario de las solicitudes de revisión de fichajes del usuario:
+     * pendientes, aprobadas (resueltas) y denegadas. Un evento por cada día del rango pedido.
+     */
+    private function eventosRevisionesFichaje(User $user, ?Carbon $fechaInicio = null, ?Carbon $fechaFin = null): array
+    {
+        $q = \App\Models\RevisionFichajeSolicitud::where('user_id', $user->id);
+
+        if ($fechaInicio && $fechaFin) {
+            $q->whereDate('fecha_inicio', '<=', $fechaFin->toDateString())
+                ->whereDate('fecha_fin', '>=', $fechaInicio->toDateString());
+        }
+
+        $estilos = [
+            'pendiente' => ['titulo' => 'Rev. pendiente', 'bg' => '#e0e7ff', 'border' => '#6366f1', 'text' => '#000000'],
+            'resuelta'  => ['titulo' => 'Rev. aprobada',  'bg' => '#4f46e5', 'border' => '#3730a3', 'text' => '#ffffff'],
+            'denegada'  => ['titulo' => 'Rev. denegada',  'bg' => '#fee2e2', 'border' => '#dc2626', 'text' => '#7f1d1d'],
+        ];
+
+        $eventos = [];
+        foreach ($q->get() as $solicitud) {
+            $estilo = $estilos[$solicitud->estado] ?? $estilos['pendiente'];
+            $inicioStr = $solicitud->fecha_inicio->toDateString();
+            $finStr = $solicitud->fecha_fin->toDateString();
+
+            foreach (CarbonPeriod::create($inicioStr, $finStr) as $fecha) {
+                if ($fechaInicio && $fechaFin && !$fecha->between($fechaInicio, $fechaFin)) {
+                    continue;
+                }
+                $fechaStr = $fecha->format('Y-m-d');
+
+                $eventos[] = [
+                    'id' => 'rev-' . $solicitud->id . '-' . $fechaStr,
+                    'title' => $estilo['titulo'],
+                    'start' => $fechaStr,
+                    'allDay' => true,
+                    'backgroundColor' => $estilo['bg'],
+                    'borderColor' => $estilo['border'],
+                    'textColor' => $estilo['text'],
+                    // "estado_revision" y no "estado": el calendario reserva "estado" para los estados del día
+                    'extendedProps' => [
+                        'es_revision_fichaje' => true,
+                        'revision_id' => $solicitud->id,
+                        'estado_revision' => $solicitud->estado,
+                        'fecha_inicio' => $inicioStr,
+                        'fecha_fin' => $finStr,
+                        'observaciones' => $solicitud->observaciones,
+                        'motivo_denegacion' => $solicitud->motivo_denegacion,
+                        'solicitada_en' => $solicitud->created_at?->format('d/m/Y H:i'),
+                        'resuelta_en' => $solicitud->resuelta_en?->format('d/m/Y H:i'),
+                    ],
+                ];
+            }
+        }
 
         return $eventos;
     }
