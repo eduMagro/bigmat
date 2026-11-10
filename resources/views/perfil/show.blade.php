@@ -662,6 +662,9 @@
     {{-- Usar script desde public (no migrado a Vite aun) --}}
     <script src="{{ asset('js/calendario/calendario.js') }}?v={{ time() }}"></script>
 
+    @include('partials.fichaje-sesion')
+
+
     <script>
         function describirErrorUbicacion(error) {
             switch (error.code) {
@@ -764,12 +767,13 @@
             fetch("{{ url('/fichar') }}", {
                     method: "POST",
                     headers: {
+                        "Accept": "application/json",
                         "Content-Type": "application/json",
                         "X-CSRF-TOKEN": "{{ csrf_token() }}"
                     },
                     body: JSON.stringify(payload)
                 })
-                .then(r => r.json())
+                .then(leerRespuestaFichaje)
                 .then(data => {
                     // Caso: Requiere confirmación del usuario
                     if (data.warning_confirm) {
@@ -816,7 +820,7 @@
                 })
                 .catch(err => {
                     console.error('Error fichaje:', err);
-                    mostrarError('No se pudo comunicar con el servidor');
+                    mostrarError(mensajeErrorFichaje(err));
                     boton.disabled = false;
                     boton.querySelector('.texto').textContent = textoOriginal;
                     boton.classList.remove('opacity-50', 'cursor-not-allowed');

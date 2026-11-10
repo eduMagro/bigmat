@@ -83,6 +83,7 @@ class VacacionesController extends Controller
                 'textColor' => 'white',
                 'allDay' => true,
                 'extendedProps' => [
+                    'asignacion_id' => $asignacion->id,
                     'user_id' => $asignacion->user->id,
                     'categoria' => $asignacion->user->categoria->nombre ?? null,
                 ],
@@ -789,27 +790,40 @@ class VacacionesController extends Controller
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'fecha' => 'required|date',
+            'asignacion_id' => 'nullable|integer',
         ]);
 
-        $asignacion = AsignacionTurno::where('user_id', $validated['user_id'])
-            ->where('fecha', $validated['fecha'])
-            ->where('estado', 'vacaciones')
-            ->first();
+        // Preferimos el id de la asignación (inequívoco); usuario + fecha queda como respaldo
+        $asignacion = null;
+        if (!empty($validated['asignacion_id'])) {
+            $asignacion = AsignacionTurno::where('id', $validated['asignacion_id'])
+                ->where('user_id', $validated['user_id'])
+                ->where('estado', 'vacaciones')
+                ->first();
+        }
 
         if (!$asignacion) {
-            return response()->json(['success' => false, 'error' => 'No se encontró la asignación de vacaciones.']);
+            $asignacion = AsignacionTurno::where('user_id', $validated['user_id'])
+                ->whereDate('fecha', Carbon::parse($validated['fecha'])->toDateString())
+                ->where('estado', 'vacaciones')
+                ->first();
+        }
+
+        if (!$asignacion) {
+            // Ya no es un día de vacaciones (lo quitó otra persona o el calendario estaba
+            // desactualizado): no es un error, el calendario solo tiene que refrescarse.
+            Log::info('Eliminar vacaciones: el día ya no estaba como vacaciones', $validated);
+
+            return response()->json(['success' => true, 'ya_eliminada' => true]);
         }
 
         // Cambiar el estado
         $asignacion->estado = 'activo';
         $asignacion->save();
 
-        // Sumar un día al contador de vacaciones del usuario
-        $usuario = User::find($validated['user_id']);
-        if ($usuario) {
-            $usuario->dias_vacaciones += 1;
-            $usuario->save();
-        }
+        // El saldo de vacaciones se calcula contando las asignaciones en estado "vacaciones",
+        // así que no hay contador que ajustar. (Antes se sumaba a users.dias_vacaciones, una
+        // columna que ya no existe: el día se quitaba pero la petición fallaba con error 500.)
 
         return response()->json(['success' => true]);
     }
@@ -865,6 +879,7 @@ class VacacionesController extends Controller
                     'textColor' => 'white',
                     'allDay' => true,
                     'extendedProps' => [
+                        'asignacion_id' => $asignacion->id,
                         'user_id' => $asignacion->user->id,
                         'categoria' => $asignacion->user->categoria->nombre ?? null,
                     ],

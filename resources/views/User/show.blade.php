@@ -285,6 +285,9 @@
     {{-- Usar script desde public (no migrado a Vite aún) --}}
     <script defer src="{{ asset('js/calendario/calendario.js') }}?v={{ time() }}"></script>
 
+    @include('partials.fichaje-sesion')
+
+
     <script>
         function describirErrorUbicacion(error) {
             switch (error.code) {
@@ -370,12 +373,13 @@
                     fetch("{{ url('/fichar') }}", {
                             method: "POST",
                             headers: {
+                                "Accept": "application/json",
                                 "Content-Type": "application/json",
                                 "X-CSRF-TOKEN": "{{ csrf_token() }}"
                             },
                             body: JSON.stringify(payload)
                         })
-                        .then(r => r.json())
+                        .then(leerRespuestaFichaje)
                         .then(data => {
                             if (data.success) {
                                 Swal.fire({
@@ -390,11 +394,11 @@
                                     window.calendar.refetchEvents();
                                 }
                             } else {
-                                mostrarError(data.error);
+                                mostrarError(data.error || data.mensaje || 'No se pudo registrar el fichaje');
                             }
                         })
                         .catch(err => {
-                            mostrarError('No se pudo comunicar con el servidor');
+                            mostrarError(mensajeErrorFichaje(err));
                         });
                 }
 

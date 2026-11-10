@@ -604,14 +604,20 @@ function inicializarCalendario(cfg) {
                             body: JSON.stringify({
                                 user_id: userId,
                                 fecha: info.event.startStr,
+                                asignacion_id: info.event.extendedProps.asignacion_id || null,
                             }),
                         })
                             .then((res) => res.json())
                             .then((data) => {
                                 if (data.success) {
-                                    info.event.remove();
                                     usuariosCache = null;
-                                    window.Swal.fire('Eliminado', 'Vacaciones eliminadas correctamente.', 'success');
+                                    // Recargar desde el servidor para que el calendario no quede desactualizado
+                                    calendar.refetchEvents();
+                                    if (data.ya_eliminada) {
+                                        window.Swal.fire('Ya estaba eliminado', 'Ese día ya no figuraba como vacaciones. El calendario se ha actualizado.', 'info');
+                                    } else {
+                                        window.Swal.fire('Eliminado', 'Vacaciones eliminadas correctamente.', 'success');
+                                    }
                                 } else {
                                     mostrarError(data.error || 'No se pudo eliminar');
                                 }

@@ -368,6 +368,15 @@ class AsignacionTurnoController extends Controller
                 'forzar'   => 'nullable|boolean', // Para confirmar acciones con advertencia
             ]);
 
+            // Cada uno ficha solo por sí mismo: el user_id recibido debe ser el del usuario conectado
+            if ((int) $request->user_id !== (int) auth()->id()) {
+                Log::warning('Intento de fichar por otro usuario', [
+                    'autenticado' => auth()->id(),
+                    'user_id_recibido' => $request->user_id,
+                ]);
+                return response()->json(['error' => 'Solo puedes fichar por ti mismo.'], 403);
+            }
+
             $user = User::findOrFail($request->user_id);
 
             // Fichaje libre de geolocalización (se asigna por usuario desde Ajustes)
@@ -397,14 +406,12 @@ class AsignacionTurnoController extends Controller
                 // Sin ubicación no hay obra que detectar: se conserva la que ya tuviera la asignación
                 $obraEncontrada = null;
                 Log::info('Fichaje sin geolocalización (usuario exento)');
-            } elseif ($user->email === 'eduardo.magro@pacoreyes.com') {
-                $obraEncontrada = Obra::first();
             } else {
                 $obraEncontrada = $this->buscarObraCercana($request->latitud, $request->longitud);
             }
 
             if (!$obraEncontrada && !$sinGeolocalizacion) {
-                return response()->json(['error' => 'No estás dentro de ninguna zona de trabajo o no hay lugares configurados.'], 403);
+                return response()->json(['error' => $this->mensajeFueraDeZona()], 403);
             }
 
             /* 3) Hora actual ------------------------------------------------------------- */
@@ -822,6 +829,31 @@ class AsignacionTurnoController extends Controller
         return [null, null];
     }
 
+    /** Lugar más cercano visto en la última búsqueda, esté o no dentro de su radio. */
+    private ?array $lugarMasCercano = null;
+
+    /**
+     * Mensaje para quien ficha fuera de zona: indica a qué distancia está del lugar
+     * más cercano, para distinguir una ubicación imprecisa de un radio corto.
+     */
+    private function mensajeFueraDeZona(): string
+    {
+        if ($this->lugarMasCercano === null) {
+            return 'No hay lugares de trabajo configurados con coordenadas. Avisa a tu responsable.';
+        }
+
+        $formatear = fn(float $m) => $m >= 1000
+            ? number_format($m / 1000, 1, ',', '.') . ' km'
+            : round($m) . ' m';
+
+        return sprintf(
+            'No estás dentro de ninguna zona de trabajo. El lugar más cercano (%s) está a %s y solo se puede fichar a menos de %s. Si estás allí, tu dispositivo no está dando una ubicación precisa: activa el GPS y vuelve a intentarlo.',
+            $this->lugarMasCercano['nombre'],
+            $formatear($this->lugarMasCercano['distancia']),
+            $formatear((float) $this->lugarMasCercano['radio'])
+        );
+    }
+
     /**
      * Devuelve la obra más cercana dentro de su radio permitido.
      * Busca en TODAS las obras que tengan coordenadas definidas.
@@ -844,6 +876,15 @@ class AsignacionTurnoController extends Controller
 
             // Usar el radio de la obra o el default si no tiene
             $radioPermitido = $obra->distancia ?? $radioDefault;
+
+            // Recordar la más cercana aunque esté fuera de radio (para el mensaje de error)
+            if ($this->lugarMasCercano === null || $dist < $this->lugarMasCercano['distancia']) {
+                $this->lugarMasCercano = [
+                    'nombre' => $obra->obra,
+                    'distancia' => $dist,
+                    'radio' => $radioPermitido,
+                ];
+            }
 
             // Si esta dentro del rango permitido
             if ($dist <= $radioPermitido) {
